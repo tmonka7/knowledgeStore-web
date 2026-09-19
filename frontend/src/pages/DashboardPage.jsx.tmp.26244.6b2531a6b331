@@ -1,0 +1,554 @@
+import {
+  Avatar,
+  Button,
+  Card,
+  Col,
+  Dropdown,
+  Form,
+  Input,
+  Layout,
+  Menu,
+  Modal,
+  Row,
+  Space,
+  Tag,
+  TreeSelect,
+  Typography,
+  message,
+} from 'antd';
+import {
+  AppstoreOutlined,
+  BarChartOutlined,
+  BellOutlined,
+  CopyOutlined,
+  DatabaseOutlined,
+  CameraOutlined,
+  DashboardOutlined,
+  MailOutlined,
+  MessageOutlined,
+  PaperClipOutlined,
+  TeamOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { asBlob } from 'html-docx-js-typescript';
+import { useState } from 'react';
+import ReactQuill from 'react-quill';
+import OverviewPage from './OverviewPage';
+import RecordsPage from './RecordsPage';
+import CategoriesPage from './CategoriesPage';
+import UsersPage from './UsersPage';
+import SystemMonitorPage from './SystemMonitorPage';
+import ChatPage from './ChatPage';
+import MailPage from './MailPage';
+import CamerasPage from './CamerasPage';
+
+const { Header, Content, Footer, Sider } = Layout;
+const { Title, Text } = Typography;
+
+const copyHtmlWithStyles = (htmlContent) => {
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+
+  const html = tempDiv.innerHTML;
+  const blob = new Blob([html], { type: 'text/html' });
+  const data = [new ClipboardItem({ 'text/html': blob })];
+
+  navigator.clipboard.write(data).then(() => {
+    message.success('Content copied with styles preserved!');
+  }).catch(() => {
+    const plainText = tempDiv.innerText;
+    navigator.clipboard.writeText(plainText).then(() => {
+      message.success('Content copied!');
+    });
+  });
+};
+
+const getApiOrigin = () => {
+  return (import.meta.env.VITE_API_URL || 'http://127.0.0.1:4000/api').replace(/\/api$/, '');
+};
+
+const resolveAttachmentUrl = (attachment) => {
+  if (!attachment) return '';
+  if (/^https?:\/\//i.test(attachment)) return attachment;
+  const apiOrigin = getApiOrigin();
+  return `${apiOrigin}${attachment.startsWith('/') ? '' : '/'}${attachment}`;
+};
+
+const categoryTreeData = (items = []) => items.map((item) => ({
+  title: item.name,
+  value: item.id,
+  key: item.id,
+  children: categoryTreeData(item.children || []),
+}));
+
+export default function DashboardPage({
+  user,
+  users,
+  records,
+  categories,
+  cameras,
+  setCameras,
+  activeKey,
+  setActiveKey,
+  logout,
+  selectedRecord,
+  setSelectedRecord,
+  editingRecord,
+  setEditingRecord,
+  summaryCards,
+  overviewChartData,
+  systemStatus,
+  handleDeleteRecord,
+  recordForm,
+  addForm,
+  categoryForm,
+  handleSaveRecord,
+  handleUpdateRecord,
+  handleEditRecord,
+  handleCreateCategory,
+  handleDeleteCategory,
+  handleUpdatePassword,
+  loading,
+  isAddModalOpen,
+  setIsAddModalOpen,
+  quillRef,
+  quillModules,
+  quillFormats,
+  userTableColumns,
+  attachmentName,
+  setAttachmentName,
+  searchText,
+  categoryFilter,
+  searchMode,
+  dateSearchEnabled,
+  searchDateFrom,
+  searchDateTo,
+  onDateSearchEnabledChange,
+  onSearchDateFromChange,
+  onSearchDateToChange,
+  onSearchRecords,
+  onSearchInputChange,
+  onCategoryFilterChange,
+  onAiSearch,
+}) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const handleExportPdf = async () => {
+    if (!selectedRecord) return;
+
+    const exportNode = document.getElementById('record-detail-export');
+    if (!exportNode) {
+      message.error('Unable to export the current record.');
+      return;
+    }
+
+    try {
+      const canvas = await html2canvas(exportNode, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const leftMargin = 3;
+      const topMargin = 5;
+      const usableWidth = pageWidth - leftMargin * 2;
+      const usableHeight = pageHeight - topMargin * 2;
+      const ratio = Math.min(usableWidth / canvas.width, usableHeight / canvas.height);
+      const finalWidth = canvas.width * ratio;
+      const finalHeight = canvas.height * ratio;
+
+      pdf.addImage(imgData, 'PNG', leftMargin, topMargin, finalWidth, finalHeight, undefined, 'FAST');
+      pdf.save(`${(selectedRecord.title || 'record').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-detail.pdf`);
+      message.success('PDF exported successfully.');
+    } catch (error) {
+      console.error(error);
+      message.error('Unable to export PDF.');
+    }
+  };
+
+  const handleExportWord = async () => {
+    if (!selectedRecord) return;
+
+    const filename = `${(selectedRecord.title || 'record').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-detail`;
+    const htmlContent = `
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <style>
+            body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color: #1f1f1f; margin: 24px; }
+            h1, h2, h3 { margin: 0 0 12px; color: #111827; }
+            p { margin: 0 0 12px; }
+            strong, b { font-weight: 700; }
+            ul, ol { margin: 0 0 12px 24px; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+            th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; }
+          </style>
+        </head>
+        <body>
+          <h2>${selectedRecord.title || 'Record detail'}</h2>
+          <p><strong>Category:</strong> ${selectedRecord.category || '-'}</p>
+          ${selectedRecord.attempt ? `<p><strong>Attempt:</strong></p>${selectedRecord.attempt}` : ''}
+          ${selectedRecord.attachment ? `<p><strong>Attachment:</strong> ${selectedRecord.attachment}</p>` : ''}
+          <p><strong>Content:</strong></p>
+          ${selectedRecord.content || '<p>No content</p>'}
+          <p><strong>Created:</strong> ${new Date(selectedRecord.createdAt).toLocaleString()}</p>
+        </body>
+      </html>
+    `;
+
+    try {
+      const blob = await asBlob(htmlContent, { orientation: 'portrait', margins: { top: 720, bottom: 720, left: 720, right: 720 } });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${filename}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      message.success('Word document exported successfully.');
+    } catch (error) {
+      console.error(error);
+      message.error('Unable to export Word document.');
+    }
+  };
+
+  const menuItems = [
+    { key: 'overview', icon: <DashboardOutlined />, label: 'Overview' },
+    { key: 'users', icon: <TeamOutlined />, label: 'Users' },
+    { key: 'records', icon: <DatabaseOutlined />, label: 'Data' },
+    { key: 'cameras', icon: <CameraOutlined />, label: 'Camera Management' },
+    { key: 'chat', icon: <MessageOutlined />, label: 'Chat' },
+    { key: 'mail', icon: <MailOutlined />, label: 'Mail' },
+    { key: 'system-monitor', icon: <BarChartOutlined />, label: 'System Monitoring' },
+    {
+      key: 'basic-data',
+      icon: <AppstoreOutlined />,
+      label: 'Dasic Data',
+      children: [{ key: 'categories', label: 'Category' }],
+    },
+  ];
+
+  const userMenuItems = [
+    { key: 'settings', label: 'Settings', onClick: () => setActiveKey('users') },
+    { type: 'divider' },
+    { key: 'logout', label: 'Logout', danger: true, onClick: logout },
+  ];
+
+  return (
+    <Layout className="app-shell">
+      <Sider width={220} collapsible collapsed={sidebarCollapsed} onCollapse={setSidebarCollapsed} className="app-sider">
+        <div className="brand-shell">
+          <div className="brand-logo">
+            <div className="brand-badge">
+              <DatabaseOutlined />
+            </div>
+            <div className="brand-copy">
+              <div className="brand-title">DataStorage</div>
+              <div className="brand-subtitle">Management System</div>
+            </div>
+          </div>
+        </div>
+        <Menu
+          mode="inline"
+          selectedKeys={[activeKey]}
+          onClick={(e) => setActiveKey(e.key)}
+          items={menuItems}
+          className="app-menu"
+        />
+        <div className="sidebar-footer">© 2025 DataStorage System</div>
+      </Sider>
+      <Layout>
+        <Header className="top-bar">
+          <div className="topbar-spacer" />
+          <div className="topbar-actions">
+            <Button type="text" icon={<BellOutlined />} className="header-icon-btn" />
+            <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
+              <button type="button" className="user-pill" aria-label="Open user menu">
+                <Avatar size="small" icon={<UserOutlined />} className="user-avatar" />
+                <span>{user?.fullName || 'Administrator'}</span>
+              </button>
+            </Dropdown>
+          </div>
+        </Header>
+
+        <Modal
+          open={Boolean(selectedRecord)}
+          title={selectedRecord?.title || 'Record details'}
+          onCancel={() => setSelectedRecord(null)}
+          footer={[
+            <Button key="copy" icon={<CopyOutlined />} onClick={() => selectedRecord && copyHtmlWithStyles(selectedRecord.content)}>Copy Content</Button>,
+            <Button key="pdf" onClick={handleExportPdf}>Export PDF</Button>,
+            <Button key="word" onClick={handleExportWord}>Export Word</Button>,
+            <Button key="close" onClick={() => setSelectedRecord(null)}>Close</Button>,
+          ]}
+          width={900}
+        >
+          {selectedRecord && (
+            <div id="record-detail-export">
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Tag>{selectedRecord.category}</Tag>
+                {selectedRecord.attempt && (
+                  <Card size="small" title="Attempt">
+                    <div className="html-content detail-content">{selectedRecord.attempt}</div>
+                  </Card>
+                )}
+                {selectedRecord.attachment && (
+                  <a href={resolveAttachmentUrl(selectedRecord.attachment)} target="_blank" rel="noreferrer">
+                    Open attachment
+                  </a>
+                )}
+                <div
+                  className="html-content detail-content"
+                  dangerouslySetInnerHTML={{ __html: selectedRecord.content || '<p>No content</p>' }}
+                />
+                <Text type="secondary">Created: {new Date(selectedRecord.createdAt).toLocaleString()}</Text>
+              </Space>
+            </div>
+          )}
+        </Modal>
+
+        <Modal
+          open={Boolean(editingRecord)}
+          title={editingRecord?.title ? `Edit: ${editingRecord.title}` : 'Edit Record'}
+          onCancel={() => {
+            setEditingRecord(null);
+            recordForm.resetFields();
+          }}
+          footer={null}
+          width={700}
+        >
+          <Form key={editingRecord?.id || 'edit-record'} form={recordForm} layout="vertical" onFinish={handleUpdateRecord}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="categoryId" label="Category" rules={[{ required: true }]}>
+                  <TreeSelect
+                    treeData={categoryTreeData(categories)}
+                    treeDefaultExpandAll
+                    placeholder="Select category"
+                    allowClear
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item name="attempt" label="Attempt">
+              <Input.TextArea
+                rows={4}
+                placeholder="Add your attempt details here"
+                value={recordForm.getFieldValue('attempt') || ''}
+                onChange={(event) => recordForm.setFieldValue('attempt', event.target.value)}
+              />
+            </Form.Item>
+            <Form.Item name="content" label="Content" rules={[{ required: true }]}>
+              <ReactQuill
+                theme="snow"
+                modules={quillModules}
+                formats={quillFormats}
+                value={recordForm.getFieldValue('content') || ''}
+                onChange={(value) => recordForm.setFieldValue('content', value)}
+                style={{ background: '#fff' }}
+              />
+            </Form.Item>
+            <Form.Item label="Attachment" name="attachment">
+              <div className="mail-attachment-controls">
+                <label className="mail-file-picker" htmlFor="record-edit-upload">
+                  <PaperClipOutlined />
+                  <span>{attachmentName ? 'Change files' : 'Upload files'}</span>
+                </label>
+                <input
+                  id="record-edit-upload"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.csv"
+                  multiple
+                  className="mail-file-input"
+                  onChange={(event) => {
+                    const files = Array.from(event.target.files || []);
+                    const label = files.length === 0 ? '' : files.length === 1 ? files[0].name : `${files.length} files selected`;
+                    setAttachmentName(label);
+                    recordForm.setFieldValue('attachment', files);
+                  }}
+                />
+              </div>
+              {attachmentName && <div className="mail-file-name">{attachmentName}</div>}
+            </Form.Item>
+            <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button onClick={() => {
+                setEditingRecord(null);
+                recordForm.resetFields();
+              }}>Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={loading}>Update Record</Button>
+            </Space>
+          </Form>
+        </Modal>
+
+        <Modal
+          open={isAddModalOpen}
+          title="Add Record"
+          onCancel={() => {
+            setIsAddModalOpen(false);
+            addForm.resetFields();
+          }}
+          footer={null}
+          width={700}
+        >
+          <Form form={addForm} layout="vertical" onFinish={handleSaveRecord}>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="categoryId" label="Category" rules={[{ required: true }]}>
+                  <TreeSelect
+                    treeData={categoryTreeData(categories)}
+                    treeDefaultExpandAll
+                    placeholder="Select category"
+                    allowClear
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item name="attempt" label="Attempt">
+              <Input.TextArea rows={4} placeholder="Add your attempt details here" />
+            </Form.Item>
+            <Form.Item name="content" label="Content" rules={[{ required: true }]}>
+              <div style={{ marginBottom: '8px' }}>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    const html = window.prompt('Paste your HTML content here (with embedded styles):');
+                    if (html) {
+                      addForm.setFieldValue('content', html);
+                    }
+                  }}
+                >
+                  Import HTML
+                </Button>
+              </div>
+              <ReactQuill
+                theme="snow"
+                modules={quillModules}
+                formats={quillFormats}
+                style={{ background: '#fff' }}
+                ref={quillRef}
+              />
+            </Form.Item>
+            <Form.Item label="Attachment" name="attachment">
+              <div className="mail-attachment-controls">
+                <label className="mail-file-picker" htmlFor="record-add-upload">
+                  <PaperClipOutlined />
+                  <span>{attachmentName ? 'Change files' : 'Upload files'}</span>
+                </label>
+                <input
+                  id="record-add-upload"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.csv"
+                  multiple
+                  className="mail-file-input"
+                  onChange={(event) => {
+                    const files = Array.from(event.target.files || []);
+                    const label = files.length === 0 ? '' : files.length === 1 ? files[0].name : `${files.length} files selected`;
+                    setAttachmentName(label);
+                    addForm.setFieldValue('attachment', files);
+                  }}
+                />
+              </div>
+              {attachmentName && <div className="mail-file-name">{attachmentName}</div>}
+            </Form.Item>
+            <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button onClick={() => {
+                setIsAddModalOpen(false);
+                addForm.resetFields();
+              }}>Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={loading}>Save Record</Button>
+            </Space>
+          </Form>
+        </Modal>
+
+        <Content className="page-content">
+          {activeKey === 'overview' && (
+            <OverviewPage
+              summaryCards={summaryCards}
+              overviewChartData={overviewChartData}
+              user={user}
+            />
+          )}
+
+          {activeKey === 'records' && (
+            <RecordsPage
+              records={records}
+              categories={categories}
+              searchText={searchText}
+              categoryFilter={categoryFilter}
+              searchMode={searchMode}
+              dateSearchEnabled={dateSearchEnabled}
+              searchDateFrom={searchDateFrom}
+              searchDateTo={searchDateTo}
+              onDateSearchEnabledChange={onDateSearchEnabledChange}
+              onSearchDateFromChange={onSearchDateFromChange}
+              onSearchDateToChange={onSearchDateToChange}
+              onSearchRecords={onSearchRecords}
+              onSearchInputChange={onSearchInputChange}
+              onCategoryFilterChange={onCategoryFilterChange}
+              onAiSearch={onAiSearch}
+              setSelectedRecord={setSelectedRecord}
+              handleEditRecord={handleEditRecord}
+              handleDeleteRecord={handleDeleteRecord}
+              setIsAddModalOpen={setIsAddModalOpen}
+            />
+          )}
+
+          {activeKey === 'cameras' && <CamerasPage cameras={cameras} setCameras={setCameras} />}
+
+          {activeKey === 'categories' && (
+            <CategoriesPage
+              categories={categories}
+              categoryForm={categoryForm}
+              handleCreateCategory={handleCreateCategory}
+              handleDeleteCategory={handleDeleteCategory}
+              loading={loading}
+            />
+          )}
+
+          {activeKey === 'users' && (
+            <UsersPage
+              users={users}
+              user={user}
+              userTableColumns={userTableColumns}
+              handleUpdatePassword={handleUpdatePassword}
+            />
+          )}
+
+          {activeKey === 'chat' && <ChatPage />}
+
+          {activeKey === 'mail' && <MailPage />}
+
+          {activeKey === 'system-monitor' && (
+            <SystemMonitorPage
+              systemStatus={systemStatus}
+              records={records}
+              users={users}
+              categories={categories}
+            />
+          )}
+        </Content>
+        <Footer className="footer">Knowledge Store © 2026</Footer>
+      </Layout>
+    </Layout>
+  );
+}
