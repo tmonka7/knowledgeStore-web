@@ -228,10 +228,31 @@ body {
   flex-direction: column;
   gap: 8px;
   margin: 12px 0 16px;
-  padding: 12px;
-  border: 1px solid #d9e2f2;
-  border-radius: 8px;
-  background: #f8fbff;
+  padding: 16px;
+  border: 1px solid #cbd8eb;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #f8fbff, #eef5ff);
+}
+
+.face-capture-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.face-status,
+.face-status-success,
+.face-form-error {
+  font-size: 12px;
+}
+
+.face-status-success {
+  color: #237804;
+}
+
+.face-form-error {
+  display: block;
+  margin-top: -8px;
 }
 
 .face-preview {
@@ -247,11 +268,17 @@ body {
   align-items: center;
   min-height: 32px;
   padding: 4px 15px;
-  border: 1px solid #d9d9d9;
+  border: 1px solid #adc1df;
   border-radius: 6px;
-  background: #fff;
-  color: rgba(0, 0, 0, 0.88);
+  background: rgba(255, 255, 255, 0.9);
+  color: #164275;
+  font-weight: 500;
   cursor: pointer;
+}
+
+.face-upload-button:hover {
+  border-color: #1677ff;
+  color: #1677ff;
 }
 
 .app-shell {

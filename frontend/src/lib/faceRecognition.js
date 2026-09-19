@@ -15,7 +15,10 @@ export const loadFaceModels = async () => {
       faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
       faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-    ]);
+    ]).catch((error) => {
+      modelsPromise = undefined;
+      throw error;
+    });
   }
 
   await modelsPromise;

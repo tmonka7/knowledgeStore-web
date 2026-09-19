@@ -1,5 +1,4 @@
 import {
-  Alert,
   Avatar,
   Button,
   Card,
@@ -27,6 +26,12 @@ function FaceCapture({ onDescriptor }) {
 
   useEffect(() => () => streamRef.current?.getTracks().forEach((track) => track.stop()), []);
 
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [cameraOpen]);
+
   const processFace = async (source) => {
     setBusy(true);
     setStatus('Checking face...');
@@ -45,7 +50,6 @@ function FaceCapture({ onDescriptor }) {
   const openCamera = async () => {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-      videoRef.current.srcObject = streamRef.current;
       setCameraOpen(true);
       setStatus('Position your face in the camera, then capture.');
     } catch {
@@ -64,14 +68,17 @@ function FaceCapture({ onDescriptor }) {
 
   return (
     <div className="face-capture">
-      <Text strong>Face verification</Text>
-      <Text type="secondary">{status}</Text>
+      <div className="face-capture-heading">
+        <Text strong>Face verification</Text>
+        <Text type="secondary">Use one clear face photo. It will be used to verify future logins.</Text>
+      </div>
+      <Text className={status === 'Face captured.' ? 'face-status-success' : 'face-status'}>{status}</Text>
       {cameraOpen && <video ref={videoRef} className="face-preview" autoPlay muted playsInline />}
-      <Space wrap>
-        {!cameraOpen && <Button onClick={openCamera} disabled={busy}>Use Camera</Button>}
-        {cameraOpen && <Button onClick={capture} loading={busy}>Capture Face</Button>}
+      <Space className="face-actions" wrap>
+        {!cameraOpen && <Button type="primary" onClick={openCamera} disabled={busy}>Open Camera</Button>}
+        {cameraOpen && <Button type="primary" onClick={capture} loading={busy}>Capture Face</Button>}
         <label className="face-upload-button">
-          Choose Image
+          Upload Photo
           <input
             type="file"
             accept="image/*"
@@ -86,6 +93,20 @@ function FaceCapture({ onDescriptor }) {
 
 export default function AuthPage({ defaultUser, loading, loginForm, handleLogin, handleRegister }) {
   const [faceDescriptor, setFaceDescriptor] = useState(null);
+  const [faceError, setFaceError] = useState('');
+
+  const handleFaceDescriptor = (descriptor) => {
+    setFaceDescriptor(descriptor);
+    setFaceError(descriptor ? '' : 'Please capture or upload a clear face photo before creating your account.');
+  };
+
+  const submitRegistration = (values) => {
+    if (!faceDescriptor) {
+      setFaceError('Please capture or upload a clear face photo before creating your account.');
+      return;
+    }
+    handleRegister({ ...values, faceDescriptor });
+  };
 
   return (
     <Layout className="auth-layout">
@@ -110,7 +131,7 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
                         <Form form={loginForm} layout="vertical" onFinish={(values) => handleLogin({ ...values, faceDescriptor })} initialValues={defaultUser}>
                           <Form.Item name="username" label="Username" rules={[{ required: true }]}> <Input /> </Form.Item>
                           <Form.Item name="password" label="Password" rules={[{ required: true }]}> <Input.Password /> </Form.Item>
-                          <FaceCapture onDescriptor={setFaceDescriptor} />
+                          <FaceCapture onDescriptor={handleFaceDescriptor} />
                           <Button type="primary" htmlType="submit" block loading={loading}>Sign In</Button>
                         </Form>
                       ),
@@ -119,12 +140,13 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
                       key: 'register',
                       label: 'Register',
                       children: (
-                        <Form layout="vertical" onFinish={(values) => handleRegister({ ...values, faceDescriptor })}>
+                        <Form layout="vertical" onFinish={submitRegistration}>
                           <Form.Item name="fullName" label="Full Name" rules={[{ required: true }]}> <Input /> </Form.Item>
                           <Form.Item name="username" label="Username" rules={[{ required: true }]}> <Input /> </Form.Item>
                           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}> <Input /> </Form.Item>
                           <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}> <Input.Password /> </Form.Item>
-                          <FaceCapture onDescriptor={setFaceDescriptor} />
+                          <FaceCapture onDescriptor={handleFaceDescriptor} />
+                          {faceError && <Text type="danger" className="face-form-error">{faceError}</Text>}
                           <Button type="primary" htmlType="submit" block loading={loading}>Create Account</Button>
                         </Form>
                       ),
