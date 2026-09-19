@@ -55,7 +55,6 @@ function App() {
       console.error(error);
       logout();
     }
-    }
   };
 
   const fetchUsers = async () => {
