@@ -44,7 +44,7 @@ function App() {
   const [attachmentName, setAttachmentName] = useState('');
   const [permissionCatalog, setPermissionCatalog] = useState([]);
 
-  const isLoggedIn = Boolean(token);
+  const isLoggedIn = Boolean(token && user);
 
   const fetchProfile = async () => {
     if (!token) return;
@@ -54,6 +54,7 @@ function App() {
     } catch (error) {
       console.error(error);
       logout();
+    }
     }
   };
 
