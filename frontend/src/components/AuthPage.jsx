@@ -92,6 +92,7 @@ function FaceCapture({ onDescriptor }) {
 }
 
 export default function AuthPage({ defaultUser, loading, loginForm, handleLogin, handleRegister }) {
+  const [registerForm] = Form.useForm();
   const [faceDescriptor, setFaceDescriptor] = useState(null);
   const [faceError, setFaceError] = useState('');
 
@@ -140,9 +141,9 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
                       key: 'register',
                       label: 'Register',
                       children: (
-                        <Form layout="vertical" onFinish={submitRegistration}>
-                          <Form.Item name="fullName" label="Full Name" rules={[{ required: true }]}> <Input /> </Form.Item>
-                          <Form.Item name="username" label="Username" rules={[{ required: true }]}> <Input /> </Form.Item>
+                        <Form form={registerForm} layout="vertical" onFinish={submitRegistration}>
+                          <Form.Item name="fullName" label="Full Name" rules={[{ required: true, whitespace: true, message: 'Please enter your full name.' }]}> <Input autoComplete="name" /> </Form.Item>
+                          <Form.Item name="username" label="Username" rules={[{ required: true, whitespace: true, message: 'Please enter a username.' }]}> <Input autoComplete="username" /> </Form.Item>
                           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}> <Input /> </Form.Item>
                           <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}> <Input.Password /> </Form.Item>
                           <FaceCapture onDescriptor={handleFaceDescriptor} />
