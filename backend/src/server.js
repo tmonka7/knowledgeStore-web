@@ -32,7 +32,7 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '3mb' }));
 app.use('/uploads', express.static(uploadDir));
 
 app.get('/api/health', (req, res) => {

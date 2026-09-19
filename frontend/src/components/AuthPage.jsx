@@ -122,20 +122,21 @@ function RegisterForm({ loading, faceError, onFaceDescriptor, onSubmit }) {
 }
 
 export default function AuthPage({ defaultUser, loading, loginForm, handleLogin, handleRegister }) {
-  const [faceData, setFaceData] = useState(null);
+  const [loginFaceData, setLoginFaceData] = useState(null);
+  const [registerFaceData, setRegisterFaceData] = useState(null);
   const [faceError, setFaceError] = useState('');
 
-  const handleFaceDescriptor = (data) => {
-    setFaceData(data);
+  const handleRegisterFace = (data) => {
+    setRegisterFaceData(data);
     setFaceError(data ? '' : 'Please capture or upload a clear face photo before creating your account.');
   };
 
   const submitRegistration = (values) => {
-    if (!faceData) {
+    if (!registerFaceData) {
       setFaceError('Please capture or upload a clear face photo before creating your account.');
       return;
     }
-    handleRegister({ ...values, faceDescriptor: faceData.descriptor, faceImage: faceData.faceImage });
+    handleRegister({ ...values, faceDescriptor: registerFaceData.descriptor, faceImage: registerFaceData.faceImage });
   };
 
   return (
@@ -158,10 +159,10 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
                       key: 'login',
                       label: 'Login',
                       children: (
-                        <Form form={loginForm} layout="vertical" onFinish={(values) => handleLogin({ ...values, faceDescriptor: faceData?.descriptor })} initialValues={defaultUser}>
+                        <Form form={loginForm} layout="vertical" onFinish={(values) => handleLogin({ ...values, faceDescriptor: loginFaceData?.descriptor })} initialValues={defaultUser}>
                           <Form.Item name="username" label="Username" rules={[{ required: true }]}> <Input /> </Form.Item>
                           <Form.Item name="password" label="Password" rules={[{ required: true }]}> <Input.Password /> </Form.Item>
-                          <FaceCapture onDescriptor={handleFaceDescriptor} />
+                          <FaceCapture onDescriptor={setLoginFaceData} />
                           <Button type="primary" htmlType="submit" block loading={loading}>Sign In</Button>
                         </Form>
                       ),
@@ -170,7 +171,7 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
                       key: 'register',
                       label: 'Register',
                       children: (
-                        <RegisterForm loading={loading} faceError={faceError} onFaceDescriptor={handleFaceDescriptor} onSubmit={submitRegistration} />
+                        <RegisterForm loading={loading} faceError={faceError} onFaceDescriptor={handleRegisterFace} onSubmit={submitRegistration} />
                       ),
                     },
                   ]}
