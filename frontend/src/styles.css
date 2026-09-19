@@ -312,6 +312,13 @@ body {
   border: 3px solid #dbeafe;
 }
 
+.user-face-update-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .app-shell {
   min-height: 100vh;
   background: #f4f7fb;

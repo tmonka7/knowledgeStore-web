@@ -7,7 +7,7 @@ export const listPermissionCatalog = (req, res) => res.json({ catalog: PERMISSIO
 
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { fullName, email, role, permissions } = req.body || {};
+  const { fullName, email, role, permissions, faceDescriptor, faceImage } = req.body || {};
 
   const target = await getUserById(id);
   if (!target) {
@@ -36,6 +36,14 @@ export const updateUser = async (req, res) => {
   if (role) target.role = role;
   if (permissions !== undefined) target.permissions = sanitizePermissions(permissions);
 
+  if (faceDescriptor !== undefined || faceImage !== undefined) {
+    if (!isFaceDescriptor(faceDescriptor) || !isFaceImage(faceImage)) {
+      return res.status(400).json({ message: 'A valid face image is required.' });
+    }
+    target.faceDescriptor = faceDescriptor.map((value) => Number(value));
+    target.faceImage = faceImage;
+  }
+
   await target.save();
 
   return res.json({
@@ -43,6 +51,14 @@ export const updateUser = async (req, res) => {
     user: sanitizeUser(target.toObject ? target.toObject() : target),
   });
 };
+
+const isFaceDescriptor = (descriptor) => Array.isArray(descriptor)
+  && descriptor.length === 128
+  && descriptor.every((value) => Number.isFinite(Number(value)));
+
+const isFaceImage = (image) => typeof image === 'string'
+  && /^data:image\/(jpeg|jpg|png);base64,/.test(image)
+  && image.length <= 2_000_000;
 
 export const listUsers = async (req, res) => {
   const isAdmin = req.user.role === 'admin';

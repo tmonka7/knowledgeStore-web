@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Avatar, Button, Card, Checkbox, Form, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
+import { descriptorFromFile, imageDataFromFile } from '../lib/faceRecognition';
 
 const { Title, Text } = Typography;
 
@@ -20,6 +21,9 @@ export default function UsersPage({
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [draftRole, setDraftRole] = useState('user');
   const [saving, setSaving] = useState(false);
+  const [faceUpdate, setFaceUpdate] = useState(null);
+  const [faceUpdating, setFaceUpdating] = useState(false);
+  const [faceUpdateError, setFaceUpdateError] = useState('');
 
   const isAdmin = user?.role === 'admin';
   const editingSelf = editingUser?.id === user?.id;
@@ -36,12 +40,36 @@ export default function UsersPage({
     setEditingUser(record);
     setDraftRole(record.role || 'user');
     setSelectedPermissions(record.permissions || []);
+    setFaceUpdate(null);
+    setFaceUpdateError('');
     editForm.setFieldsValue({ fullName: record.fullName, email: record.email });
   };
 
   const closeEditor = () => {
     setEditingUser(null);
+    setFaceUpdate(null);
+    setFaceUpdateError('');
     editForm.resetFields();
+  };
+
+  const onFaceUpdate = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setFaceUpdating(true);
+    setFaceUpdateError('');
+    try {
+      const [descriptor, faceImage] = await Promise.all([
+        descriptorFromFile(file),
+        imageDataFromFile(file),
+      ]);
+      setFaceUpdate({ descriptor, faceImage });
+    } catch (error) {
+      setFaceUpdateError(error.message || 'Unable to process that face image.');
+    } finally {
+      setFaceUpdating(false);
+    }
   };
 
   const togglePermission = (pageKey, action, checked) => {
@@ -71,6 +99,7 @@ export default function UsersPage({
       ...values,
       role: draftRole,
       permissions: selectedPermissions,
+      ...(faceUpdate || {}),
     });
     setSaving(false);
     if (ok) {
@@ -161,12 +190,19 @@ export default function UsersPage({
         ]}
       >
         <Form form={editForm} layout="vertical">
-          {editingUser?.faceImage && (
+          {(faceUpdate?.faceImage || editingUser?.faceImage) && (
             <div className="user-edit-photo">
-              <img className="user-edit-face-image" src={editingUser.faceImage} alt={`${editingUser.fullName} face`} />
-              <Text type="secondary">Registered face</Text>
+              <img className="user-edit-face-image" src={faceUpdate?.faceImage || editingUser.faceImage} alt={`${editingUser.fullName} face`} />
+              <Text type="secondary">{faceUpdate ? 'New face photo' : 'Registered face'}</Text>
             </div>
           )}
+          <div className="user-face-update-control">
+            <label className="face-upload-button">
+              {faceUpdating ? 'Checking photo...' : 'Change face photo'}
+              <input type="file" accept="image/*" hidden disabled={faceUpdating} onChange={onFaceUpdate} />
+            </label>
+            {faceUpdateError && <Text type="danger">{faceUpdateError}</Text>}
+          </div>
           <Form.Item name="fullName" label="Full name" rules={[{ required: true, message: 'Full name is required.' }]}>
             <Input />
           </Form.Item>
