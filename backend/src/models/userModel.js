@@ -51,6 +51,6 @@ export const createUser = async ({ username, email, fullName, password, role = '
   });
 };
 
-export const getUsers = () => User.find().sort({ createdAt: -1 });
-export const getUserById = (id) => User.findOne({ id });
+export const getUsers = () => User.find().select('+faceImage').sort({ createdAt: -1 });
+export const getUserById = (id) => User.findOne({ id }).select('+faceImage');
 export const getUserByUsername = (username) => User.findOne({ username: String(username).toLowerCase() }).select('+faceDescriptor');

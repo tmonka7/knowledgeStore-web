@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Form, Modal, Tag, message } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import api from './api';
 import AuthPage from './components/AuthPage';
 import DashboardPage from './pages/DashboardPage';
@@ -441,6 +442,14 @@ function App() {
   const userTableColumns = useMemo(
     () => [
       { title: 'Name', dataIndex: 'fullName', key: 'fullName' },
+      {
+        title: 'Photo',
+        key: 'faceImage',
+        width: 72,
+        render: (_, record) => record.faceImage
+          ? <img className="user-face-avatar" src={record.faceImage} alt={`${record.fullName} face`} />
+          : <Avatar className="user-face-avatar user-face-placeholder" icon={<UserOutlined />} />,
+      },
       { title: 'Username', dataIndex: 'username', key: 'username' },
       { title: 'Email', dataIndex: 'email', key: 'email' },
       { title: 'Role', dataIndex: 'role', key: 'role', render: (role) => <Tag color={role === 'admin' ? 'blue' : 'green'}>{role}</Tag> },

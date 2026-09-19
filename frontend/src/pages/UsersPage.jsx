@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Checkbox, Form, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Avatar, Button, Card, Checkbox, Form, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -161,6 +161,12 @@ export default function UsersPage({
         ]}
       >
         <Form form={editForm} layout="vertical">
+          {editingUser?.faceImage && (
+            <div className="user-edit-photo">
+              <img className="user-edit-face-image" src={editingUser.faceImage} alt={`${editingUser.fullName} face`} />
+              <Text type="secondary">Registered face</Text>
+            </div>
+          )}
           <Form.Item name="fullName" label="Full name" rules={[{ required: true, message: 'Full name is required.' }]}>
             <Input />
           </Form.Item>

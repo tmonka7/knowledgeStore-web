@@ -281,6 +281,37 @@ body {
   color: #1677ff;
 }
 
+.user-face-avatar {
+  display: block;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-face-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8f1ff;
+  color: #1677ff;
+}
+
+.user-edit-photo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.user-edit-face-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #dbeafe;
+}
+
 .app-shell {
   min-height: 100vh;
   background: #f4f7fb;

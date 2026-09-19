@@ -9,8 +9,10 @@ import {
   Row,
   Space,
   Tabs,
+  Tooltip,
   Typography,
 } from 'antd';
+import { CameraOutlined, UploadOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import {
   descriptorFromFile,
@@ -83,10 +85,14 @@ function FaceCapture({ onDescriptor }) {
       <Text className={status === 'Face captured.' ? 'face-status-success' : 'face-status'}>{status}</Text>
       {cameraOpen && <video ref={videoRef} className="face-preview" autoPlay muted playsInline />}
       <Space className="face-actions" wrap>
-        {!cameraOpen && <Button type="primary" onClick={openCamera} disabled={busy}>Open Camera</Button>}
-        {cameraOpen && <Button type="primary" onClick={capture} loading={busy}>Capture Face</Button>}
+        {!cameraOpen && (
+          <Tooltip title="Open camera">
+            <Button className="face-camera-button" type="primary" shape="circle" icon={<CameraOutlined />} onClick={openCamera} disabled={busy} aria-label="Open camera" />
+          </Tooltip>
+        )}
+        {cameraOpen && <Button type="primary" icon={<CameraOutlined />} onClick={capture} loading={busy}>Capture Face</Button>}
         <label className="face-upload-button">
-          Upload Photo
+          <UploadOutlined /> Upload Photo
           <input
             type="file"
             accept="image/*"

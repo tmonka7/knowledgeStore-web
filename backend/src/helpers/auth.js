@@ -11,6 +11,7 @@ export const sanitizeUser = (user) => ({
   fullName: user.fullName,
   role: user.role,
   permissions: Array.isArray(user.permissions) ? user.permissions : [],
+  faceImage: user.faceImage || null,
   createdAt: user.createdAt,
 });
 
