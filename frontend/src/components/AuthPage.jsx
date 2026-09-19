@@ -12,7 +12,12 @@ import {
   Typography,
 } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import { descriptorFromFile, descriptorFromImage } from '../lib/faceRecognition';
+import {
+  descriptorFromFile,
+  descriptorFromImage,
+  imageDataFromCanvas,
+  imageDataFromFile,
+} from '../lib/faceRecognition';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -37,7 +42,10 @@ function FaceCapture({ onDescriptor }) {
     setStatus('Checking face...');
     try {
       const descriptor = source instanceof File ? await descriptorFromFile(source) : await descriptorFromImage(source);
-      onDescriptor(descriptor);
+      const faceImage = source instanceof File
+        ? await imageDataFromFile(source)
+        : imageDataFromCanvas(source);
+      onDescriptor({ descriptor, faceImage });
       setStatus('Face captured.');
     } catch (error) {
       onDescriptor(null);
@@ -91,22 +99,37 @@ function FaceCapture({ onDescriptor }) {
   );
 }
 
-export default function AuthPage({ defaultUser, loading, loginForm, handleLogin, handleRegister }) {
+function RegisterForm({ loading, faceError, onFaceDescriptor, onSubmit }) {
   const [registerForm] = Form.useForm();
-  const [faceDescriptor, setFaceDescriptor] = useState(null);
+
+  return (
+    <Form form={registerForm} layout="vertical" onFinish={onSubmit}>
+      <Form.Item name="fullName" label="Full Name" rules={[{ required: true, whitespace: true, message: 'Please enter your full name.' }]}><Input autoComplete="name" /></Form.Item>
+      <Form.Item name="username" label="Username" rules={[{ required: true, whitespace: true, message: 'Please enter a username.' }]}><Input autoComplete="username" /></Form.Item>
+      <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
+      <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}><Input.Password /></Form.Item>
+      <FaceCapture onDescriptor={onFaceDescriptor} />
+      {faceError && <Text type="danger" className="face-form-error">{faceError}</Text>}
+      <Button type="primary" htmlType="submit" block loading={loading}>Create Account</Button>
+    </Form>
+  );
+}
+
+export default function AuthPage({ defaultUser, loading, loginForm, handleLogin, handleRegister }) {
+  const [faceData, setFaceData] = useState(null);
   const [faceError, setFaceError] = useState('');
 
-  const handleFaceDescriptor = (descriptor) => {
-    setFaceDescriptor(descriptor);
-    setFaceError(descriptor ? '' : 'Please capture or upload a clear face photo before creating your account.');
+  const handleFaceDescriptor = (data) => {
+    setFaceData(data);
+    setFaceError(data ? '' : 'Please capture or upload a clear face photo before creating your account.');
   };
 
   const submitRegistration = (values) => {
-    if (!faceDescriptor) {
+    if (!faceData) {
       setFaceError('Please capture or upload a clear face photo before creating your account.');
       return;
     }
-    handleRegister({ ...values, faceDescriptor });
+    handleRegister({ ...values, faceDescriptor: faceData.descriptor, faceImage: faceData.faceImage });
   };
 
   return (
@@ -129,7 +152,7 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
                       key: 'login',
                       label: 'Login',
                       children: (
-                        <Form form={loginForm} layout="vertical" onFinish={(values) => handleLogin({ ...values, faceDescriptor })} initialValues={defaultUser}>
+                        <Form form={loginForm} layout="vertical" onFinish={(values) => handleLogin({ ...values, faceDescriptor: faceData?.descriptor })} initialValues={defaultUser}>
                           <Form.Item name="username" label="Username" rules={[{ required: true }]}> <Input /> </Form.Item>
                           <Form.Item name="password" label="Password" rules={[{ required: true }]}> <Input.Password /> </Form.Item>
                           <FaceCapture onDescriptor={handleFaceDescriptor} />
@@ -141,15 +164,7 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
                       key: 'register',
                       label: 'Register',
                       children: (
-                        <Form form={registerForm} layout="vertical" onFinish={submitRegistration}>
-                          <Form.Item name="fullName" label="Full Name" rules={[{ required: true, whitespace: true, message: 'Please enter your full name.' }]}> <Input autoComplete="name" /> </Form.Item>
-                          <Form.Item name="username" label="Username" rules={[{ required: true, whitespace: true, message: 'Please enter a username.' }]}> <Input autoComplete="username" /> </Form.Item>
-                          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}> <Input /> </Form.Item>
-                          <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}> <Input.Password /> </Form.Item>
-                          <FaceCapture onDescriptor={handleFaceDescriptor} />
-                          {faceError && <Text type="danger" className="face-form-error">{faceError}</Text>}
-                          <Button type="primary" htmlType="submit" block loading={loading}>Create Account</Button>
-                        </Form>
+                        <RegisterForm loading={loading} faceError={faceError} onFaceDescriptor={handleFaceDescriptor} onSubmit={submitRegistration} />
                       ),
                     },
                   ]}

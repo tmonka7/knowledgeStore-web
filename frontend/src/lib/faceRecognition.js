@@ -44,6 +44,18 @@ export const descriptorFromFile = async (file) => {
   return descriptorFromImage(image);
 };
 
+export const imageDataFromFile = async (file) => imageDataFromElement(await faceapiImage(file));
+export const imageDataFromCanvas = (canvas) => imageDataFromElement(canvas);
+
+const imageDataFromElement = (element) => {
+  const scale = Math.min(1, 640 / Math.max(element.naturalWidth || element.width, element.naturalHeight || element.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round((element.naturalWidth || element.width) * scale);
+  canvas.height = Math.round((element.naturalHeight || element.height) * scale);
+  canvas.getContext('2d').drawImage(element, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.82);
+};
+
 const faceapiImage = (file) => new Promise((resolve, reject) => {
   const image = new Image();
   const url = URL.createObjectURL(file);

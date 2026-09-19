@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
   permissions: { type: [String], default: () => [...DEFAULT_USER_PERMISSIONS] },
   passwordHash: { type: String, required: true },
   faceDescriptor: { type: [Number], default: null, select: false },
+  faceImage: { type: String, default: null, select: false },
   createdAt: { type: Date, default: Date.now },
 }, { collection: 'users' });
 
@@ -35,7 +36,7 @@ export const ensureSeedAdmin = async () => {
   });
 };
 
-export const createUser = async ({ username, email, fullName, password, role = 'user', permissions, faceDescriptor }) => {
+export const createUser = async ({ username, email, fullName, password, role = 'user', permissions, faceDescriptor, faceImage }) => {
   const passwordHash = await bcrypt.hash(password, 10);
   return User.create({
     id: randomUUID(),
@@ -46,6 +47,7 @@ export const createUser = async ({ username, email, fullName, password, role = '
     permissions: permissions ? sanitizePermissions(permissions) : [...DEFAULT_USER_PERMISSIONS],
     passwordHash,
     faceDescriptor,
+    faceImage,
   });
 };
 
