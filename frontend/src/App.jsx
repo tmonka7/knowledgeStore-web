@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Form, Modal, Tag, message } from 'antd';
+import { Avatar, Form, Modal, Tag, message } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import api from './api';
 import AuthPage from './components/AuthPage';
