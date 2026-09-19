@@ -1,18 +1,11 @@
+import { Button, Form, Input, Layout, Space, Tooltip, Typography } from 'antd';
 import {
-  Avatar,
-  Button,
-  Card,
-  Col,
-  Form,
-  Input,
-  Layout,
-  Row,
-  Space,
-  Tabs,
-  Tooltip,
-  Typography,
-} from 'antd';
-import { CameraOutlined, UploadOutlined } from '@ant-design/icons';
+  CameraOutlined,
+  LockOutlined,
+  MailOutlined,
+  UploadOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import {
   descriptorFromFile,
@@ -110,10 +103,11 @@ function RegisterForm({ loading, faceError, onFaceDescriptor, onSubmit }) {
 
   return (
     <Form form={registerForm} layout="vertical" onFinish={onSubmit}>
-      <Form.Item name="fullName" label="Full Name" rules={[{ required: true, whitespace: true, message: 'Please enter your full name.' }]}><Input autoComplete="name" /></Form.Item>
-      <Form.Item name="username" label="Username" rules={[{ required: true, whitespace: true, message: 'Please enter a username.' }]}><Input autoComplete="username" /></Form.Item>
-      <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
-      <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}><Input.Password /></Form.Item>
+      <Form.Item name="fullName" label="Full Name" rules={[{ required: true, whitespace: true, message: 'Please enter your full name.' }]}><Input prefix={<UserOutlined />} autoComplete="name" placeholder="Full Name" /></Form.Item>
+      <Form.Item name="username" label="Username" rules={[{ required: true, whitespace: true, message: 'Please enter a username.' }]}><Input prefix={<UserOutlined />} autoComplete="username" placeholder="Username" /></Form.Item>
+      <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}><Input prefix={<MailOutlined />} placeholder="Email" /></Form.Item>
+      <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}><Input.Password prefix={<LockOutlined />} placeholder="Password" /></Form.Item>
+      <Form.Item name="confirmPassword" label="Confirm Password" dependencies={['password']} rules={[{ required: true, message: 'Please confirm your password.' }, ({ getFieldValue }) => ({ validator(_, value) { return !value || getFieldValue('password') === value ? Promise.resolve() : Promise.reject(new Error('Passwords do not match.')); } })]}><Input.Password prefix={<LockOutlined />} placeholder="Confirm Password" /></Form.Item>
       <FaceCapture onDescriptor={onFaceDescriptor} />
       {faceError && <Text type="danger" className="face-form-error">{faceError}</Text>}
       <Button type="primary" htmlType="submit" block loading={loading}>Create Account</Button>
@@ -125,6 +119,7 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
   const [loginFaceData, setLoginFaceData] = useState(null);
   const [registerFaceData, setRegisterFaceData] = useState(null);
   const [faceError, setFaceError] = useState('');
+  const [mode, setMode] = useState('login');
 
   const handleRegisterFace = (data) => {
     setRegisterFaceData(data);
@@ -142,44 +137,38 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
   return (
     <Layout className="auth-layout">
       <Content className="auth-shell">
-        <Row justify="center" align="middle" style={{ minHeight: '100vh' }}>
-          <Col xs={22} sm={18} md={12} lg={8}>
-            <Card className="auth-card" bordered={false}>
-              <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <Avatar size={64} style={{ backgroundColor: '#1677ff' }}>KS</Avatar>
-                  <Title level={3} style={{ marginTop: 16 }}>Knowledge Store</Title>
-                  <Text type="secondary">Login or create an account</Text>
-                </div>
-
-                <Tabs
-                  defaultActiveKey="login"
-                  items={[
-                    {
-                      key: 'login',
-                      label: 'Login',
-                      children: (
-                        <Form form={loginForm} layout="vertical" onFinish={(values) => handleLogin({ ...values, faceDescriptor: loginFaceData?.descriptor })} initialValues={defaultUser}>
-                          <Form.Item name="username" label="Username" rules={[{ required: true }]}> <Input /> </Form.Item>
-                          <Form.Item name="password" label="Password" rules={[{ required: true }]}> <Input.Password /> </Form.Item>
-                          <FaceCapture onDescriptor={setLoginFaceData} />
-                          <Button type="primary" htmlType="submit" block loading={loading}>Sign In</Button>
-                        </Form>
-                      ),
-                    },
-                    {
-                      key: 'register',
-                      label: 'Register',
-                      children: (
-                        <RegisterForm loading={loading} faceError={faceError} onFaceDescriptor={handleRegisterFace} onSubmit={submitRegistration} />
-                      ),
-                    },
-                  ]}
-                />
-              </Space>
-            </Card>
-          </Col>
-        </Row>
+        <div className="auth-card">
+          <aside className="auth-brand-panel">
+            <div className="auth-brand-mark"><CameraOutlined /></div>
+            <Title level={4}>Face Recognition</Title>
+            <Text>Secure access with your face.</Text>
+            <div className="auth-face-illustration"><CameraOutlined /></div>
+            <div className="auth-benefits"><span>Secure</span><span>Fast</span><span>Convenient</span></div>
+          </aside>
+          <section className="auth-form-panel">
+            <div className="auth-form-heading">
+              <Title level={2}>{mode === 'login' ? 'Login' : 'Register'}</Title>
+              <Text type="secondary">{mode === 'login' ? 'Please enter your account information.' : 'Create your account and start using face recognition.'}</Text>
+            </div>
+            {mode === 'login' ? (
+              <Form form={loginForm} layout="vertical" onFinish={(values) => handleLogin({ ...values, faceDescriptor: loginFaceData?.descriptor })} initialValues={defaultUser}>
+                <Form.Item name="username" label="Username" rules={[{ required: true }]}><Input prefix={<UserOutlined />} placeholder="Username" /></Form.Item>
+                <Form.Item name="password" label="Password" rules={[{ required: true }]}><Input.Password prefix={<LockOutlined />} placeholder="Password" /></Form.Item>
+                <div className="auth-form-options"><label><input type="checkbox" /> Remember me</label><button type="button" className="auth-link">Forgot password?</button></div>
+                <Button type="primary" htmlType="submit" block loading={loading}>Login</Button>
+                <div className="auth-divider"><span>or</span></div>
+                <FaceCapture onDescriptor={setLoginFaceData} />
+                <Button className="face-login-button" htmlType="submit" block icon={<CameraOutlined />} loading={loading}>Login with Face</Button>
+                <div className="auth-switch">Don't have an account? <button type="button" onClick={() => setMode('register')}>Register</button></div>
+              </Form>
+            ) : (
+              <>
+                <RegisterForm loading={loading} faceError={faceError} onFaceDescriptor={handleRegisterFace} onSubmit={submitRegistration} />
+                <div className="auth-switch">Already have an account? <button type="button" onClick={() => setMode('login')}>Login</button></div>
+              </>
+            )}
+          </section>
+        </div>
       </Content>
     </Layout>
   );
