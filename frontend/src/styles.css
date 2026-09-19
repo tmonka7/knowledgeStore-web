@@ -223,6 +223,37 @@ body {
   box-shadow: 0 12px 32px rgba(22, 119, 255, 0.12);
 }
 
+.face-capture {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 16px;
+  padding: 12px;
+  border: 1px solid #d9e2f2;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.face-preview {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #111827;
+}
+
+.face-upload-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 15px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
+  color: rgba(0, 0, 0, 0.88);
+  cursor: pointer;
+}
+
 .app-shell {
   min-height: 100vh;
   background: #f4f7fb;

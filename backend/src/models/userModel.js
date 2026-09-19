@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
   // Admins bypass this list entirely; see hasPermission.
   permissions: { type: [String], default: () => [...DEFAULT_USER_PERMISSIONS] },
   passwordHash: { type: String, required: true },
+  faceDescriptor: { type: [Number], default: null, select: false },
   createdAt: { type: Date, default: Date.now },
 }, { collection: 'users' });
 
@@ -34,7 +35,7 @@ export const ensureSeedAdmin = async () => {
   });
 };
 
-export const createUser = async ({ username, email, fullName, password, role = 'user', permissions }) => {
+export const createUser = async ({ username, email, fullName, password, role = 'user', permissions, faceDescriptor }) => {
   const passwordHash = await bcrypt.hash(password, 10);
   return User.create({
     id: randomUUID(),
@@ -44,9 +45,10 @@ export const createUser = async ({ username, email, fullName, password, role = '
     role,
     permissions: permissions ? sanitizePermissions(permissions) : [...DEFAULT_USER_PERMISSIONS],
     passwordHash,
+    faceDescriptor,
   });
 };
 
 export const getUsers = () => User.find().sort({ createdAt: -1 });
 export const getUserById = (id) => User.findOne({ id });
-export const getUserByUsername = (username) => User.findOne({ username: String(username).toLowerCase() });
+export const getUserByUsername = (username) => User.findOne({ username: String(username).toLowerCase() }).select('+faceDescriptor');
