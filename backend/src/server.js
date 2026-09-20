@@ -11,6 +11,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import mailRoutes from './routes/mailRoutes.js';
 import cameraRoutes from './routes/cameraRoutes.js';
+import toolRoutes from './routes/toolRoutes.js';
 import { ensureSeedAdmin, ensureSeedCategories } from './models/store.js';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api', dataRoutes);
 app.use('/api', chatRoutes);
 app.use('/api', mailRoutes);
 app.use('/api', cameraRoutes);
+app.use('/api', toolRoutes);
 
 // Without this, CORS/body-parser failures return an HTML error page that the
 // frontend cannot read, so every failure looks the same to the user.

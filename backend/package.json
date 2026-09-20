@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "knowledge-store": "file:..",
     "langchain": "^1.5.11",
+    "lv_font_conv": "^1.5.3",
     "mongoose": "^8.7.0",
     "multer": "^2.0.0",
     "uuid": "^10.0.0"

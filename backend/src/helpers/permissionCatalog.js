@@ -9,6 +9,9 @@ export const PERMISSION_CATALOG = [
   { key: 'chat', label: 'Chat', actions: ['view', 'create'] },
   { key: 'mail', label: 'Mail', actions: ['view', 'create', 'delete'] },
   { key: 'lvgl-tool', label: 'Tools / LVGL image/font converter', actions: ['view'] },
+  { key: 'yolo', label: 'Tools / YOLO dataset', actions: ['view'] },
+  { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view'] },
+  { key: 'keras', label: 'Tools / Keras dataset', actions: ['view'] },
   { key: 'users', label: 'Users', actions: ['view', 'edit'] },
   { key: 'system-monitor', label: 'System Monitoring', actions: ['view'] },
 ];
@@ -26,6 +29,9 @@ export const DEFAULT_USER_PERMISSIONS = [
   'mail:view',
   'mail:create',
   'lvgl-tool:view',
+  'yolo:view',
+  'transformers:view',
+  'keras:view',
 ];
 
 export const sanitizePermissions = (values) => {

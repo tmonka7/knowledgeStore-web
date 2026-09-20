@@ -1,295 +1,433 @@
-import { useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, Input, InputNumber, Row, Select, Space, Tabs, Typography, message } from 'antd';
-import { CopyOutlined, DownloadOutlined, PictureOutlined, ToolOutlined } from '@ant-design/icons';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Alert, Button, Card, Checkbox, Col, Input, InputNumber, Row, Select, Space, Tabs, Tooltip, Typography, message,
+} from 'antd';
+import {
+  CopyOutlined, DownloadOutlined, FontSizeOutlined, PictureOutlined,
+} from '@ant-design/icons';
+import api from '../api';
+import { COLOR_FORMATS, buildImageC, safeCName } from '../lib/lvglImage';
 
-const { Paragraph, Text, Title } = Typography;
+const { Paragraph, Text } = Typography;
 
-const rgb565FromPixel = (r, g, b) => ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
+// A full-size image can generate megabytes of C. Rendering all of it into a
+// <pre> locks the tab up, so the preview is capped and the download carries
+// the complete file.
+const PREVIEW_LINES = 160;
 
-const buildImageArray = (imageData, width, height, format) => {
-  const bytes = [];
+const previewOf = (code) => {
+  if (!code) return '';
+  const lines = code.split('\n');
+  if (lines.length <= PREVIEW_LINES) return code;
+  return `${lines.slice(0, PREVIEW_LINES).join('\n')}\n\n/* ... ${lines.length - PREVIEW_LINES} more lines. Download the file for the full output. */`;
+};
 
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const index = (y * width + x) * 4;
-      const r = imageData[index];
-      const g = imageData[index + 1];
-      const b = imageData[index + 2];
-      const a = imageData[index + 3] ?? 255;
+const downloadText = (filename, content) => {
+  const blob = new Blob([content], { type: 'text/x-c;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
-      if (format === 'argb8888') {
-        const argb = ((a << 24) | (r << 16) | (g << 8) | b) >>> 0;
-        bytes.push((argb >>> 0) & 0xff, (argb >>> 8) & 0xff, (argb >>> 16) & 0xff, (argb >>> 24) & 0xff);
-      } else {
-        const value = rgb565FromPixel(r, g, b);
-        bytes.push(value & 0xff, (value >>> 8) & 0xff);
-      }
-    }
+const copyText = async (content) => {
+  try {
+    await navigator.clipboard.writeText(content);
+    message.success('Copied to clipboard.');
+  } catch {
+    message.error('Clipboard access is unavailable in this browser.');
+  }
+};
+
+const formatBytes = (bytes) => (bytes > 1024 * 1024
+  ? `${(bytes / 1024 / 1024).toFixed(2)} MB`
+  : `${(bytes / 1024).toFixed(1)} KB`);
+
+/** Result panel shared by both tabs. */
+function OutputCard({ title, result, emptyText }) {
+  if (!result) {
+    return (
+      <Card title={title} bordered={false}>
+        <Alert type="info" showIcon message={emptyText} />
+      </Card>
+    );
   }
 
-  const hex = bytes.map((byte) => `0x${byte.toString(16).padStart(2, '0').toUpperCase()}`);
-  return hex;
-};
+  return (
+    <Card
+      title={title}
+      bordered={false}
+      extra={(
+        <Space>
+          <Text type="secondary">{result.filename} · {formatBytes(result.bytes)}</Text>
+          <Button icon={<CopyOutlined />} onClick={() => copyText(result.code)}>Copy</Button>
+          <Button
+            type="primary"
+            className="vision-btn-primary"
+            icon={<DownloadOutlined />}
+            onClick={() => downloadText(result.filename, result.code)}
+          >
+            Download {result.filename.endsWith('.h') ? '.h' : '.c'}
+          </Button>
+        </Space>
+      )}
+    >
+      <pre className="lvgl-code-preview">{previewOf(result.code)}</pre>
+    </Card>
+  );
+}
 
-const buildFontArray = (text, size) => {
-  const words = [...(text || 'LVGL')];
-  const fontSize = Math.max(8, Number(size) || 12);
-  const rows = [];
+/**
+ * Font tab. The conversion runs on the API because it uses the real
+ * lv_font_conv, which is a CommonJS package built around a FreeType WASM
+ * build — see backend/src/controllers/lvglController.js.
+ */
+function FontConverter() {
+  const [file, setFile] = useState(null);
+  const [name, setName] = useState('lv_font_custom');
+  const [size, setSize] = useState(16);
+  const [bpp, setBpp] = useState(4);
+  const [range, setRange] = useState('0x20-0x7F');
+  const [symbols, setSymbols] = useState('');
+  const [options, setOptions] = useState({ noCompress: false, noKerning: false, lcd: false });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState(null);
 
-  words.forEach((char) => {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = fontSize;
-    canvas.height = fontSize;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = '#000000';
-    context.font = `700 ${fontSize}px sans-serif`;
-    context.textBaseline = 'middle';
-    context.fillText(char, 0, fontSize * 0.72, fontSize);
-
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    const rowBytes = [];
-
-    for (let y = 0; y < canvas.height; y += 1) {
-      let bitRow = '';
-      for (let x = 0; x < canvas.width; x += 1) {
-        const index = (y * canvas.width + x) * 4;
-        const alpha = imageData[index + 3] ?? 255;
-        bitRow += alpha > 128 ? '1' : '0';
-      }
-
-      const padded = bitRow.padEnd(Math.ceil(bitRow.length / 8) * 8, '0');
-      for (let i = 0; i < padded.length; i += 8) {
-        const nextByte = padded.slice(i, i + 8);
-        const value = parseInt(nextByte || '00000000', 2);
-        rowBytes.push(value);
-      }
+  const run = async () => {
+    if (!file) {
+      setError('Choose a .ttf, .otf or .woff file first.');
+      return;
+    }
+    if (!range.trim() && !symbols) {
+      setError('Provide a Unicode range, a symbol list, or both.');
+      return;
     }
 
-    rows.push(...rowBytes);
-  });
+    setBusy(true);
+    setError('');
+    try {
+      const form = new FormData();
+      form.append('font', file);
+      form.append('name', name);
+      form.append('size', String(size));
+      form.append('bpp', String(bpp));
+      form.append('range', range);
+      form.append('symbols', symbols);
+      form.append('noCompress', String(options.noCompress));
+      form.append('noKerning', String(options.noKerning));
+      form.append('lcd', String(options.lcd));
 
-  const hex = rows.map((value) => `0x${value.toString(16).padStart(2, '0').toUpperCase()}`);
-  return {
-    width: fontSize,
-    height: fontSize,
-    bytes: hex,
-    preview: words.map((char) => `${char} `).join(''),
+      const { data } = await api.post('/tools/lvgl/font', form);
+      setResult(data);
+      message.success(`${data.filename} generated.`);
+    } catch (caught) {
+      // The API returns a readable message for bad fonts and empty ranges.
+      setError(caught?.response?.data?.message || 'The font could not be converted.');
+      setResult(null);
+    } finally {
+      setBusy(false);
+    }
   };
-};
 
-const labelCase = (value) => value === 'rgb565' ? 'RGB565' : 'ARGB8888';
+  return (
+    <Row gutter={[16, 16]}>
+      <Col span={24} lg={10}>
+        <Card title="Source font" bordered={false}>
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <label className="mail-file-picker" htmlFor="lvgl-font-upload" style={{ width: '100%' }}>
+              <FontSizeOutlined />
+              <span>{file ? file.name : 'Select .ttf / .otf / .woff'}</span>
+            </label>
+            <input
+              id="lvgl-font-upload"
+              type="file"
+              accept=".ttf,.otf,.woff,font/ttf,font/otf,font/woff"
+              className="mail-file-input"
+              onChange={(event) => {
+                const chosen = event.target.files?.[0] || null;
+                setFile(chosen);
+                if (chosen && name === 'lv_font_custom') {
+                  setName(safeCName(chosen.name.replace(/\.[^.]+$/, ''), 'lv_font_custom'));
+                }
+              }}
+            />
+
+            <Input addonBefore="Name" value={name} onChange={(event) => setName(event.target.value)} />
+
+            <Space style={{ width: '100%' }}>
+              <InputNumber
+                min={6}
+                max={200}
+                value={size}
+                onChange={(value) => setSize(value || 16)}
+                addonBefore="Size"
+                addonAfter="px"
+              />
+              <Select
+                value={bpp}
+                onChange={setBpp}
+                style={{ width: 130 }}
+                options={[1, 2, 3, 4, 8].map((value) => ({ value, label: `${value} bpp` }))}
+              />
+            </Space>
+
+            <Tooltip title="Examples: 0x20-0x7F, 32-127, 0x1F450, 0x1F450=>0xF005">
+              <Input
+                addonBefore="Range"
+                value={range}
+                onChange={(event) => setRange(event.target.value)}
+                placeholder="0x20-0x7F"
+              />
+            </Tooltip>
+
+            <Input
+              addonBefore="Symbols"
+              value={symbols}
+              onChange={(event) => setSymbols(event.target.value)}
+              placeholder="Optional, e.g. abc0123"
+            />
+
+            <Space direction="vertical">
+              <Checkbox
+                checked={options.noCompress}
+                onChange={(event) => setOptions({ ...options, noCompress: event.target.checked })}
+              >
+                Disable RLE compression
+              </Checkbox>
+              <Checkbox
+                checked={options.noKerning}
+                onChange={(event) => setOptions({ ...options, noKerning: event.target.checked })}
+              >
+                Drop kerning data
+              </Checkbox>
+              <Checkbox
+                checked={options.lcd}
+                onChange={(event) => setOptions({ ...options, lcd: event.target.checked })}
+              >
+                Subpixel rendering (horizontal)
+              </Checkbox>
+            </Space>
+
+            <Button type="primary" className="vision-btn-primary" loading={busy} onClick={run} block>
+              Convert font
+            </Button>
+
+            {error && <Alert type="error" showIcon message={error} />}
+          </Space>
+        </Card>
+      </Col>
+
+      <Col span={24} lg={14}>
+        <OutputCard
+          title="Generated lv_font_conv output"
+          result={result}
+          emptyText="Upload a font and convert to generate an LVGL font .c file."
+        />
+      </Col>
+    </Row>
+  );
+}
+
+/** Image tab. Runs entirely in the browser — see lib/lvglImage.js. */
+function ImageConverter() {
+  const [source, setSource] = useState(null); // { url, width, height, data }
+  const [name, setName] = useState('img_asset');
+  const [cf, setCf] = useState('CF_TRUE_COLOR_ALPHA');
+  const [dith, setDith] = useState(false);
+  const [swapEndian, setSwapEndian] = useState(false);
+  const [width, setWidth] = useState(null);
+  const [height, setHeight] = useState(null);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState(null);
+  const objectUrl = useRef(null);
+
+  // The preview <img> holds an object URL; it must not outlive the component
+  // or the next upload.
+  useEffect(() => () => {
+    if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+  }, []);
+
+  const loadImage = (file) => {
+    if (!file) return;
+    setError('');
+
+    if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+    const url = URL.createObjectURL(file);
+    objectUrl.current = url;
+
+    const image = new Image();
+    image.onload = () => {
+      setSource({ url, width: image.naturalWidth, height: image.naturalHeight, element: image });
+      setWidth(image.naturalWidth);
+      setHeight(image.naturalHeight);
+      setName((current) => (current === 'img_asset'
+        ? safeCName(file.name.replace(/\.[^.]+$/, ''), 'img_asset')
+        : current));
+      setResult(null);
+    };
+    image.onerror = () => setError('That file could not be decoded as an image.');
+    image.src = url;
+  };
+
+  const run = () => {
+    if (!source) {
+      setError('Choose a PNG, JPG or WebP first.');
+      return;
+    }
+
+    const outWidth = Math.max(1, Number(width) || source.width);
+    const outHeight = Math.max(1, Number(height) || source.height);
+
+    setError('');
+    try {
+      // Re-rasterise at the requested size; this is also what gives us the
+      // RGBA bytes the converter packs.
+      const canvas = document.createElement('canvas');
+      canvas.width = outWidth;
+      canvas.height = outHeight;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.clearRect(0, 0, outWidth, outHeight);
+      context.drawImage(source.element, 0, 0, outWidth, outHeight);
+      const { data } = context.getImageData(0, 0, outWidth, outHeight);
+
+      const outName = safeCName(name, 'img_asset');
+      const code = buildImageC({
+        imageData: data,
+        width: outWidth,
+        height: outHeight,
+        cf,
+        dith,
+        swapEndian,
+        outName,
+      });
+
+      setResult({
+        filename: `${outName}.c`,
+        code,
+        bytes: new Blob([code]).size,
+      });
+      message.success(`${outName}.c generated.`);
+    } catch (caught) {
+      setError(caught?.message || 'That image could not be converted.');
+      setResult(null);
+    }
+  };
+
+  const selectedFormat = COLOR_FORMATS.find((option) => option.value === cf);
+
+  return (
+    <Row gutter={[16, 16]}>
+      <Col span={24} lg={10}>
+        <Card title="Source image" bordered={false}>
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <label className="mail-file-picker" htmlFor="lvgl-image-upload" style={{ width: '100%' }}>
+              <PictureOutlined />
+              <span>{source ? `${source.width} × ${source.height}` : 'Select PNG / JPG / WebP'}</span>
+            </label>
+            <input
+              id="lvgl-image-upload"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="mail-file-input"
+              onChange={(event) => loadImage(event.target.files?.[0])}
+            />
+
+            <Input addonBefore="Name" value={name} onChange={(event) => setName(event.target.value)} />
+
+            <Select
+              value={cf}
+              onChange={setCf}
+              style={{ width: '100%' }}
+              options={COLOR_FORMATS.map(({ value, label }) => ({ value, label }))}
+            />
+            {selectedFormat && <Text type="secondary">{selectedFormat.hint}</Text>}
+
+            <Space style={{ width: '100%' }}>
+              <InputNumber
+                min={1}
+                max={4096}
+                value={width}
+                onChange={setWidth}
+                addonBefore="W"
+                disabled={!source}
+              />
+              <InputNumber
+                min={1}
+                max={4096}
+                value={height}
+                onChange={setHeight}
+                addonBefore="H"
+                disabled={!source}
+              />
+            </Space>
+
+            <Space direction="vertical">
+              <Checkbox checked={dith} onChange={(event) => setDith(event.target.checked)}>
+                Floyd-Steinberg dithering
+              </Checkbox>
+              <Checkbox checked={swapEndian} onChange={(event) => setSwapEndian(event.target.checked)}>
+                Swap byte order
+              </Checkbox>
+            </Space>
+
+            <Button type="primary" className="vision-btn-primary" onClick={run} block disabled={!source}>
+              Convert image
+            </Button>
+
+            {error && <Alert type="error" showIcon message={error} />}
+          </Space>
+        </Card>
+
+        {source && (
+          <Card title="Preview" bordered={false} style={{ marginTop: 16 }}>
+            <img src={source.url} alt="Source preview" className="lvgl-image-preview" />
+            <Paragraph style={{ marginTop: 12, marginBottom: 0 }}>
+              <Text type="secondary">Source {source.width} × {source.height} px</Text>
+            </Paragraph>
+          </Card>
+        )}
+      </Col>
+
+      <Col span={24} lg={14}>
+        <OutputCard
+          title="Generated lv_img_conv output"
+          result={result}
+          emptyText="Upload an image and convert to generate an LVGL image .c file."
+        />
+      </Col>
+    </Row>
+  );
+}
 
 export default function LvglToolPage() {
-  const [imageFormat, setImageFormat] = useState('rgb565');
-  const [maxDimension, setMaxDimension] = useState(128);
-  const [imageSource, setImageSource] = useState('');
-  const [imageMeta, setImageMeta] = useState(null);
-  const [imageCode, setImageCode] = useState('');
-  const [fontText, setFontText] = useState('LVGL');
-  const [fontSize, setFontSize] = useState(16);
-
-  const fontPreview = useMemo(() => buildFontArray(fontText, fontSize), [fontText, fontSize]);
-  const fontCode = useMemo(() => {
-    const bytes = fontPreview.bytes;
-    return [
-      `/* Auto-generated LVGL bitmap font for: ${fontText || 'LVGL'} */`,
-      'const uint8_t lvgl_font_bitmap[] = {',
-      ...bytes.map((value, index) => `  ${value}${index < bytes.length - 1 ? ',' : ''}`),
-      '};',
-      '',
-      `#define LVGL_FONT_WIDTH ${fontPreview.width}`,
-      `#define LVGL_FONT_HEIGHT ${fontPreview.height}`,
-      `#define LVGL_FONT_BYTES ${bytes.length}`,
-    ].join('\n');
-  }, [fontPreview, fontText]);
-
-  const copyToClipboard = async (content, successText) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      message.success(successText);
-    } catch (error) {
-      message.error('Clipboard access is unavailable in this browser.');
-    }
-  };
-
-  const handleImageUpload = (event) => {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const maxSide = Number(maxDimension) || 128;
-        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        const width = Math.max(1, Math.round(img.width * scale));
-        const height = Math.max(1, Math.round(img.height * scale));
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const context = canvas.getContext('2d');
-        context.drawImage(img, 0, 0, width, height);
-
-        const imageData = context.getImageData(0, 0, width, height).data;
-        const code = buildImageArray(imageData, width, height, imageFormat);
-        const lines = [
-          `const uint8_t lvgl_image_data[] = {`,
-          ...code.map((value, index) => `  ${value}${index < code.length - 1 ? ',' : ''}`),
-          '};',
-          '',
-          `#define LVGL_IMG_WIDTH ${width}`,
-          `#define LVGL_IMG_HEIGHT ${height}`,
-          `#define LVGL_IMG_FORMAT ${labelCase(imageFormat)}`,
-        ].join('\n');
-
-        setImageSource(reader.result);
-        setImageMeta({ width, height, format: imageFormat });
-        setImageCode(lines);
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  };
-
   return (
     <div className="vision-page vision-stack">
       <div className="vision-page-header">
         <div>
-          <h1 className="vision-page-title">Tools / LVGL image/font converter</h1>
-          <p className="vision-page-subtitle">Create LVGL-ready C arrays for image assets and bitmap font data.</p>
+          <h1 className="vision-page-title">Tools / LVGL</h1>
+          <p className="vision-page-subtitle">
+            Convert fonts and images into LVGL-ready C source, using the lv_font_conv and
+            lv_img_conv formats.
+          </p>
         </div>
       </div>
 
       <Tabs
         items={[
           {
-            key: 'image',
-            label: (
-              <span>
-                <PictureOutlined /> Image converter
-              </span>
-            ),
-            children: (
-              <Row gutter={[16, 16]}>
-                <Col span={24} lg={12}>
-                  <Card title="Upload source image" bordered={false}>
-                    <Space direction="vertical" style={{ width: '100%' }}>
-                      <label className="mail-file-picker" htmlFor="lvgl-image-upload" style={{ width: '100%' }}>
-                        <DownloadOutlined />
-                        <span>Select image</span>
-                      </label>
-                      <input
-                        id="lvgl-image-upload"
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        onChange={handleImageUpload}
-                        style={{ display: 'none' }}
-                      />
-
-                      <Select
-                        value={imageFormat}
-                        onChange={setImageFormat}
-                        options={[
-                          { value: 'rgb565', label: 'RGB565' },
-                          { value: 'argb8888', label: 'ARGB8888' },
-                        ]}
-                        style={{ width: '100%' }}
-                      />
-
-                      <InputNumber
-                        min={32}
-                        max={512}
-                        step={16}
-                        value={maxDimension}
-                        onChange={(value) => setMaxDimension(value || 128)}
-                        style={{ width: '100%' }}
-                        addonBefore="Max size"
-                      />
-
-                      <Button type="primary" onClick={() => copyToClipboard(imageCode, 'Image array copied to clipboard.')}>Copy C array</Button>
-                    </Space>
-                  </Card>
-                </Col>
-
-                <Col span={24} lg={12}>
-                  <Card title="Preview" bordered={false}>
-                    {imageSource ? (
-                      <img src={imageSource} alt="LVGL preview" style={{ maxWidth: '100%', borderRadius: 12, border: '1px solid #e3ecf5', background: '#f8fbff' }} />
-                    ) : (
-                      <Alert type="info" showIcon message="Upload a PNG or JPG to generate LVGL-ready image data." />
-                    )}
-                    {imageMeta && (
-                      <Paragraph style={{ marginTop: 16 }}>
-                        <Text strong>{imageMeta.width}</Text> × <Text strong>{imageMeta.height}</Text> px · <Text strong>{labelCase(imageMeta.format)}</Text>
-                      </Paragraph>
-                    )}
-                  </Card>
-                </Col>
-
-                <Col span={24}>
-                  <Card title="Generated C code" bordered={false}>
-                    <pre style={{ margin: 0, background: '#f6f8fb', borderRadius: 12, padding: 16, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                      {imageCode || 'No image data generated yet.'}
-                    </pre>
-                  </Card>
-                </Col>
-              </Row>
-            ),
+            key: 'font',
+            label: <span><FontSizeOutlined /> Font converter</span>,
+            children: <FontConverter />,
           },
           {
-            key: 'font',
-            label: (
-              <span>
-                <ToolOutlined /> Font converter
-              </span>
-            ),
-            children: (
-              <Row gutter={[16, 16]}>
-                <Col span={24} lg={12}>
-                  <Card title="Bitmap font generator" bordered={false}>
-                    <Space direction="vertical" style={{ width: '100%' }}>
-                      <Input
-                        value={fontText}
-                        onChange={(event) => setFontText(event.target.value)}
-                        placeholder="Enter characters for the bitmap font"
-                      />
-
-                      <InputNumber
-                        min={8}
-                        max={64}
-                        step={2}
-                        value={fontSize}
-                        onChange={(value) => setFontSize(value || 16)}
-                        style={{ width: '100%' }}
-                        addonBefore="Font size"
-                      />
-
-                      <Button type="primary" onClick={() => copyToClipboard(fontCode, 'Font array copied to clipboard.') }>
-                        Copy C array
-                      </Button>
-                    </Space>
-                  </Card>
-                </Col>
-
-                <Col span={24} lg={12}>
-                  <Card title="Preview" bordered={false}>
-                    <div style={{ minHeight: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: '#f8fbff', border: '1px solid #e3ecf5' }}>
-                      <Title level={4} style={{ margin: 0, letterSpacing: 1 }}>{fontPreview.preview}</Title>
-                    </div>
-                  </Card>
-                </Col>
-
-                <Col span={24}>
-                  <Card title="Generated font C code" bordered={false}>
-                    <pre style={{ margin: 0, background: '#f6f8fb', borderRadius: 12, padding: 16, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                      {fontCode || 'No font data generated yet.'}
-                    </pre>
-                  </Card>
-                </Col>
-              </Row>
-            ),
+            key: 'image',
+            label: <span><PictureOutlined /> Image converter</span>,
+            children: <ImageConverter />,
           },
         ]}
       />
