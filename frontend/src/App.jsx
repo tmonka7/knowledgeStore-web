@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Avatar, Form, Modal, Tag, message } from 'antd';
+import { Avatar, Form, Modal, message } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import api from './api';
 import AuthPage from './components/AuthPage';
@@ -441,18 +441,40 @@ function App() {
 
   const userTableColumns = useMemo(
     () => [
-      { title: 'Name', dataIndex: 'fullName', key: 'fullName' },
+      {
+        title: 'Name',
+        dataIndex: 'fullName',
+        key: 'fullName',
+        render: (fullName) => <span className="vision-cell-name">{fullName}</span>,
+      },
       {
         title: 'Photo',
         key: 'faceImage',
         width: 72,
         render: (_, record) => record.faceImage
-          ? <img className="user-face-avatar" src={record.faceImage} alt={`${record.fullName} face`} />
-          : <Avatar className="user-face-avatar user-face-placeholder" icon={<UserOutlined />} />,
+          ? <img className="vision-cell-avatar-img" src={record.faceImage} alt={`${record.fullName} face`} />
+          : <Avatar size={38} className="vision-cell-avatar" icon={<UserOutlined />} />,
       },
-      { title: 'Username', dataIndex: 'username', key: 'username' },
-      { title: 'Email', dataIndex: 'email', key: 'email' },
-      { title: 'Role', dataIndex: 'role', key: 'role', render: (role) => <Tag color={role === 'admin' ? 'blue' : 'green'}>{role}</Tag> },
+      {
+        title: 'Username',
+        dataIndex: 'username',
+        key: 'username',
+        render: (username) => <span className="vision-cell-muted">{username}</span>,
+      },
+      {
+        title: 'Email',
+        dataIndex: 'email',
+        key: 'email',
+        render: (email) => <span className="vision-cell-muted">{email}</span>,
+      },
+      {
+        title: 'Role',
+        dataIndex: 'role',
+        key: 'role',
+        render: (role) => (
+          <span className={`vision-badge ${role === 'admin' ? 'is-blue' : 'is-green'}`}>{role}</span>
+        ),
+      },
     ],
     [],
   );

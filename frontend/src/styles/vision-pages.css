@@ -1,0 +1,1098 @@
+/*
+ * Page-level VisionAI styles for Overview, Chat, Mail, Categories and System
+ * Monitoring. Loaded after vision.css, so these rules may refine the shared
+ * component classes without touching the design system file itself.
+ */
+
+/* ------------------------------------------------------------ page shells */
+
+.vision-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-5);
+}
+
+.vision-stack > .vision-page-header {
+  margin-bottom: 0;
+}
+
+.vision-stack > .vision-stat-grid {
+  margin-bottom: 0;
+}
+
+.vision-stack > .vision-panel + .vision-panel {
+  margin-top: 0;
+}
+
+/* Five metrics do not fit the shared four-column grid. */
+.vision-stat-grid.cols-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.vision-monitor-stats .vision-stat-value {
+  overflow-wrap: anywhere;
+  font-size: 19px;
+}
+
+.vision-overview-stats .vision-stat-value {
+  overflow-wrap: anywhere;
+  font-size: 22px;
+}
+
+.vision-stat-change {
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------- panel headings */
+
+.vision-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+  margin-bottom: var(--v-space-4);
+}
+
+.vision-panel-head .vision-section-title {
+  margin: 0;
+}
+
+.vision-panel-head-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--v-space-3);
+}
+
+.vision-panel-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border-radius: var(--v-radius-md);
+  background: var(--v-tint-blue);
+  color: var(--v-primary);
+  font-size: 16px;
+}
+
+.vision-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--v-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.18s var(--v-ease);
+}
+
+.vision-link-btn:hover {
+  color: var(--v-primary-strong);
+}
+
+.vision-link-btn .anticon {
+  font-size: 12px;
+}
+
+.vision-facts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vision-facts li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+  padding: 11px 0;
+  border-bottom: 1px solid #f0f4fa;
+}
+
+.vision-facts li:last-child {
+  border-bottom: 0;
+}
+
+.vision-facts span {
+  color: var(--v-text-soft);
+  font-size: 13px;
+}
+
+.vision-facts strong {
+  overflow-wrap: anywhere;
+  color: var(--v-text);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------- overview */
+
+.vision-hero {
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-5);
+  padding: var(--v-space-6) var(--v-space-5);
+  border: 1px solid #d9e6fb;
+  border-radius: var(--v-radius-xl);
+  background:
+    radial-gradient(520px 260px at 88% 12%, rgba(25, 200, 255, 0.18), transparent 70%),
+    linear-gradient(118deg, var(--v-primary) 0%, #3f7bfb 48%, var(--v-secondary) 100%);
+  color: #fff;
+  box-shadow: var(--v-shadow-md);
+}
+
+.vision-hero-copy {
+  min-width: 0;
+  max-width: 640px;
+}
+
+.vision-hero-title {
+  margin: 0;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.vision-hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--v-space-2);
+  margin-top: var(--v-space-3);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.vision-hero-dot {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.vision-hero p {
+  margin: var(--v-space-3) 0 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.vision-hero-art {
+  position: relative;
+  width: 210px;
+  height: 140px;
+  flex: none;
+}
+
+.vision-hero-orb,
+.vision-hero-ring,
+.vision-hero-bar {
+  position: absolute;
+  display: block;
+}
+
+.vision-hero-orb {
+  top: 14px;
+  right: 24px;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.vision-hero-ring {
+  top: 2px;
+  right: 6px;
+  width: 132px;
+  height: 132px;
+  border: 1px dashed rgba(255, 255, 255, 0.42);
+  border-radius: 50%;
+  animation: vision-hero-spin 22s linear infinite;
+}
+
+@keyframes vision-hero-spin {
+  to { transform: rotate(360deg); }
+}
+
+.vision-hero-bar {
+  left: 0;
+  height: 10px;
+  border-radius: var(--v-radius-pill);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.vision-hero-bar.bar-a { top: 32px; width: 74px; }
+.vision-hero-bar.bar-b { top: 62px; width: 52px; opacity: 0.72; }
+.vision-hero-bar.bar-c { top: 92px; width: 92px; opacity: 0.5; }
+
+.vision-overview-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  gap: var(--v-space-4);
+}
+
+.vision-overview-split > .vision-panel + .vision-panel {
+  margin-top: 0;
+}
+
+.vision-static-table tbody tr {
+  cursor: default;
+}
+
+.vision-donut-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--v-space-5);
+}
+
+.vision-donut {
+  display: grid;
+  width: 148px;
+  height: 148px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--v-primary) 0 var(--donut-value, 0%),
+    #e6edf7 var(--donut-value, 0%) 100%
+  );
+}
+
+.vision-donut-inner {
+  display: grid;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--v-text);
+  font-size: 24px;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--v-border);
+}
+
+.vision-legend {
+  display: flex;
+  min-width: 190px;
+  flex: 1 1 190px;
+  flex-direction: column;
+  gap: var(--v-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vision-legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  padding: 9px 12px;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface-muted);
+  color: var(--v-text-soft);
+  font-size: 13px;
+}
+
+.vision-legend strong {
+  margin-left: auto;
+  color: var(--v-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.vision-legend-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.vision-legend-dot.is-used { background: var(--v-primary); }
+.vision-legend-dot.is-free { background: var(--v-success); }
+.vision-legend-dot.is-total { background: #b9c9de; }
+
+.vision-basic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(206px, 1fr));
+  gap: var(--v-space-4);
+}
+
+.vision-basic-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--v-space-2);
+  padding: var(--v-space-4);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg);
+  background: var(--v-surface-muted);
+  transition: transform 0.2s var(--v-ease), box-shadow 0.2s var(--v-ease), border-color 0.2s var(--v-ease);
+}
+
+.vision-basic-card:hover {
+  border-color: #d4e4fb;
+  background: #fff;
+  box-shadow: var(--v-shadow-sm);
+  transform: translateY(-2px);
+}
+
+.vision-basic-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--v-radius-md);
+  background: var(--stat-tint, var(--v-tint-blue));
+  color: var(--stat-color, var(--v-primary));
+  font-size: 18px;
+}
+
+.vision-basic-title {
+  margin: 0;
+  color: var(--v-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.vision-basic-desc {
+  margin: 0;
+  flex: 1;
+  color: var(--v-text-soft);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* -------------------------------------------------------------- chat page */
+
+.vision-chat-layout,
+.vision-mail-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: var(--v-space-4);
+  align-items: stretch;
+}
+
+.vision-chat-layout {
+  height: calc(100vh - 260px);
+  min-height: 480px;
+}
+
+.vision-chat-layout > .vision-panel + .vision-panel,
+.vision-mail-layout > .vision-panel + .vision-panel {
+  margin-top: 0;
+}
+
+.vision-chat-sidebar,
+.vision-mail-sidebar {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--v-space-3);
+}
+
+.vision-chat-sidebar > .vision-panel-head,
+.vision-mail-sidebar > .vision-panel-head {
+  margin-bottom: 0;
+}
+
+.vision-chat-list,
+.vision-mail-list {
+  display: flex;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vision-chat-item,
+.vision-mail-item {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: var(--v-space-3);
+  padding: var(--v-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--v-radius-md);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s var(--v-ease);
+}
+
+.vision-chat-item:hover,
+.vision-mail-item:hover {
+  background: var(--v-surface-muted);
+}
+
+.vision-chat-item.is-active,
+.vision-mail-item.is-active {
+  border-color: #d4e4fb;
+  background: var(--v-tint-blue);
+}
+
+.vision-chat-avatar.ant-avatar {
+  flex: none;
+  background: linear-gradient(135deg, var(--v-primary), var(--v-secondary));
+  color: #fff;
+  font-weight: 600;
+}
+
+.vision-chat-item-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vision-chat-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+}
+
+.vision-chat-item-name {
+  overflow: hidden;
+  color: var(--v-text);
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vision-chat-item-time,
+.vision-chat-item-role {
+  flex: none;
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+}
+
+.vision-chat-item-preview {
+  overflow: hidden;
+  color: var(--v-text-soft);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vision-chat-thread {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.vision-chat-thread-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+  padding-bottom: var(--v-space-4);
+  border-bottom: 1px solid var(--v-border);
+}
+
+.vision-chat-thread-user {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--v-space-3);
+}
+
+.vision-chat-thread-name {
+  color: var(--v-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.vision-chat-thread-status {
+  color: var(--v-text-soft);
+  font-size: 12.5px;
+}
+
+.vision-chat-messages {
+  display: flex;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  padding: var(--v-space-4) var(--v-space-1);
+}
+
+.vision-chat-empty-title {
+  color: var(--v-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.vision-chat-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.vision-chat-row.is-me {
+  justify-content: flex-end;
+}
+
+.vision-chat-bubble {
+  max-width: min(78%, 520px);
+  padding: 10px 14px;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg) var(--v-radius-lg) var(--v-radius-lg) var(--v-radius-sm);
+  background: var(--v-surface-muted);
+  color: var(--v-text);
+  box-shadow: var(--v-shadow-xs);
+}
+
+.vision-chat-bubble.is-me {
+  border-color: transparent;
+  border-radius: var(--v-radius-lg) var(--v-radius-lg) var(--v-radius-sm) var(--v-radius-lg);
+  background: linear-gradient(120deg, var(--v-primary), #3d7bff);
+  color: #fff;
+}
+
+.vision-chat-bubble-text {
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.vision-chat-bubble-time {
+  margin-top: 4px;
+  color: var(--v-text-soft);
+  font-size: 11px;
+  text-align: right;
+}
+
+.vision-chat-bubble.is-me .vision-chat-bubble-time {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.vision-chat-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--v-space-2);
+  padding-top: var(--v-space-4);
+  border-top: 1px solid var(--v-border);
+}
+
+.vision-chat-composer-input.ant-input {
+  border-color: var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface-muted);
+  resize: none;
+}
+
+/* -------------------------------------------------------------- mail page */
+
+.vision-mail-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.vision-mail-sidebar {
+  max-height: calc(100vh - 260px);
+}
+
+.vision-mail-item {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vision-mail-item-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+}
+
+.vision-mail-item-sender {
+  overflow: hidden;
+  color: var(--v-text);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vision-mail-item-subject {
+  overflow: hidden;
+  width: 100%;
+  color: var(--v-text);
+  font-size: 13.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vision-mail-item-preview {
+  overflow: hidden;
+  width: 100%;
+  color: var(--v-text-soft);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vision-mail-item-meta {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+  margin-top: 4px;
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+}
+
+.vision-mail-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+}
+
+.vision-mail-detail-heading {
+  min-width: 0;
+}
+
+.vision-mail-detail-title {
+  margin: var(--v-space-2) 0 0;
+  color: var(--v-text);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  overflow-wrap: anywhere;
+}
+
+.vision-mail-detail-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--v-space-2);
+}
+
+.vision-mail-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--v-space-3);
+  margin-top: var(--v-space-4);
+  padding: var(--v-space-3) 0;
+  border-top: 1px solid var(--v-border);
+  border-bottom: 1px solid var(--v-border);
+}
+
+.vision-mail-detail-name {
+  color: var(--v-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vision-mail-detail-time {
+  margin-left: auto;
+  color: var(--v-text-soft);
+  font-size: 12px;
+}
+
+.vision-mail-body {
+  padding-top: var(--v-space-4);
+  color: var(--v-text);
+  font-size: 14px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.vision-mail-body p {
+  margin: 0 0 var(--v-space-3);
+}
+
+.vision-mail-body img {
+  max-width: 100%;
+  height: auto;
+}
+
+.vision-mail-attachment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--v-space-2);
+  margin-top: var(--v-space-3);
+  padding: var(--v-space-3);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface-muted);
+  color: var(--v-text-soft);
+  font-size: 13px;
+}
+
+.vision-mail-attachment .anticon {
+  color: var(--v-primary);
+}
+
+.vision-mail-attachment a {
+  overflow-wrap: anywhere;
+  color: var(--v-primary);
+  font-weight: 500;
+}
+
+.vision-mail-compose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+}
+
+.vision-mail-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--v-space-3);
+}
+
+.vision-file-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  padding: 8px 14px;
+  border: 1px dashed #c6d8ef;
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface-muted);
+  color: #42546f;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s var(--v-ease);
+}
+
+.vision-file-picker:hover {
+  border-color: var(--v-primary);
+  color: var(--v-primary);
+}
+
+.vision-file-input {
+  display: none;
+}
+
+.vision-mail-compose-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--v-space-2);
+}
+
+/* -------------------------------------------------------- categories page */
+
+.vision-categories-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: var(--v-space-4);
+  align-items: start;
+}
+
+.vision-categories-layout > .vision-panel + .vision-panel {
+  margin-top: 0;
+}
+
+.vision-category-select.ant-tree-select {
+  width: 100%;
+}
+
+.vision-category-submit.ant-btn {
+  width: 100%;
+}
+
+.vision-category-search.ant-input-affix-wrapper {
+  margin-bottom: var(--v-space-3);
+  border-radius: var(--v-radius-md);
+}
+
+.vision-category-tree.ant-tree {
+  background: transparent;
+  font-size: 14px;
+}
+
+.vision-category-tree .ant-tree-node-content-wrapper {
+  border-radius: var(--v-radius-md);
+  transition: background 0.18s var(--v-ease);
+}
+
+.vision-category-tree .ant-tree-node-content-wrapper:hover {
+  background: var(--v-surface-muted);
+}
+
+.vision-category-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+  padding: 2px 4px;
+}
+
+.vision-category-node-label {
+  overflow: hidden;
+  color: var(--v-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------- system monitor page */
+
+.vision-monitor-graphs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--v-space-4);
+}
+
+.vision-monitor-info {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--v-space-4);
+  align-items: start;
+}
+
+.vision-monitor-graphs > .vision-panel + .vision-panel,
+.vision-monitor-info > .vision-panel + .vision-panel {
+  margin-top: 0;
+}
+
+.vision-graph-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+  padding-bottom: var(--v-space-3);
+  border-bottom: 1px solid #f0f4fa;
+}
+
+.vision-graph-head strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  text-align: right;
+}
+
+.vision-graph-metric {
+  display: flex;
+  align-items: baseline;
+  gap: var(--v-space-2);
+  padding: var(--v-space-3) 0;
+}
+
+.vision-graph-value {
+  color: var(--v-text);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.vision-graph-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.vision-graph-grid line {
+  stroke: #eef3fa;
+  stroke-width: 1;
+}
+
+.vision-graph-axis {
+  stroke: var(--v-border);
+  stroke-width: 1;
+}
+
+.vision-graph-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vision-graph-line.is-memory { stroke: var(--v-secondary); }
+.vision-graph-line.is-cpu { stroke: var(--v-primary); }
+.vision-graph-line.is-network { stroke: var(--v-cyan); }
+
+.vision-graph-label {
+  fill: #8aa0ba;
+  font-size: 9px;
+}
+
+.vision-monitor-note {
+  margin: 0 0 var(--v-space-2);
+  color: var(--v-text-soft);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.vision-monitor-note:last-child {
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------ responsive */
+
+@media (max-width: 1439px) {
+  .vision-stat-grid.cols-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1279px) {
+  .vision-stat-grid.cols-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vision-overview-split,
+  .vision-monitor-graphs,
+  .vision-monitor-info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vision-chat-layout,
+  .vision-mail-layout {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1023px) {
+  .vision-chat-layout,
+  .vision-mail-layout,
+  .vision-categories-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vision-chat-layout {
+    height: auto;
+  }
+
+  .vision-chat-list {
+    max-height: 320px;
+  }
+
+  .vision-chat-messages {
+    min-height: 320px;
+  }
+
+  .vision-mail-sidebar {
+    max-height: 420px;
+  }
+
+  .vision-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--v-space-5);
+  }
+
+  .vision-hero-art {
+    align-self: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .vision-stat-grid.cols-5 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vision-hero-title {
+    font-size: 22px;
+  }
+
+  .vision-basic-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vision-donut-wrap {
+    gap: var(--v-space-4);
+  }
+
+  .vision-mail-detail-actions,
+  .vision-mail-compose-actions {
+    width: 100%;
+  }
+
+  .vision-mail-detail-actions .ant-btn,
+  .vision-mail-compose-actions .ant-btn {
+    flex: 1;
+  }
+
+  .vision-panel-head {
+    align-items: flex-start;
+  }
+
+  .vision-chat-bubble {
+    max-width: 88%;
+  }
+}
+
+@media (max-width: 480px) {
+  .vision-hero-art {
+    width: 168px;
+    height: 120px;
+  }
+
+  .vision-hero-ring {
+    width: 108px;
+    height: 108px;
+  }
+
+  .vision-hero-orb {
+    width: 84px;
+    height: 84px;
+  }
+
+  .vision-panel-head > .ant-btn,
+  .vision-panel-head > .vision-panel-head-title {
+    width: 100%;
+  }
+
+  .vision-donut-wrap {
+    flex-direction: column;
+  }
+
+  .vision-legend {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .vision-mail-detail-time {
+    margin-left: 0;
+  }
+}
+
+/* Search fields in the chat and mail sidebars. */
+.vision-chat-search.ant-input-search,
+.vision-mail-search.ant-input-search {
+  margin-bottom: var(--v-space-3);
+}
+
+.vision-chat-search .ant-input-affix-wrapper,
+.vision-mail-search .ant-input-affix-wrapper {
+  border-color: var(--v-border);
+  border-start-start-radius: var(--v-radius-md);
+  border-end-start-radius: var(--v-radius-md);
+  background: var(--v-surface-muted);
+}
+
+.vision-chat-search .ant-input-search-button,
+.vision-mail-search .ant-input-search-button {
+  border-color: var(--v-border);
+  border-start-end-radius: var(--v-radius-md);
+  border-end-end-radius: var(--v-radius-md);
+  color: var(--v-text-soft);
+}

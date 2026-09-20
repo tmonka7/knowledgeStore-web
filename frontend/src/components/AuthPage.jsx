@@ -324,7 +324,10 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
           <aside className="auth-brand-panel">
             <div className="auth-brand">
               <span className="auth-brand-mark"><FaceIdIcon /></span>
-              <span className="auth-brand-name">Face Recognition</span>
+              <span className="auth-brand-text">
+                <span className="auth-brand-name">VisionAI</span>
+                <span className="auth-brand-tagline">AI Security Platform</span>
+              </span>
             </div>
             {isLogin ? (
               <div className="auth-brand-copy">

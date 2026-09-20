@@ -1,16 +1,11 @@
 import {
-  Avatar,
   Button,
   Card,
   Col,
-  Dropdown,
   Form,
   Input,
-  Layout,
-  Menu,
   Modal,
   Row,
-  Select,
   Space,
   Tag,
   TreeSelect,
@@ -20,7 +15,6 @@ import {
 import {
   AppstoreOutlined,
   BarChartOutlined,
-  BellOutlined,
   CopyOutlined,
   DatabaseOutlined,
   CameraOutlined,
@@ -29,12 +23,12 @@ import {
   MessageOutlined,
   PaperClipOutlined,
   TeamOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { asBlob } from 'html-docx-js-typescript';
 import { useEffect, useState } from 'react';
+import AppLayout from '../components/AppLayout';
 import HtmlEditor from '../components/HtmlEditor';
 import { can } from '../permissions';
 import OverviewPage from './OverviewPage';
@@ -44,10 +38,9 @@ import UsersPage from './UsersPage';
 import SystemMonitorPage from './SystemMonitorPage';
 import ChatPage from './ChatPage';
 import MailPage from './MailPage';
-import { languageOptions, useLanguage } from '../i18n';
+import { useLanguage } from '../i18n';
 import CamerasPage from './CamerasPage';
 
-const { Header, Content, Footer, Sider } = Layout;
 const { Title, Text } = Typography;
 
 const copyHtmlWithStyles = (htmlContent) => {
@@ -135,8 +128,7 @@ export default function DashboardPage({
   onCategoryFilterChange,
   onAiSearch,
 }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
 
   const handleExportPdf = async () => {
     if (!selectedRecord) return;
@@ -293,51 +285,27 @@ export default function DashboardPage({
     { key: 'logout', label: t('logout'), danger: true, onClick: logout },
   ];
 
-  return (
-    <Layout className="app-shell">
-      <Sider width={220} collapsible collapsed={sidebarCollapsed} onCollapse={setSidebarCollapsed} className="app-sider">
-        <div className="brand-shell">
-          <div className="brand-logo">
-            <div className="brand-badge">
-              <DatabaseOutlined />
-            </div>
-            <div className="brand-copy">
-              <div className="brand-title">DataStorage</div>
-              <div className="brand-subtitle">Management System</div>
-            </div>
-          </div>
-        </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[effectiveKey]}
-          onClick={(e) => setActiveKey(e.key)}
-          items={menuItems}
-          className="app-menu"
-        />
-        <div className="sidebar-footer">© 2025 DataStorage System</div>
-      </Sider>
-      <Layout>
-        <Header className="top-bar">
-          <div className="topbar-spacer" />
-          <div className="topbar-actions">
-            <Select
-              size="small"
-              value={language}
-              aria-label={t('language')}
-              options={languageOptions}
-              onChange={setLanguage}
-              className="language-select"
-            />
-            <Button type="text" icon={<BellOutlined />} className="header-icon-btn" />
-            <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
-              <button type="button" className="user-pill" aria-label="Open user menu">
-                <Avatar size="small" icon={<UserOutlined />} className="user-avatar" />
-                <span>{user?.fullName || 'Administrator'}</span>
-              </button>
-            </Dropdown>
-          </div>
-        </Header>
+  // The header search is the record search, so typing there jumps to Data
+  // rather than being a decorative field.
+  const handleGlobalSearch = (value) => {
+    if (can(user, 'records')) {
+      setActiveKey('records');
+      onSearchRecords(value);
+    }
+  };
 
+  return (
+    <AppLayout
+      user={user}
+      menuItems={menuItems}
+      selectedKey={effectiveKey}
+      onSelect={setActiveKey}
+      userMenuItems={userMenuItems}
+      searchValue={searchText}
+      onSearchChange={onSearchInputChange}
+      onSearchSubmit={handleGlobalSearch}
+      notificationCount={1}
+    >
         <Modal
           open={Boolean(selectedRecord)}
           title={selectedRecord?.title || 'Record details'}
@@ -513,16 +481,15 @@ export default function DashboardPage({
           </Form>
         </Modal>
 
-        <Content className="page-content">
-          {!menuItems.length && (
-            <Card>
-              <Title level={4} style={{ marginTop: 0 }}>No pages available</Title>
-              <Text type="secondary">
-                Your account has not been granted access to any pages yet. Ask an administrator to
-                update your permissions.
-              </Text>
-            </Card>
-          )}
+        {!menuItems.length && (
+          <Card>
+            <Title level={4} style={{ marginTop: 0 }}>No pages available</Title>
+            <Text type="secondary">
+              Your account has not been granted access to any pages yet. Ask an administrator to
+              update your permissions.
+            </Text>
+          </Card>
+        )}
 
           {effectiveKey === 'overview' && (
             <OverviewPage
@@ -592,9 +559,6 @@ export default function DashboardPage({
               categories={categories}
             />
           )}
-        </Content>
-        <Footer className="footer">Knowledge Store © 2026</Footer>
-      </Layout>
-    </Layout>
+    </AppLayout>
   );
 }

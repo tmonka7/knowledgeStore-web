@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Form, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
+import { useMemo, useRef, useState } from 'react';
+import { Alert, Button, Card, Checkbox, Form, Input, Modal, Select, Table, Typography } from 'antd';
 import {
   AppstoreFilled,
   CameraFilled,
@@ -17,15 +17,23 @@ import {
   MailOutlined,
   MessageFilled,
   PictureOutlined,
+  PlusOutlined,
   PlusSquareOutlined,
+  ReloadOutlined,
   SafetyCertificateOutlined,
   SaveOutlined,
+  ScanOutlined,
+  SearchOutlined,
   TagFilled,
   TeamOutlined,
   UploadOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { FaceScanArt } from '../components/FaceArt';
+import FilterBar from '../components/ui/FilterBar';
+import PageHeader from '../components/ui/PageHeader';
+import StatCard from '../components/ui/StatCard';
+import StatusBadge from '../components/ui/StatusBadge';
 import { descriptorFromFile, imageDataFromFile } from '../lib/faceRecognition';
 
 const { Title, Text } = Typography;
@@ -97,6 +105,45 @@ export default function UsersPage({
   const [faceUpdating, setFaceUpdating] = useState(false);
   const [faceUpdateError, setFaceUpdateError] = useState('');
   const [faceFileName, setFaceFileName] = useState('');
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Draft values follow the inputs; applied values drive the table, so the
+  // Search and Reset buttons behave the way an enterprise filter bar should.
+  const [queryDraft, setQueryDraft] = useState('');
+  const [roleDraft, setRoleDraft] = useState('all');
+  const [faceDraft, setFaceDraft] = useState('all');
+  const [filters, setFilters] = useState({ query: '', role: 'all', face: 'all' });
+
+  const applyFilters = () => setFilters({ query: queryDraft.trim(), role: roleDraft, face: faceDraft });
+
+  const resetFilters = () => {
+    setQueryDraft('');
+    setRoleDraft('all');
+    setFaceDraft('all');
+    setFilters({ query: '', role: 'all', face: 'all' });
+  };
+
+  const filteredUsers = useMemo(() => {
+    const needle = filters.query.toLowerCase();
+    return users.filter((record) => {
+      if (filters.role !== 'all' && record.role !== filters.role) return false;
+      if (filters.face === 'enrolled' && !record.faceImage) return false;
+      if (filters.face === 'missing' && record.faceImage) return false;
+      if (!needle) return true;
+      return [record.fullName, record.username, record.email, record.role]
+        .some((field) => String(field || '').toLowerCase().includes(needle));
+    });
+  }, [users, filters]);
+
+  const adminCount = users.filter((record) => record.role === 'admin').length;
+  const regularCount = users.length - adminCount;
+  const faceEnrolled = users.filter((record) => record.faceImage).length;
+  const newThisWeek = users.filter((record) => {
+    const created = new Date(record.createdAt).getTime();
+    return Number.isFinite(created) && Date.now() - created < 7 * 24 * 60 * 60 * 1000;
+  }).length;
+  const percentOf = (count) => (users.length ? `${Math.round((count / users.length) * 100)}% of total` : '0% of total');
 
   const isAdmin = user?.role === 'admin';
   const editingSelf = editingUser?.id === user?.id;
@@ -211,27 +258,134 @@ export default function UsersPage({
         title: 'Access',
         key: 'access',
         render: (_, record) => (record.role === 'admin'
-          ? <Tag color="gold">Full access</Tag>
-          : <Text type="secondary">{(record.permissions || []).length} permissions</Text>),
+          ? <StatusBadge tone="amber">Full access</StatusBadge>
+          : <StatusBadge tone="grey">{(record.permissions || []).length} permissions</StatusBadge>),
       },
       {
         title: 'Actions',
         key: 'actions',
         width: 90,
         render: (_, record) => (
-          <Button type="text" icon={<EditOutlined />} onClick={() => openEditor(record)} />
+          <div className="vision-row-actions">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => openEditor(record)}
+              aria-label={`Edit ${record.fullName}`}
+            />
+          </div>
         ),
       },
     ]
     : userTableColumns;
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Card title="Users">
-        <Table dataSource={users} columns={columns} rowKey="id" />
-      </Card>
+    <div className="vision-page">
+      <PageHeader
+        title="Users Management"
+        subtitle="Manage system users and their permissions."
+        actions={isAdmin && (
+          <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => setAddUserOpen(true)}>
+            Add User
+          </Button>
+        )}
+      />
 
-      <Card>
+      <div className="vision-stat-grid">
+        <StatCard
+          tone="blue"
+          icon={<TeamOutlined />}
+          label="Total Users"
+          value={users.length}
+          meta={`${newThisWeek} new this week`}
+          trend={newThisWeek > 0 ? 'up' : undefined}
+        />
+        <StatCard
+          tone="violet"
+          icon={<SafetyCertificateOutlined />}
+          label="Administrators"
+          value={adminCount}
+          meta={percentOf(adminCount)}
+        />
+        <StatCard
+          tone="cyan"
+          icon={<UserOutlined />}
+          label="Regular Users"
+          value={regularCount}
+          meta={percentOf(regularCount)}
+        />
+        <StatCard
+          tone="green"
+          icon={<ScanOutlined />}
+          label="Face ID Enrolled"
+          value={faceEnrolled}
+          meta={percentOf(faceEnrolled)}
+        />
+      </div>
+
+      <FilterBar
+        actions={(
+          <>
+            <Button type="primary" className="vision-btn-primary" icon={<SearchOutlined />} onClick={applyFilters}>
+              Search
+            </Button>
+            <Button className="vision-btn-ghost" icon={<ReloadOutlined />} onClick={resetFilters}>
+              Reset
+            </Button>
+          </>
+        )}
+      >
+        <Input
+          allowClear
+          className="vision-filter-search"
+          prefix={<SearchOutlined />}
+          placeholder="Search by name, email, role..."
+          value={queryDraft}
+          onChange={(event) => setQueryDraft(event.target.value)}
+          onPressEnter={applyFilters}
+        />
+        <Select
+          className="vision-filter-select"
+          value={roleDraft}
+          onChange={setRoleDraft}
+          options={[
+            { value: 'all', label: 'All Roles' },
+            { value: 'admin', label: 'Admin' },
+            { value: 'user', label: 'User' },
+          ]}
+        />
+        <Select
+          className="vision-filter-select"
+          value={faceDraft}
+          onChange={setFaceDraft}
+          options={[
+            { value: 'all', label: 'All Face ID' },
+            { value: 'enrolled', label: 'Face ID enrolled' },
+            { value: 'missing', label: 'No face photo' },
+          ]}
+        />
+      </FilterBar>
+
+      <div className="vision-toolbar">
+        <span className="vision-toolbar-meta">
+          Total {filteredUsers.length} {filteredUsers.length === 1 ? 'record' : 'records'}
+          {filteredUsers.length !== users.length && ` (filtered from ${users.length})`}
+        </span>
+      </div>
+
+      <div className="vision-table-panel">
+        <Table
+          className="vision-table"
+          dataSource={filteredUsers}
+          columns={columns}
+          rowKey="id"
+          scroll={{ x: 'max-content' }}
+          pagination={{ pageSize, showSizeChanger: true, pageSizeOptions: [10, 20, 50], onShowSizeChange: (_, size) => setPageSize(size) }}
+          locale={{ emptyText: 'No users match these filters.' }}
+        />
+      </div>
+
+      <Card className="vision-settings-card">
         <Title level={4} style={{ marginTop: 0 }}>User Settings</Title>
         <Text type="secondary">Update your password below.</Text>
         <Form form={form} layout="vertical" onFinish={onSubmit} style={{ marginTop: 16, maxWidth: 460 }}>
@@ -533,6 +687,25 @@ export default function UsersPage({
           </div>
         )}
       </Modal>
-    </Space>
+
+      <Modal
+        open={addUserOpen}
+        title="Add User"
+        onCancel={() => setAddUserOpen(false)}
+        footer={[<Button key="ok" type="primary" onClick={() => setAddUserOpen(false)}>Got it</Button>]}
+        width={460}
+        centered
+      >
+        <p>
+          Accounts are created through the sign-up screen, because every user must enrol a face
+          photo before the account exists.
+        </p>
+        <p className="vision-cell-muted">
+          Ask the person to open the login page, choose <strong>Register</strong>, and complete the
+          face capture. Once they appear in this list you can set their role and page permissions
+          here.
+        </p>
+      </Modal>
+    </div>
   );
 }

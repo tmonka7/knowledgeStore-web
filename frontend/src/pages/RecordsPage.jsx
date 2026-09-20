@@ -1,9 +1,35 @@
-import { Button, Checkbox, Input, Select, Tag, TreeSelect } from 'antd';
+import { Button, Checkbox, Input, Modal, Select, TreeSelect } from 'antd';
 import * as XLSX from 'xlsx';
 import { useEffect, useMemo, useState } from 'react';
-import { DownloadOutlined, EditOutlined, EyeOutlined, FolderOutlined, DeleteOutlined } from '@ant-design/icons';
+import {
+  ClockCircleOutlined,
+  CloudUploadOutlined,
+  DatabaseOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  FolderOpenOutlined,
+  FolderOutlined,
+  InboxOutlined,
+  SearchOutlined,
+  ThunderboltOutlined,
+} from '@ant-design/icons';
+import FilterBar from '../components/ui/FilterBar';
+import PageHeader from '../components/ui/PageHeader';
+import Pagination from '../components/ui/Pagination';
+import StatCard from '../components/ui/StatCard';
+import StatusBadge from '../components/ui/StatusBadge';
 import { can } from '../permissions';
 import { useLanguage } from '../i18n';
+
+// Stable colour per category name so the same badge keeps its tone between renders.
+const CATEGORY_TONES = ['blue', 'violet', 'cyan', 'green', 'amber', 'red'];
+const categoryTone = (category = '') => {
+  const seed = [...String(category)].reduce((total, char) => total + char.charCodeAt(0), 0);
+  return CATEGORY_TONES[seed % CATEGORY_TONES.length];
+};
 
 const deriveMetaFromRecord = (record, index) => {
   const category = record.category || 'Documents';
@@ -49,9 +75,10 @@ export default function RecordsPage({
   handleDeleteRecord,
   setIsAddModalOpen,
 }) {
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedId, setSelectedId] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
   const { t } = useLanguage();
 
   const categoryTreeData = (items = []) => items.map((item) => ({
@@ -83,6 +110,49 @@ export default function RecordsPage({
 
   const handlePageChange = (page) => setCurrentPage(Math.min(Math.max(page, 1), totalPages));
 
+  const fileCount = normalizedRecords.filter((record) => record.attachment).length;
+  const folderCount = new Set(normalizedRecords.map((record) => record.category).filter(Boolean)).size;
+  const addedThisWeek = normalizedRecords.filter((record) => {
+    const created = new Date(record.createdAt).getTime();
+    return Number.isFinite(created) && Date.now() - created < 7 * 24 * 60 * 60 * 1000;
+  }).length;
+  const percentOfRecords = (count) => (normalizedRecords.length
+    ? `${Math.round((count / normalizedRecords.length) * 100)}% of total`
+    : '0% of total');
+
+  const pageIds = currentRecords.map((record) => record.id);
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+  const someOnPageSelected = !allOnPageSelected && pageIds.some((id) => selectedIds.includes(id));
+
+  const toggleRowSelection = (id, checked) => setSelectedIds((current) => (
+    checked ? [...new Set([...current, id])] : current.filter((item) => item !== id)
+  ));
+
+  const togglePageSelection = (checked) => setSelectedIds((current) => (
+    checked
+      ? [...new Set([...current, ...pageIds])]
+      : current.filter((id) => !pageIds.includes(id))
+  ));
+
+  // The toolbar Delete button was previously inert; it now acts on the checked
+  // rows, behind a confirmation because this cannot be undone.
+  const deleteSelected = () => {
+    if (!selectedIds.length) return;
+    Modal.confirm({
+      title: `Delete ${selectedIds.length} ${selectedIds.length === 1 ? 'record' : 'records'}?`,
+      content: 'This action cannot be undone.',
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        for (const id of selectedIds) {
+          // Sequential so a failure stops the run instead of firing every request.
+          await handleDeleteRecord?.(id);
+        }
+        setSelectedIds([]);
+      },
+    });
+  };
+
   const handleExportExcel = () => {
     const exportRows = currentRecords.map((record, index) => ({
       No: String(index + 1 + (currentPage - 1) * pageSize).padStart(2, '0'),
@@ -102,137 +172,220 @@ export default function RecordsPage({
   };
 
   return (
-    <div className="records-page-shell">
-      <div className="records-filter-bar">
-        <div className="filter-grid compact-grid">
-          <div className="filter-item search-item">
-            <Input
-              allowClear
-              placeholder={t('searchPlaceholder')}
-              value={searchText}
-              onChange={(event) => onSearchInputChange(event.target.value)}
-              onPressEnter={(event) => onSearchRecords(event.target.value)}
-              className="records-search"
-            />
-          </div>
-
-          <div className="filter-item">
-            <TreeSelect
-              allowClear
-              placeholder={t('allCategories')}
-              treeData={categoryTreeData(categories)}
-              treeDefaultExpandAll
-              value={categoryFilter || undefined}
-              onChange={(value) => {
-                onCategoryFilterChange(value || '');
-                setCurrentPage(1);
-              }}
-              className="filter-select"
-            />
-          </div>
-
-          <div className="filter-item date-search-item">
-            <Checkbox
-              checked={dateSearchEnabled}
-              onChange={(event) => onDateSearchEnabledChange(event.target.checked)}
-            >
-              {t('searchByDate')}
-            </Checkbox>
-            {dateSearchEnabled && (
-              <div className="date-search-range">
-                <Input
-                  type="date"
-                  value={searchDateFrom}
-                  onChange={(event) => onSearchDateFromChange(event.target.value)}
-                  className="date-search-input"
-                  aria-label={t('fromDate')}
-                  placeholder={t('fromDate')}
-                />
-                <span>to</span>
-                <Input
-                  type="date"
-                  value={searchDateTo}
-                  onChange={(event) => onSearchDateToChange(event.target.value)}
-                  className="date-search-input"
-                  aria-label={t('toDate')}
-                  placeholder={t('toDate')}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="filters-actions">
-          <Button type="default" className="secondary-btn" onClick={() => onAiSearch(searchText)}>
-            {t('aiSearch')}
+    <div className="vision-page">
+      <PageHeader
+        title="Data Management"
+        subtitle="Manage and search your data records and files."
+        actions={can(user, 'records', 'create') && (
+          <Button
+            type="primary"
+            className="vision-btn-primary"
+            icon={<CloudUploadOutlined />}
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            {t('uploadData')}
           </Button>
-          <Button type="primary" className="primary-btn" onClick={() => onSearchRecords(searchText)}>
-            {t('search')}
-          </Button>
-        </div>
+        )}
+      />
+
+      <div className="vision-stat-grid">
+        <StatCard
+          tone="blue"
+          icon={<DatabaseOutlined />}
+          label="Total Records"
+          value={normalizedRecords.length}
+          meta={`${addedThisWeek} added this week`}
+          trend={addedThisWeek > 0 ? 'up' : undefined}
+        />
+        <StatCard
+          tone="violet"
+          icon={<FileTextOutlined />}
+          label="Files"
+          value={fileCount}
+          meta={`${percentOfRecords(fileCount)} of total`}
+        />
+        <StatCard
+          tone="green"
+          icon={<FolderOutlined />}
+          label="Folders"
+          value={folderCount}
+          meta="Distinct categories"
+        />
+        <StatCard
+          tone="cyan"
+          icon={<ClockCircleOutlined />}
+          label="Added This Week"
+          value={addedThisWeek}
+          meta="Last 7 days"
+        />
       </div>
 
-      <div className="records-toolbar">
-        <div className="toolbar-left">
+      <FilterBar
+        actions={(
+          <>
+            <Button className="vision-btn-ai" icon={<ThunderboltOutlined />} onClick={() => onAiSearch(searchText)}>
+              {t('aiSearch')}
+            </Button>
+            <Button
+              type="primary"
+              className="vision-btn-primary"
+              icon={<SearchOutlined />}
+              onClick={() => onSearchRecords(searchText)}
+            >
+              {t('search')}
+            </Button>
+          </>
+        )}
+      >
+        <Input
+          allowClear
+          className="vision-filter-search"
+          prefix={<SearchOutlined />}
+          placeholder={t('searchPlaceholder')}
+          value={searchText}
+          onChange={(event) => onSearchInputChange(event.target.value)}
+          onPressEnter={(event) => onSearchRecords(event.target.value)}
+        />
+
+        <TreeSelect
+          allowClear
+          className="vision-filter-select"
+          placeholder={t('allCategories')}
+          treeData={categoryTreeData(categories)}
+          treeDefaultExpandAll
+          value={categoryFilter || undefined}
+          onChange={(value) => {
+            onCategoryFilterChange(value || '');
+            setCurrentPage(1);
+          }}
+        />
+
+        <Checkbox
+          checked={dateSearchEnabled}
+          onChange={(event) => onDateSearchEnabledChange(event.target.checked)}
+        >
+          {t('searchByDate')}
+        </Checkbox>
+
+        {dateSearchEnabled && (
+          <div className="vision-date-range">
+            <Input
+              type="date"
+              value={searchDateFrom}
+              onChange={(event) => onSearchDateFromChange(event.target.value)}
+              aria-label={t('fromDate')}
+            />
+            <span>to</span>
+            <Input
+              type="date"
+              value={searchDateTo}
+              onChange={(event) => onSearchDateToChange(event.target.value)}
+              aria-label={t('toDate')}
+            />
+          </div>
+        )}
+      </FilterBar>
+
+      <div className="vision-toolbar">
+        <div className="vision-toolbar-group">
           {can(user, 'records', 'create') && (
-            <Button type="primary" className="primary-btn" icon={<FolderOutlined />} onClick={() => setIsAddModalOpen(true)}>
-              + {t('uploadData')}
+            <Button
+              type="primary"
+              className="vision-btn-primary"
+              icon={<CloudUploadOutlined />}
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              {t('uploadData')}
             </Button>
           )}
-          <Button className="action-btn" icon={<DownloadOutlined />} onClick={handleExportExcel}>
+          <Button className="vision-btn-ghost" icon={<DownloadOutlined />} onClick={handleExportExcel}>
             {t('exportExcel')}
           </Button>
           {can(user, 'records', 'delete') && (
-            <Button className="action-btn" icon={<DeleteOutlined />}>{t('delete')}</Button>
+            <Button
+              className="vision-btn-ghost"
+              danger={selectedIds.length > 0}
+              icon={<DeleteOutlined />}
+              disabled={selectedIds.length === 0}
+              onClick={deleteSelected}
+            >
+              {t('delete')}
+              {selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
+            </Button>
           )}
         </div>
 
-        <div className="toolbar-right">
-          <span>{t('totalRecords', { count: normalizedRecords.length })}</span>
-          <Select defaultValue="10" className="page-size-select">
-            <Select.Option value="10">Show 10</Select.Option>
-            <Select.Option value="20">Show 20</Select.Option>
-          </Select>
+        <div className="vision-toolbar-group">
+          <span className="vision-toolbar-meta">{t('totalRecords', { count: normalizedRecords.length })}</span>
+          <Select
+            value={String(pageSize)}
+            onChange={(value) => {
+              setPageSize(Number(value));
+              setCurrentPage(1);
+            }}
+            className="vision-page-size"
+            options={[
+              { value: '10', label: 'Show 10' },
+              { value: '20', label: 'Show 20' },
+              { value: '50', label: 'Show 50' },
+            ]}
+          />
         </div>
       </div>
 
-      <div className="records-workspace single-panel">
-        <div className="records-table-panel">
-          <table className="records-table">
+      <div className="vision-table-panel">
+        <div className="vision-table-scroll">
+          <table className="vision-data-table">
             <thead>
               <tr>
-                <th className="checkbox-col"><input type="checkbox" aria-label="Select all" /></th>
-                <th>No.</th>
+                <th className="col-check">
+                  <Checkbox
+                    checked={allOnPageSelected}
+                    indeterminate={someOnPageSelected}
+                    onChange={(event) => togglePageSelection(event.target.checked)}
+                    aria-label="Select all rows on this page"
+                  />
+                </th>
+                <th className="col-no">No.</th>
                 <th>Title</th>
                 <th>Category</th>
                 <th>Upload Time</th>
-                <th>Actions</th>
+                <th className="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {currentRecords.map((record) => (
+              {currentRecords.map((record, index) => (
                 <tr
                   key={record.id}
                   className={selectedRecord?.id === record.id ? 'is-selected' : ''}
                   onClick={() => setSelectedId(record.id)}
                 >
-                  <td className="checkbox-col"><input type="checkbox" aria-label={`Select ${record.name}`} /></td>
-                  <td>{String(currentRecords.indexOf(record) + 1 + (currentPage - 1) * pageSize).padStart(2, '0')}</td>
+                  <td className="col-check" onClick={(event) => event.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.includes(record.id)}
+                      onChange={(event) => toggleRowSelection(record.id, event.target.checked)}
+                      aria-label={`Select ${record.name}`}
+                    />
+                  </td>
+                  <td className="col-no">{String(index + 1 + (currentPage - 1) * pageSize).padStart(2, '0')}</td>
                   <td>
-                    <div className="table-name-cell">
-                      <span className="file-icon">{record.fileExt === 'PDF' ? '📄' : record.fileExt === 'XLSX' ? '📊' : record.fileExt === 'DOCX' ? '📝' : '📁'}</span>
-                      <span>{record.name}</span>
+                    <div className="vision-file-cell">
+                      <span className="vision-file-icon">
+                        {record.attachment ? <FileTextOutlined /> : <FolderOpenOutlined />}
+                      </span>
+                      <span className="vision-file-name" title={record.name}>{record.name}</span>
                     </div>
                   </td>
                   <td>
-                    <span className="category-tag">{record.category}</span>
+                    <StatusBadge tone={categoryTone(record.category)}>{record.category}</StatusBadge>
                   </td>
-                  <td>{record.uploadTime}</td>
-                  <td>
-                    <div className="row-actions">
+                  <td className="vision-cell-muted">{record.uploadTime}</td>
+                  <td className="col-actions">
+                    <div className="vision-row-actions">
                       <Button
                         type="text"
                         icon={<EyeOutlined />}
+                        aria-label={`Preview ${record.name}`}
                         onClick={(event) => {
                           event.stopPropagation();
                           setSelectedRecord?.(record);
@@ -243,6 +396,7 @@ export default function RecordsPage({
                         <Button
                           type="text"
                           icon={<EditOutlined />}
+                          aria-label={`Edit ${record.name}`}
                           onClick={(event) => {
                             event.stopPropagation();
                             handleEditRecord?.(record);
@@ -254,6 +408,7 @@ export default function RecordsPage({
                           type="text"
                           danger
                           icon={<DeleteOutlined />}
+                          aria-label={`Delete ${record.name}`}
                           onClick={(event) => {
                             event.stopPropagation();
                             handleDeleteRecord?.(record.id);
@@ -264,24 +419,22 @@ export default function RecordsPage({
                   </td>
                 </tr>
               ))}
+
+              {currentRecords.length === 0 && (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="vision-empty">
+                      <InboxOutlined />
+                      <span>No records match your search.</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-
-          <div className="records-pagination">
-            <button type="button" className="pager-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>&lt;</button>
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-              <button
-                key={page}
-                type="button"
-                className={page === currentPage ? 'pager-btn active' : 'pager-btn'}
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </button>
-            ))}
-            <button type="button" className="pager-btn" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>&gt;</button>
-          </div>
         </div>
+
+        <Pagination current={currentPage} total={totalPages} onChange={handlePageChange} />
       </div>
     </div>
   );

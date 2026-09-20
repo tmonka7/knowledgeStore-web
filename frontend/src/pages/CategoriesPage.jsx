@@ -1,7 +1,8 @@
-import { Button, Card, Form, Input, Tag, Tree, TreeSelect, Typography } from 'antd';
+import { Button, Form, Input, Tree, TreeSelect } from 'antd';
+import { DeleteOutlined, FolderOpenOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-
-const { Text } = Typography;
+import PageHeader from '../components/ui/PageHeader';
+import StatusBadge from '../components/ui/StatusBadge';
 
 export default function CategoriesPage({
   categories,
@@ -37,9 +38,16 @@ export default function CategoriesPage({
   const visibleCategories = filterCategoryTree(categories, categorySearch);
 
   return (
-    <Card className="category-manager-card" title="Category Tree Management" extra={<Tag color="blue">Hierarchy</Tag>}>
-      <div className="category-manager-layout">
-        <div className="category-form-panel">
+    <div className="vision-page">
+      <PageHeader
+        title="Category Tree Management"
+        subtitle="Create, organise and remove the categories records are filed under."
+        actions={<StatusBadge tone="blue">Hierarchy</StatusBadge>}
+      />
+
+      <div className="vision-categories-layout">
+        <section className="vision-panel vision-panel-tight">
+          <h3 className="vision-section-title">New category</h3>
           <Form form={categoryForm} layout="vertical" onFinish={handleCreateCategory}>
             <Form.Item name="name" label="Category name" rules={[{ required: true }]}>
               <Input placeholder="Enter category name" />
@@ -50,44 +58,51 @@ export default function CategoriesPage({
                 treeDefaultExpandAll
                 placeholder="Select parent"
                 allowClear
-                style={{ width: '100%' }}
+                className="vision-category-select"
               />
             </Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} className="category-create-btn">
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              icon={<PlusOutlined />}
+              className="vision-btn-primary vision-category-submit"
+            >
               Create Category
             </Button>
           </Form>
-        </div>
+        </section>
 
-        <div className="category-tree-panel">
-          <div className="category-tree-header">
-            <Text strong>Structure</Text>
-            <Text type="secondary">{categories.length} items</Text>
+        <section className="vision-panel vision-panel-tight">
+          <div className="vision-panel-head">
+            <h3 className="vision-section-title">Structure</h3>
+            <span className="vision-toolbar-meta">{categories.length} items</span>
           </div>
 
           <Input
-            className="category-search-input"
+            className="vision-category-search"
             allowClear
+            prefix={<SearchOutlined />}
             placeholder="Search category"
             value={categorySearch}
             onChange={(event) => setCategorySearch(event.target.value)}
-            style={{ marginBottom: 12 }}
           />
 
           {visibleCategories.length > 0 ? (
             <Tree
-              className="modern-category-tree"
+              className="vision-category-tree"
               treeData={categoryTreeData(visibleCategories)}
               defaultExpandAll
               showLine
               blockNode
               titleRender={(nodeData) => (
-                <div className="category-node-row">
-                  <span className="category-node-label">{nodeData.title}</span>
+                <div className="vision-category-node">
+                  <span className="vision-category-node-label">{nodeData.title}</span>
                   <Button
                     size="small"
                     danger
                     type="text"
+                    icon={<DeleteOutlined />}
                     onClick={(event) => {
                       event.stopPropagation();
                       handleDeleteCategory(nodeData.value);
@@ -99,12 +114,13 @@ export default function CategoriesPage({
               )}
             />
           ) : (
-            <div className="category-empty-state">
-              <Text type="secondary">No categories match your search.</Text>
+            <div className="vision-empty">
+              <FolderOpenOutlined />
+              No categories match your search.
             </div>
           )}
-        </div>
+        </section>
       </div>
-    </Card>
+    </div>
   );
 }

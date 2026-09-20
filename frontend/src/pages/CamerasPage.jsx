@@ -1,13 +1,21 @@
-import { useEffect, useState } from 'react';
-import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
-import { CameraOutlined, DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from '@ant-design/icons';
+import { useEffect, useMemo, useState } from 'react';
+import { Button, Form, Input, Modal, Select, Space, message } from 'antd';
+import {
+  AppstoreOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  HeartOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  VideoCameraOutlined,
+} from '@ant-design/icons';
 import api from '../api';
+import CameraCard from '../components/CameraCard';
+import FilterBar from '../components/ui/FilterBar';
+import PageHeader from '../components/ui/PageHeader';
+import StatCard from '../components/ui/StatCard';
 import CameraViewPage from './CameraViewPage';
 import CameraWallPage from './CameraWallPage';
-
-const { Title, Text } = Typography;
-
-const statusColors = { online: 'green', offline: 'default', maintenance: 'orange' };
 
 export default function CamerasPage({ cameras, setCameras }) {
   const [form] = Form.useForm();
@@ -16,6 +24,32 @@ export default function CamerasPage({ cameras, setCameras }) {
   const [saving, setSaving] = useState(false);
   const [viewingCamera, setViewingCamera] = useState(null);
   const [showCameraWall, setShowCameraWall] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
+
+  const onlineCount = cameras.filter((camera) => camera.status === 'online').length;
+  const offlineCount = cameras.filter((camera) => camera.status !== 'online').length;
+  const healthRate = cameras.length ? Math.round((onlineCount / cameras.length) * 100) : 100;
+  const percentOfCameras = (count) => (cameras.length
+    ? `${Math.round((count / cameras.length) * 100)}% of total`
+    : '0% of total');
+
+  const locations = useMemo(
+    () => [...new Set(cameras.map((camera) => camera.location).filter(Boolean))].sort(),
+    [cameras],
+  );
+
+  const visibleCameras = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return cameras.filter((camera) => {
+      if (statusFilter !== 'all' && camera.status !== statusFilter) return false;
+      if (locationFilter !== 'all' && camera.location !== locationFilter) return false;
+      if (!needle) return true;
+      return [camera.name, camera.location, camera.address]
+        .some((field) => String(field || '').toLowerCase().includes(needle));
+    });
+  }, [cameras, search, statusFilter, locationFilter]);
 
   const loadCameras = async () => {
     try {
@@ -72,22 +106,6 @@ export default function CamerasPage({ cameras, setCameras }) {
     });
   };
 
-  const columns = [
-    { title: 'Camera', dataIndex: 'name', key: 'name', render: (name, camera) => <Button type="link" className="camera-name-link" icon={<CameraOutlined />} onClick={() => setViewingCamera(camera)}>{name}</Button> },
-    { title: 'Location', dataIndex: 'location', key: 'location' },
-    { title: 'IP / Stream URL', dataIndex: 'address', key: 'address' },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (status) => <Tag color={statusColors[status]}>{status.toUpperCase()}</Tag> },
-    {
-      title: 'Actions', key: 'actions', render: (_, camera) => (
-        <Space>
-          <Button type="text" icon={<EyeOutlined />} onClick={() => setViewingCamera(camera)} aria-label={`View ${camera.name}`} />
-          <Button type="text" icon={<EditOutlined />} onClick={() => openCameraForm(camera)} aria-label={`Edit ${camera.name}`} />
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeCamera(camera)} aria-label={`Delete ${camera.name}`} />
-        </Space>
-      ),
-    },
-  ];
-
   if (viewingCamera) {
     const currentCamera = cameras.find((camera) => camera.id === viewingCamera.id) || viewingCamera;
     return <CameraViewPage camera={currentCamera} onBack={() => setViewingCamera(null)} />;
@@ -98,23 +116,112 @@ export default function CamerasPage({ cameras, setCameras }) {
   }
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Card>
-        <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
-          <div>
-            <Title level={3} style={{ margin: 0 }}>Camera Management</Title>
-            <Text type="secondary">Register and maintain cameras connected to the system.</Text>
-          </div>
-          <Space>
-            <Button onClick={() => setShowCameraWall(true)} icon={<CameraOutlined />}>Live Camera View</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>Add Camera</Button>
-          </Space>
-        </Space>
-      </Card>
+    <div className="vision-page">
+      <PageHeader
+        title="Camera Management"
+        subtitle="Manage and monitor your camera devices."
+        actions={(
+          <>
+            <Button className="vision-btn-ghost" icon={<AppstoreOutlined />} onClick={() => setShowCameraWall(true)}>
+              Live Camera View
+            </Button>
+            <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
+              Add Camera
+            </Button>
+          </>
+        )}
+      />
 
-      <Card>
-        <Table rowKey="id" dataSource={cameras} columns={columns} locale={{ emptyText: 'No cameras registered yet.' }} />
-      </Card>
+      <div className="vision-stat-grid">
+        <StatCard
+          tone="blue"
+          icon={<VideoCameraOutlined />}
+          label="Total Cameras"
+          value={cameras.length}
+          meta={`${onlineCount} online, ${offlineCount} offline`}
+        />
+        <StatCard
+          tone="green"
+          icon={<CheckCircleOutlined />}
+          label="Online"
+          value={onlineCount}
+          meta={`${percentOfCameras(onlineCount)} of total`}
+          trend={onlineCount > 0 ? 'up' : undefined}
+        />
+        <StatCard
+          tone="red"
+          icon={<CloseCircleOutlined />}
+          label="Offline"
+          value={offlineCount}
+          meta={`${percentOfCameras(offlineCount)} of total`}
+        />
+        <StatCard
+          tone="violet"
+          icon={<HeartOutlined />}
+          label="Health Rate"
+          value={`${healthRate}%`}
+          meta={healthRate === 100 ? 'System normal' : 'Needs attention'}
+          trend={healthRate === 100 ? 'up' : 'down'}
+        />
+      </div>
+
+      <FilterBar
+        actions={(
+          <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
+            Add Camera
+          </Button>
+        )}
+      >
+        <Input
+          allowClear
+          className="vision-filter-search"
+          prefix={<SearchOutlined />}
+          placeholder="Search camera name or location..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <Select
+          className="vision-filter-select"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: 'all', label: 'All Status' },
+            { value: 'online', label: 'Online' },
+            { value: 'offline', label: 'Offline' },
+            { value: 'maintenance', label: 'Maintenance' },
+          ]}
+        />
+        <Select
+          className="vision-filter-select"
+          value={locationFilter}
+          onChange={setLocationFilter}
+          options={[
+            { value: 'all', label: 'All Locations' },
+            ...locations.map((location) => ({ value: location, label: location })),
+          ]}
+        />
+      </FilterBar>
+
+      {visibleCameras.length ? (
+        <div className="vision-camera-grid">
+          {visibleCameras.map((camera) => (
+            <CameraCard
+              key={camera.id}
+              camera={camera}
+              onView={() => setViewingCamera(camera)}
+              onEdit={() => openCameraForm(camera)}
+              onDelete={() => removeCamera(camera)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="vision-table-panel">
+          <div className="vision-empty">
+            <VideoCameraOutlined />
+            <span>{cameras.length ? 'No cameras match these filters.' : 'No cameras registered yet.'}</span>
+          </div>
+        </div>
+      )}
 
       <Modal
         title={editingCamera ? 'Edit Camera' : 'Add Camera'}
@@ -141,10 +248,10 @@ export default function CamerasPage({ cameras, setCameras }) {
           </Form.Item>
           <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
             <Button onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit" loading={saving}>Save Camera</Button>
+            <Button type="primary" className="vision-btn-primary" htmlType="submit" loading={saving}>Save Camera</Button>
           </Space>
         </Form>
       </Modal>
-    </Space>
+    </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Avatar, Button, Input, Typography, message } from 'antd';
+import { Alert, Avatar, Button, Input, message } from 'antd';
+import { MessageOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons';
+import PageHeader from '../components/ui/PageHeader';
 import api from '../api';
-
-const { Title, Text } = Typography;
 
 export default function ChatPage() {
   const [conversations, setConversations] = useState([]);
@@ -83,45 +83,60 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="chat-page">
-      <div className="chat-layout">
-        <aside className="chat-sidebar">
-          <div className="chat-sidebar-header">
-            <Title level={4} className="chat-title">Messages</Title>
-            <Button type="primary" className="chat-new-btn" loading={isCreatingChat} onClick={handleCreateConversation}>
+    <div className="vision-page">
+      <PageHeader
+        title="Chat"
+        subtitle="Conversations with your team and the VisionAI assistant."
+      />
+
+      <div className="vision-chat-layout">
+        <aside className="vision-panel vision-panel-tight vision-chat-sidebar">
+          <div className="vision-panel-head">
+            <h3 className="vision-section-title">Messages</h3>
+            <Button
+              type="primary"
+              className="vision-btn-primary"
+              icon={<PlusOutlined />}
+              loading={isCreatingChat}
+              onClick={handleCreateConversation}
+            >
               New chat
             </Button>
           </div>
 
-          <div className="chat-search-wrap">
-            <Input.Search placeholder="Search conversations" allowClear className="chat-search" />
-          </div>
+          <Input.Search placeholder="Search conversations" allowClear className="vision-chat-search" />
 
-          <div className="chat-list">
+          <div className="vision-chat-list">
             {loading && conversations.length === 0 ? (
-              <div className="chat-empty-state">Loading conversations...</div>
+              <div className="vision-empty">Loading conversations...</div>
             ) : (
               conversations.map((conversation) => (
                 <button
                   key={conversation.id}
                   type="button"
-                  className={`chat-item ${selectedConversationId === conversation.id ? 'chat-item-active' : ''}`}
+                  className={`vision-chat-item${selectedConversationId === conversation.id ? ' is-active' : ''}`}
                   onClick={() => setSelectedConversationId(conversation.id)}
                 >
-                  <Avatar size={42} style={{ background: conversation.accent || '#4f8ef7' }}>
+                  <Avatar
+                    size={42}
+                    className="vision-chat-avatar"
+                    style={conversation.accent ? { background: conversation.accent } : undefined}
+                  >
                     {conversation.avatar || 'AI'}
                   </Avatar>
 
-                  <div className="chat-item-body">
-                    <div className="chat-item-row">
-                      <span className="chat-item-name">{conversation.name}</span>
-                      <span className="chat-item-time">{conversation.lastSeen}</span>
+                  <div className="vision-chat-item-body">
+                    <div className="vision-chat-item-row">
+                      <span className="vision-chat-item-name">{conversation.name}</span>
+                      <span className="vision-chat-item-time">{conversation.lastSeen}</span>
                     </div>
-                    <div className="chat-item-row muted-row">
-                      <span className="chat-item-role">{conversation.role}</span>
-                      {conversation.unread > 0 && <span className="chat-badge">{conversation.unread}</span>}
+                    <div className="vision-chat-item-row">
+                      <span className="vision-chat-item-role">{conversation.role}</span>
+                      {conversation.unread > 0 && (
+                        <span className="vision-badge is-blue">{conversation.unread}</span>
+                      )}
                     </div>
-                    <Text type="secondary" className="chat-item-preview">{conversation.preview}</Text>
+                    <span className="vision-chat-item-preview">{conversation.preview}</span>
                   </div>
                 </button>
               ))
@@ -129,56 +144,58 @@ export default function ChatPage() {
           </div>
         </aside>
 
-        <section className="chat-thread">
+        <section className="vision-panel vision-panel-tight vision-chat-thread">
           {error && !selectedConversation ? (
-            <div className="chat-error-shell">
-              <Alert type="error" message={error} showIcon />
-            </div>
+            <Alert type="error" message={error} showIcon />
           ) : selectedConversation ? (
             <>
-              <div className="chat-thread-header">
-                <div className="chat-thread-user">
-                  <Avatar size={42} style={{ background: selectedConversation.accent || '#4f8ef7' }}>
+              <div className="vision-chat-thread-head">
+                <div className="vision-chat-thread-user">
+                  <Avatar
+                    size={42}
+                    className="vision-chat-avatar"
+                    style={selectedConversation.accent ? { background: selectedConversation.accent } : undefined}
+                  >
                     {selectedConversation.avatar || 'AI'}
                   </Avatar>
                   <div>
-                    <div className="chat-thread-name">{selectedConversation.name}</div>
-                    <div className="chat-thread-status">{selectedConversation.role}</div>
+                    <div className="vision-chat-thread-name">{selectedConversation.name}</div>
+                    <div className="vision-chat-thread-status">{selectedConversation.role}</div>
                   </div>
                 </div>
-                <Button type="text" className="chat-header-button">View profile</Button>
+                <Button className="vision-btn-ghost">View profile</Button>
               </div>
 
-              <div className="chat-messages">
+              <div className="vision-chat-messages">
                 {(selectedConversation.messages || []).length === 0 ? (
-                  <div className="chat-empty-thread">
-                    <div className="chat-empty-thread-icon">✦</div>
-                    <div className="chat-empty-thread-title">Start a new conversation</div>
-                    <div className="chat-empty-thread-subtitle">Write the first message to begin.</div>
+                  <div className="vision-empty">
+                    <MessageOutlined />
+                    <div className="vision-chat-empty-title">Start a new conversation</div>
+                    <div>Write the first message to begin.</div>
                   </div>
                 ) : (
                   (selectedConversation.messages || []).map((messageItem) => (
                     <div
                       key={messageItem.id}
-                      className={`chat-message-row ${messageItem.sender === 'me' ? 'chat-message-row-me' : ''}`}
+                      className={`vision-chat-row${messageItem.sender === 'me' ? ' is-me' : ''}`}
                     >
-                      <div className={`chat-message ${messageItem.sender === 'me' ? 'chat-message-me' : 'chat-message-other'}`}>
-                        <div className="chat-message-text">{messageItem.text}</div>
-                        <div className="chat-message-time">{messageItem.time}</div>
+                      <div className={`vision-chat-bubble${messageItem.sender === 'me' ? ' is-me' : ''}`}>
+                        <div className="vision-chat-bubble-text">{messageItem.text}</div>
+                        <div className="vision-chat-bubble-time">{messageItem.time}</div>
                       </div>
                     </div>
                   ))
                 )}
               </div>
 
-              <div className="chat-composer">
+              <div className="vision-chat-composer">
                 <Input.TextArea
                   rows={1}
                   value={messageText}
                   onChange={(event) => setMessageText(event.target.value)}
                   placeholder="Type a message..."
                   autoSize={{ minRows: 1, maxRows: 4 }}
-                  className="chat-composer-input"
+                  className="vision-chat-composer-input"
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
                       event.preventDefault();
@@ -186,7 +203,13 @@ export default function ChatPage() {
                     }
                   }}
                 />
-                <Button type="primary" className="chat-send-btn" loading={isSending} onClick={handleSendMessage}>
+                <Button
+                  type="primary"
+                  className="vision-btn-primary"
+                  icon={<SendOutlined />}
+                  loading={isSending}
+                  onClick={handleSendMessage}
+                >
                   Send
                 </Button>
               </div>
