@@ -15,6 +15,7 @@ import {
 } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import { FaceIdIcon, FaceScanArt } from './FaceArt';
+import FaceRegistration from './face/FaceRegistration';
 import {
   descriptorFromFile,
   descriptorFromImage,
@@ -254,12 +255,7 @@ function RegisterForm({ loading, faceError, onFaceDescriptor, onSubmit }) {
       >
         <Input.Password prefix={<LockOutlined />} autoComplete="new-password" placeholder="Confirm Password" />
       </Form.Item>
-      <FaceCapture
-        onDescriptor={onFaceDescriptor}
-        hasError={Boolean(faceError)}
-        idleText="Take a photo or upload one. It verifies your future logins."
-      />
-      {faceError && <Text type="danger" className="face-form-error">{faceError}</Text>}
+      <FaceRegistration onChange={onFaceDescriptor} error={faceError} />
       <Button type="primary" htmlType="submit" block loading={loading}>Register</Button>
     </Form>
   );

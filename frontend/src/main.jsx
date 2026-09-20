@@ -6,6 +6,7 @@ import './styles.css';
 // Loaded last so the VisionAI tokens win over the older page rules.
 import './styles/vision.css';
 import './styles/vision-pages.css';
+import './styles/face.css';
 import { LanguageProvider } from './i18n';
 
 const visionTheme = {
