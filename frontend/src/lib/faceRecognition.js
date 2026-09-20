@@ -27,10 +27,16 @@ export const loadFaceModels = async () => {
 export const descriptorFromImage = async (image) => {
   const faceapi = getFaceApi();
   await loadFaceModels();
-  const result = await faceapi
-    .detectSingleFace(image, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
+  // The tiny detector is sensitive to how large the face is in the frame, so
+  // retry at several input sizes before giving up on the photo.
+  let result;
+  for (const inputSize of [416, 320, 512, 608, 224]) {
+    result = await faceapi
+      .detectSingleFace(image, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.4 }))
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+    if (result) break;
+  }
 
   if (!result) {
     throw new Error('No clear face was found. Use a well-lit photo with one face visible.');

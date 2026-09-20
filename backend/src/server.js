@@ -20,11 +20,13 @@ const uploadDir = path.join(process.cwd(), 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
 console.log(`Starting Knowledge Store API on port ${process.env.PORT}...`);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/knowledge-store';
-const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:4173', 'http://127.0.0.1:4173'];
+// Vite falls back to another port when 5173/4173 is taken (strictPort is off),
+// so allow any port on the loopback host instead of a fixed list.
+const isLocalOrigin = (origin) => /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || isLocalOrigin(origin)) {
       callback(null, true);
       return;
     }
@@ -46,6 +48,19 @@ app.use('/api', dataRoutes);
 app.use('/api', chatRoutes);
 app.use('/api', mailRoutes);
 app.use('/api', cameraRoutes);
+
+// Without this, CORS/body-parser failures return an HTML error page that the
+// frontend cannot read, so every failure looks the same to the user.
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  console.error(`${req.method} ${req.originalUrl} failed:`, error.message);
+  const status = error.status || (error.type === 'entity.too.large' ? 413 : 500);
+  return res.status(status).json({
+    message: error.type === 'entity.too.large'
+      ? 'That request is too large. Please use a smaller photo.'
+      : error.message || 'Something went wrong.',
+  });
+});
 
 const startServer = async () => {
   try {
