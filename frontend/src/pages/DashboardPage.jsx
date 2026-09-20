@@ -23,6 +23,7 @@ import {
   MessageOutlined,
   PaperClipOutlined,
   TeamOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -40,6 +41,10 @@ import ChatPage from './ChatPage';
 import MailPage from './MailPage';
 import { useLanguage } from '../i18n';
 import CamerasPage from './CamerasPage';
+import LvglToolPage from './LvglToolPage';
+import YoloToolPage from './YoloToolPage';
+import TransformersToolPage from './TransformersToolPage';
+import KerasToolPage from './KerasToolPage';
 
 const { Title, Text } = Typography;
 
@@ -241,6 +246,17 @@ export default function DashboardPage({
     { key: 'users', icon: <TeamOutlined />, label: t('users') },
     { key: 'records', icon: <DatabaseOutlined />, label: t('data') },
     { key: 'cameras', icon: <CameraOutlined />, label: t('cameraManagement') },
+    {
+      key: 'tools',
+      icon: <ToolOutlined />,
+      label: 'Tools',
+      children: [
+        { key: 'lvgl-tool', label: 'LVGL' },
+        { key: 'yolo', label: 'YOLO' },
+        { key: 'transformers', label: 'Transformers' },
+        { key: 'keras', label: 'Keras' },
+      ],
+    },
     { key: 'chat', icon: <MessageOutlined />, label: t('chat') },
     { key: 'mail', icon: <MailOutlined />, label: t('mail') },
     { key: 'system-monitor', icon: <BarChartOutlined />, label: t('systemMonitoring') },
@@ -525,6 +541,11 @@ export default function DashboardPage({
           )}
 
           {effectiveKey === 'cameras' && <CamerasPage cameras={cameras} setCameras={setCameras} />}
+
+          {effectiveKey === 'lvgl-tool' && <LvglToolPage />}
+          {effectiveKey === 'yolo' && <YoloToolPage />}
+          {effectiveKey === 'transformers' && <TransformersToolPage />}
+          {effectiveKey === 'keras' && <KerasToolPage />}
 
           {effectiveKey === 'categories' && (
             <CategoriesPage

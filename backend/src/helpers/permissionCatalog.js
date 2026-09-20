@@ -8,6 +8,7 @@ export const PERMISSION_CATALOG = [
   { key: 'cameras', label: 'Camera Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'chat', label: 'Chat', actions: ['view', 'create'] },
   { key: 'mail', label: 'Mail', actions: ['view', 'create', 'delete'] },
+  { key: 'lvgl-tool', label: 'Tools / LVGL image/font converter', actions: ['view'] },
   { key: 'users', label: 'Users', actions: ['view', 'edit'] },
   { key: 'system-monitor', label: 'System Monitoring', actions: ['view'] },
 ];
@@ -24,6 +25,7 @@ export const DEFAULT_USER_PERMISSIONS = [
   'chat:create',
   'mail:view',
   'mail:create',
+  'lvgl-tool:view',
 ];
 
 export const sanitizePermissions = (values) => {
