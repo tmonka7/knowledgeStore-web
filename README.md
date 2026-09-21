@@ -120,6 +120,80 @@ label so identity never rests on colour alone. The running-balance line is a
 single series, so it takes one hue and no legend; only its endpoint is
 labelled.
 
+## Project Management
+
+**Project Management** is a project list and, behind each project, a board that
+walks bugs through **report → resolve → verify**.
+
+### Projects
+
+Each project carries a name, a short **key** (`KS`), a status, dates, a colour,
+and its members. Owner, members and administrators see a project; nobody else
+does, and the same rule covers its tasks.
+
+The key prefixes every task id (`KS-14`). Task numbers are handed out with an
+atomic `$inc` on the project, so two people filing a bug at the same moment
+cannot be given the same one — and the key is fixed once tasks exist, since
+renaming it would orphan every reference already written in a comment.
+
+Progress is counted from the board: verified and closed tasks over all tasks.
+A project can override it with a manual percentage when the work it tracks is
+not all on the board, and the card says which of the two it is showing rather
+than quietly swapping one for the other.
+
+### The workflow
+
+`backend/src/helpers/taskWorkflow.js` is the single definition of the
+lifecycle. `frontend/src/components/project/workflow.js` mirrors it to shape
+the UI; the API is what decides.
+
+| From | May move to |
+| --- | --- |
+| Open | In progress, Resolved, Closed |
+| In progress | Resolved, Open, Closed |
+| **Resolved** | **Verified, Reopened** |
+| Verified | Closed, Reopened |
+| Reopened | In progress, Resolved, Closed |
+| Closed | Reopened |
+
+Nothing goes straight from *Resolved* to *Closed*. It is verified, or it is
+sent back — that single missing edge is what makes the verification step real
+rather than decorative.
+
+Two moves carry a requirement, enforced server-side and asked for up front by
+the UI:
+
+- **Resolve** needs a resolution (fixed, done, won't fix, duplicate, cannot
+  reproduce).
+- **Reopen** needs a reason, which is stored as a comment as well as on the
+  history entry. Reopening also clears the resolution and the verification,
+  because the fix did not hold, and increments the task's reopen count.
+
+An illegal move is refused with `409` and the list of moves that *are* legal,
+so a board left open on a stale tab corrects itself instead of guessing.
+
+### The board
+
+Six columns, one per status, with cards dragged between them using the
+browser's own drag and drop — no extra dependency. While a card is held, the
+columns it cannot legally reach stop accepting the drop and dim, so the
+workflow is visible *before* the drop rather than arriving as an error after
+it. A card's type is carried by its left edge as well as its icon, so a board
+full of bugs reads at a glance and the cue is never colour alone.
+
+Opening a card shows the report (steps to reproduce, expected, actual,
+environment — only for bugs, where they earn their place), the moves available
+from its current status, its comments, and the history of who moved it and
+when. There is no free status dropdown anywhere on the page: every status
+change goes through the same gate.
+
+### Permissions
+
+`projects:view` sees projects and boards, `projects:create` files tasks and
+comments, `projects:edit` moves and edits them, `projects:delete` removes
+them. Commenting deliberately needs only *create*, so a tester can hand a bug
+back without the right to rewrite it. New accounts get view, create and edit.
+
 ## Camera object detection
 
 The camera view (**Cameras -> View -> Detect Objects**) outlines people and

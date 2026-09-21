@@ -24,6 +24,7 @@ import {
   MailOutlined,
   MessageOutlined,
   PaperClipOutlined,
+  ProjectOutlined,
   TeamOutlined,
   ToolOutlined,
   WalletOutlined,
@@ -53,6 +54,7 @@ import TransformersToolPage from './TransformersToolPage';
 import KerasToolPage from './KerasToolPage';
 import WalletPage from './WalletPage';
 import DatabasePage from './DatabasePage';
+import ProjectsPage from './ProjectsPage';
 
 const { Title, Text } = Typography;
 
@@ -258,6 +260,7 @@ export default function DashboardPage({
     { key: 'users', icon: <TeamOutlined />, label: t('users') },
     { key: 'records', icon: <DatabaseOutlined />, label: t('data') },
     { key: 'cameras', icon: <CameraOutlined />, label: t('cameraManagement') },
+    { key: 'projects', icon: <ProjectOutlined />, label: t('projectManagement') },
     { key: 'schedule', icon: <CalendarOutlined />, label: t('schedule') },
     {
       key: 'tools',
@@ -603,6 +606,8 @@ export default function DashboardPage({
           {effectiveKey === 'chat' && <ChatPage />}
 
           {effectiveKey === 'mail' && <MailPage />}
+
+          {effectiveKey === 'projects' && <ProjectsPage user={user} />}
 
           {effectiveKey === 'wallet' && <WalletPage user={user} />}
 

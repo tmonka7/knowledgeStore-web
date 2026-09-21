@@ -11,6 +11,7 @@ import {
   FolderOutlined,
   MailOutlined,
   MessageOutlined,
+  ProjectOutlined,
   SafetyCertificateOutlined,
   SwapOutlined,
   TeamOutlined,
@@ -286,6 +287,14 @@ export default function OverviewPage({
       title: 'Mail',
       tone: 'violet',
       detail: 'Internal inbox',
+      status: 'ready',
+    },
+    {
+      key: 'projects',
+      icon: <ProjectOutlined />,
+      title: 'Projects',
+      tone: 'violet',
+      detail: 'Boards with a report, resolve and verify workflow',
       status: 'ready',
     },
     {

@@ -28,6 +28,7 @@ function App() {
     memoryLimit: 'N/A',
     cpu: navigator.hardwareConcurrency || 'N/A',
     cpuPercent: 0,
+    latency: null,
     history: [],
     lastUpdated: new Date().toLocaleTimeString(),
   });
@@ -147,7 +148,11 @@ function App() {
 
     const checkSystemStatus = async () => {
       try {
+        // Measured around the request itself: the only figure on this page the
+        // browser can report about the server rather than estimate.
+        const requestStartedAt = performance.now();
         const { data } = await api.get('/health');
+        const latency = Math.round(performance.now() - requestStartedAt);
         const usedHeap = performance?.memory?.usedJSHeapSize ?? 0;
         const heapLimit = performance?.memory?.jsHeapSizeLimit ?? 0;
         const memoryPercent = heapLimit
@@ -170,6 +175,7 @@ function App() {
               time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               memory: memoryPercent,
               cpu: cpuPercent,
+              latency,
             },
           ].slice(-12);
 
@@ -180,6 +186,7 @@ function App() {
             memoryLimit: memoryLimitValue,
             cpu: navigator.hardwareConcurrency || 'N/A',
             cpuPercent,
+            latency,
             history: nextHistory,
             lastUpdated: new Date().toLocaleTimeString(),
           };
@@ -194,6 +201,8 @@ function App() {
           memory: current.memory || 'live estimate',
           memoryPercent: Math.min(100, Math.max(20, (current.memoryPercent || 40) + 3)),
           cpuPercent: fallbackCpu,
+          // Nothing came back, so there is no round trip to report.
+          latency: null,
           lastUpdated: new Date().toLocaleTimeString(),
         }));
       }

@@ -884,6 +884,7 @@
 .vision-graph-head strong {
   overflow-wrap: anywhere;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
@@ -897,6 +898,7 @@
 .vision-graph-value {
   color: var(--v-text);
   font-size: 28px;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.5px;
   line-height: 1;
@@ -920,18 +922,55 @@
 
 .vision-graph-line {
   fill: none;
+  stroke: var(--v-primary);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.vision-graph-line.is-memory { stroke: var(--v-secondary); }
-.vision-graph-line.is-cpu { stroke: var(--v-primary); }
-.vision-graph-line.is-network { stroke: var(--v-cyan); }
+/*
+ * Surface ring on the latest sample, so the marker stays legible where the
+ * line passes back under it. MetricChart sets the fill to the series hue.
+ */
+.vision-graph-dot {
+  stroke: var(--v-surface);
+  stroke-width: 2;
+}
+
+/* The live end of the series breathes, the way the header's status dot does. */
+.vision-graph-halo {
+  opacity: 0.16;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: vision-graph-pulse 2.4s var(--v-ease) infinite;
+}
+
+@keyframes vision-graph-pulse {
+  0%, 100% { opacity: 0.16; transform: scale(1); }
+  50% { opacity: 0.06; transform: scale(1.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vision-graph-halo {
+    animation: none;
+  }
+}
 
 .vision-graph-label {
   fill: #8aa0ba;
   font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vision-graph-empty {
+  display: grid;
+  height: 116px;
+  place-items: center;
+  border: 1px dashed var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface-muted);
+  color: var(--v-text-soft);
+  font-size: 12.5px;
 }
 
 .vision-monitor-note {
@@ -1605,3 +1644,501 @@
 
 .vision-amount.is-income { color: #1257c4; }
 .vision-amount.is-expense { color: #a96908; }
+
+/* ----------------------------------------------------- project management */
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: var(--v-space-4);
+}
+
+.project-card {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  padding: var(--v-space-4) var(--v-space-4) var(--v-space-4) calc(var(--v-space-4) + 4px);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-xl);
+  background: var(--v-surface);
+  box-shadow: var(--v-shadow-xs);
+  transition: transform 0.2s var(--v-ease), box-shadow 0.2s var(--v-ease);
+}
+
+.project-card:hover {
+  box-shadow: var(--v-shadow-sm);
+  transform: translateY(-2px);
+}
+
+/* The project's own colour, as a spine rather than a tinted card. */
+.project-card-accent {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+}
+
+.project-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+}
+
+.project-card-title h3 {
+  margin: 2px 0 0;
+  color: var(--v-text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.project-card-key {
+  color: var(--v-text-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.project-card-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--v-text-soft);
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.project-card-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-card-progress-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.project-card-progress-head strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.project-card-counts {
+  display: grid;
+  gap: var(--v-space-2);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-card-counts li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--v-radius-sm);
+  background: var(--v-surface-muted);
+  text-align: center;
+}
+
+.project-card-counts span {
+  color: var(--v-text-soft);
+  font-size: 11px;
+}
+
+.project-card-counts strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.project-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+  padding-top: var(--v-space-3);
+  border-top: 1px solid #f0f4fa;
+}
+
+.project-progress-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--v-space-4);
+  margin-top: var(--v-space-4);
+}
+
+.project-progress-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  color: var(--v-text-soft);
+  font-size: 12.5px;
+}
+
+.project-progress-legend strong {
+  color: var(--v-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.vision-colour-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--v-space-2);
+}
+
+.vision-colour-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------------------ board */
+
+.task-board {
+  display: grid;
+  overflow-x: auto;
+  gap: var(--v-space-3);
+  grid-template-columns: repeat(6, minmax(212px, 1fr));
+  padding-bottom: var(--v-space-2);
+}
+
+.task-column {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  padding: var(--v-space-3);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg);
+  background: var(--v-surface-muted);
+  transition: border-color 0.18s var(--v-ease), background 0.18s var(--v-ease), opacity 0.18s var(--v-ease);
+}
+
+/*
+ * While a card is held, a column says whether it will take it: legal targets
+ * pick up a dashed outline, illegal ones recede. The workflow is then visible
+ * before the drop instead of arriving as an error after it.
+ */
+.task-column.is-target {
+  border-color: var(--v-primary);
+  border-style: dashed;
+}
+
+.task-column.is-over {
+  background: var(--v-tint-blue);
+}
+
+.task-column.is-blocked {
+  opacity: 0.45;
+}
+
+.task-column-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-column-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+}
+
+.task-column-count {
+  color: var(--v-text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.task-column-hint {
+  margin: 0;
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.task-column-body {
+  display: flex;
+  min-height: 60px;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--v-space-2);
+}
+
+.task-column-empty {
+  margin: auto 0;
+  opacity: 0.6;
+}
+
+.task-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-2);
+  padding: var(--v-space-3);
+  border: 1px solid var(--v-border);
+  border-left: 3px solid var(--v-primary);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface);
+  box-shadow: var(--v-shadow-xs);
+  cursor: pointer;
+  transition: transform 0.16s var(--v-ease), box-shadow 0.16s var(--v-ease);
+}
+
+.task-card:hover {
+  box-shadow: var(--v-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.task-card:focus-visible {
+  outline: 2px solid var(--v-primary);
+  outline-offset: 2px;
+}
+
+/*
+ * The type is carried by the left edge as well as the icon, so a board full of
+ * bugs reads at a glance and the cue is not colour alone.
+ */
+.task-card.is-bug { border-left-color: var(--v-danger); }
+.task-card.is-task { border-left-color: var(--v-primary); }
+.task-card.is-feature { border-left-color: var(--v-success); }
+
+.task-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+}
+
+.task-card-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.task-card-type {
+  font-size: 12px;
+}
+
+.task-card-title {
+  margin: 0;
+  color: var(--v-text);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.task-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.task-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+}
+
+.task-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-3);
+}
+
+.task-card-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.task-card-count.is-warn {
+  color: var(--v-danger);
+  font-weight: 600;
+}
+
+.task-card-avatar {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--v-tint-blue);
+  color: #1257c4;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.task-card-avatar.is-empty {
+  background: #f1f5f9;
+  color: #8aa0ba;
+}
+
+/* ------------------------------------------------------------ task drawer */
+
+.task-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-3);
+}
+
+.task-drawer-heading {
+  margin: 0 0 var(--v-space-4);
+  color: var(--v-text);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--v-space-2);
+  margin-bottom: var(--v-space-4);
+  padding-bottom: var(--v-space-4);
+  border-bottom: 1px solid #f0f4fa;
+}
+
+.task-field-grid {
+  display: grid;
+  gap: var(--v-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.task-field-label {
+  display: block;
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.task-field-value {
+  margin-top: 2px;
+  color: var(--v-text);
+  font-size: 13px;
+}
+
+.task-section {
+  margin-top: var(--v-space-5);
+}
+
+.task-section h4 {
+  margin: 0 0 var(--v-space-3);
+  color: var(--v-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Reports and comments are typed as plain text, so newlines must survive. */
+.task-text {
+  margin: 4px 0 var(--v-space-3);
+  color: var(--v-text);
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.task-text.is-quiet {
+  color: var(--v-text-soft);
+}
+
+.task-comments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-comments li {
+  padding: var(--v-space-3);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface-muted);
+}
+
+.task-comment-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+  font-size: 12.5px;
+}
+
+.task-comment-composer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--v-space-2);
+  margin-top: var(--v-space-3);
+}
+
+.task-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-timeline li {
+  display: flex;
+  gap: var(--v-space-3);
+  padding-left: 2px;
+}
+
+.task-timeline-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--v-primary);
+  box-shadow: 0 0 0 3px var(--v-tint-blue);
+}
+
+.task-timeline-line {
+  margin: 0;
+  color: var(--v-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1439px) {
+  .task-board {
+    grid-template-columns: repeat(6, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 1023px) {
+  /* Below this the six columns scroll sideways instead of being squeezed. */
+  .task-board {
+    grid-auto-columns: minmax(212px, 1fr);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+  }
+
+  .project-card-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
