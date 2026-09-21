@@ -65,11 +65,31 @@ export default function ProjectsPage({ user }) {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    api.get('/projects/members')
-      .then(({ data }) => setMembers(data.users || []))
-      .catch(() => { /* The picker degrades to empty; the rest still works. */ });
+  /**
+   * Everyone who can be added to a project or assigned a task.
+   *
+   * Reloaded whenever a picker is about to open, not only on mount: an account
+   * that registers while this page is sitting open would otherwise be missing
+   * from the list until a full reload.
+   */
+  const loadMembers = useCallback(async () => {
+    try {
+      const { data } = await api.get('/projects/members');
+      setMembers(data.users || []);
+    } catch (error) {
+      // The picker degrades to what it has; the rest of the page still works,
+      // but a failure here is why a name would be missing, so it is logged.
+      console.error('Unable to load project members:', error.message);
+    }
   }, []);
+
+  useEffect(() => { loadMembers(); }, [loadMembers]);
+
+  const openProjectForm = (project = null) => {
+    loadMembers();
+    setEditingProject(project);
+    setModalOpen(true);
+  };
 
   const visibleProjects = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -133,6 +153,7 @@ export default function ProjectsPage({ user }) {
         user={user}
         projectId={openProjectId}
         members={members}
+        onRefreshMembers={loadMembers}
         onBack={() => { setOpenProjectId(null); load(); }}
       />
     );
@@ -153,7 +174,7 @@ export default function ProjectsPage({ user }) {
                 type="primary"
                 className="vision-btn-primary"
                 icon={<PlusOutlined />}
-                onClick={() => { setEditingProject(null); setModalOpen(true); }}
+                onClick={() => openProjectForm()}
               >
                 New project
               </Button>
@@ -270,29 +291,41 @@ export default function ProjectsPage({ user }) {
 
               <footer className="project-card-foot">
                 <span className="vision-cell-muted">Due {formatDate(project.dueDate)}</span>
+                {/* Icons only: the row is narrow, and a label here repeats
+                    what the icon already says. The tooltip and the aria-label
+                    carry the name for hover and for screen readers. */}
                 <div className="vision-row-actions">
                   {canEdit && (
                     <Tooltip title="Edit">
                       <Button
                         size="small"
+                        aria-label={`Edit ${project.name}`}
                         icon={<EditOutlined />}
-                        onClick={() => { setEditingProject(project); setModalOpen(true); }}
+                        onClick={() => openProjectForm(project)}
                       />
                     </Tooltip>
                   )}
                   {canDelete && (
                     <Tooltip title="Delete">
-                      <Button size="small" danger icon={<DeleteOutlined />} onClick={() => removeProject(project)} />
+                      <Button
+                        size="small"
+                        danger
+                        aria-label={`Delete ${project.name}`}
+                        icon={<DeleteOutlined />}
+                        onClick={() => removeProject(project)}
+                      />
                     </Tooltip>
                   )}
-                  <Button
-                    size="small"
-                    type="primary"
-                    className="vision-btn-primary"
-                    onClick={() => setOpenProjectId(project.id)}
-                  >
-                    Open <RightOutlined />
-                  </Button>
+                  <Tooltip title="Open">
+                    <Button
+                      size="small"
+                      type="primary"
+                      className="vision-btn-primary"
+                      aria-label={`Open ${project.name}`}
+                      icon={<RightOutlined />}
+                      onClick={() => setOpenProjectId(project.id)}
+                    />
+                  </Tooltip>
                 </div>
               </footer>
             </article>

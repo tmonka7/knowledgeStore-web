@@ -38,7 +38,7 @@ import {
  * replaces its copy, which keeps the board, the drawer and the header counts
  * in step without a refetch.
  */
-export default function ProjectDetailPage({ user, projectId, members = [], onBack }) {
+export default function ProjectDetailPage({ user, projectId, members = [], onRefreshMembers, onBack }) {
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -168,6 +168,14 @@ export default function ProjectDetailPage({ user, projectId, members = [], onBac
     });
   };
 
+  // Refreshed on the way in, so an account created since this page loaded can
+  // still be assigned the task being written.
+  const openTaskForm = (task = null) => {
+    onRefreshMembers?.();
+    setEditingTask(task);
+    setFormOpen(true);
+  };
+
   const addComment = async (body) => {
     try {
       const { data } = await api.post(`/projects/${projectId}/tasks/${openTaskId}/comments`, { body });
@@ -210,7 +218,7 @@ export default function ProjectDetailPage({ user, projectId, members = [], onBac
                 type="primary"
                 className="vision-btn-primary"
                 icon={<PlusOutlined />}
-                onClick={() => { setEditingTask(null); setFormOpen(true); }}
+                onClick={() => openTaskForm()}
               >
                 New task
               </Button>
@@ -373,7 +381,7 @@ export default function ProjectDetailPage({ user, projectId, members = [], onBac
         canComment={canCreate}
         canDelete={canDelete}
         onClose={() => setOpenTaskId(null)}
-        onEdit={(task) => { setEditingTask(task); setFormOpen(true); }}
+        onEdit={openTaskForm}
         onDelete={removeTask}
         onTransition={startTransition}
         onComment={addComment}

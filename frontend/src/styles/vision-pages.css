@@ -2358,3 +2358,65 @@
   flex: none;
   gap: var(--v-space-2);
 }
+
+/* --------------------------------------------------------- direct messages */
+
+.chat-avatar-img {
+  flex: none;
+  border: 1px solid var(--v-border);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.chat-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--v-space-3) var(--v-space-2) var(--v-space-2);
+  border-top: 1px solid #f0f4fa;
+  margin-top: var(--v-space-2);
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.chat-list-note {
+  padding: var(--v-space-3) var(--v-space-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* A date separator, so a long thread does not read as one endless day. */
+.chat-day-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--v-space-4) 0 var(--v-space-3);
+}
+
+.chat-day-divider span {
+  padding: 3px 12px;
+  border-radius: var(--v-radius-pill);
+  background: var(--v-surface-muted);
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* One tick sent, two ticks read — the receipt only ever rides your own
+   bubbles, because you cannot know when the other side read theirs. */
+.chat-receipt {
+  margin-left: 2px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+/* Sidebar label with a trailing count, as Chat uses for unread messages. */
+.vision-menu-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-2);
+}

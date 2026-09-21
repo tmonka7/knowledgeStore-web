@@ -60,14 +60,20 @@ const isFaceImage = (image) => typeof image === 'string'
   && /^data:image\/(jpeg|jpg|png);base64,/.test(image)
   && image.length <= 2_000_000;
 
+/**
+ * GET /users
+ *
+ * Everyone, for anyone holding `users:view`.
+ *
+ * This used to narrow the list to the caller alone unless `req.user.role` said
+ * 'admin' — and that role comes from the JWT, which carries whatever the role
+ * was when the token was issued. So a non-admin granted `users:view` saw only
+ * themselves, and an account promoted to admin kept seeing only themselves
+ * until the next sign-in. The route is already gated on the permission that
+ * means "may see the user list"; deciding it a second time here, from a stale
+ * copy of the role, was the bug.
+ */
 export const listUsers = async (req, res) => {
-  const isAdmin = req.user.role === 'admin';
-
-  if (!isAdmin) {
-    const me = await getUserById(req.user.sub);
-    return res.json({ users: me ? [sanitizeUser(me.toObject ? me.toObject() : me)] : [] });
-  }
-
   const users = await getUsers();
   return res.json({ users: users.map((user) => sanitizeUser(user.toObject ? user.toObject() : user)) });
 };

@@ -1,4 +1,5 @@
-# Knowledge Store
+| Delete unlinked uploaded files | Removes files under `uploads/` that no record, mail or task attachment references |
+| Delete unlinked uploaded files | Removes files under `uploads/` that no record, mail or task attachment references |# Knowledge Store
 
 A full-stack starter app with:
 - React + Vite + Ant Design frontend
@@ -77,20 +78,74 @@ another task's success:
 
 | Task | What it does |
 | --- | --- |
-| Delete unlinked uploaded files | Removes files under `uploads/` that no record or mail attachment references |
+| Delete unlinked uploaded files | Removes files under `uploads/` that no record, mail or task attachment references |
 | Clear activity logs | Deletes the stored maintenance log, optionally keeping the last *n* days |
 | Compact collections | `compact` per collection, to release space deleted documents left behind |
 | Sync indexes | Recreates the declared indexes and drops the ones the models no longer declare |
 
 Orphan detection compares the files on disk against every `attachment` /
-`attachments` value in `records` and `mail_inbox`. Files modified in the last
-hour are listed but never deleted: an upload is written by multer *before* the
-record that will reference it is saved, and a half-finished compose still holds
-its file.
+`attachments` value in `records`, `mail_inbox` and `project_tasks`. Any
+collection that can hold an upload has to be listed in `getReferencedUploads`:
+one left out has its live files reported as orphans and deleted.
+
+Files modified in the last hour are listed but never deleted: an upload is
+written by multer *before* the record that will reference it is saved, and a
+half-finished compose still holds its file.
 
 The log the third task clears is the `activity_logs` collection, written by
 these maintenance actions themselves — it lives in the database rather than in
 a file so it can be read and cleared without shell access.
+
+## Chat
+
+**Chat** is direct messages between accounts on this app: search for someone,
+pick them, and write to them.
+
+It used to be something else. A conversation carried a single `ownerId`, every
+message was stored as `sender: 'me'`, and no message named a recipient — so a
+"chat" was a private notepad that nobody else could ever receive. The model was
+replaced rather than extended, because none of those fields describe a message
+with two ends.
+
+### How it is stored
+
+| Collection | Holds |
+| --- | --- |
+| `chat_threads` | one document per pair: `participantIds` (two ids, always sorted), plus the last message's time, preview and sender |
+| `chat_messages` | one document per message: `threadId`, `senderId`, `recipientId`, `body`, `readAt` |
+
+Sorting the pair means two people opening each other at the same moment still
+land on one thread, and `findOrCreateThread` matches on `$all` + `$size` rather
+than array equality so stored order can never matter. Messages are their own
+collection because a busy thread would otherwise grow a single document without
+bound and rewrite the whole history on every send.
+
+A thread is private to its two participants, **administrators included**. Every
+read and write goes through `getThreadFor(userId, threadId)`, so there is one
+place where that rule lives and no route can forget it.
+
+The previous `chat_conversations` collection is left untouched rather than
+migrated or dropped: those notes-to-self have no recipient to migrate them to.
+Nothing reads it any more, and the Database Management cleanup does not remove
+collections, so the old documents remain until someone deletes them.
+
+### Searching and sending
+
+One search box does both jobs, the way a messenger's does: it filters the
+conversations you already have, and at the same time looks up people you have
+not written to yet (`GET /chat/users?q=`, debounced, excluding yourself and
+anyone already in the list). Picking a person calls `POST /chat/threads`, which
+is idempotent — selecting the same person twice does not make a second thread.
+
+### Delivery
+
+There is no socket in this stack, so delivery is polled. The open thread asks
+for anything newer than its last message every 4 seconds
+(`GET /chat/threads/:id/messages?after=<ISO>`), the conversation list refreshes
+previews and unread counts every 6, and the sidebar badge every 15. A quiet
+chat therefore costs one small empty array per poll. Opening a thread marks its
+incoming messages read — you are looking at them — which is what clears the
+badge and turns the sender's single tick into two.
 
 ## My Page
 

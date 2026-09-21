@@ -32,6 +32,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { asBlob } from 'html-docx-js-typescript';
 import { useEffect, useState } from 'react';
+import api from '../api';
 import AppLayout from '../components/AppLayout';
 import HtmlEditor from '../components/HtmlEditor';
 import { can } from '../permissions';
@@ -147,6 +148,30 @@ export default function DashboardPage({
   // Schedule access never triggers the request (the API would 403 anyway).
   const canUseSchedule = can(user, 'schedule');
   const { reminders, permission, requestPermission } = useScheduleReminders({ enabled: canUseSchedule });
+
+  // Unread direct messages, so the count is visible from anywhere in the app
+  // rather than only once Chat is already open.
+  const [chatUnread, setChatUnread] = useState(0);
+  const canUseChat = can(user, 'chat');
+
+  useEffect(() => {
+    if (!canUseChat) return undefined;
+
+    let cancelled = false;
+    const checkUnread = async () => {
+      try {
+        const { data } = await api.get('/chat/unread');
+        if (!cancelled) setChatUnread(data.unread || 0);
+      } catch (error) {
+        /* The badge is a nicety; a failed poll should not raise anything. */
+      }
+    };
+
+    checkUnread();
+    const timer = setInterval(checkUnread, 15000);
+    return () => { cancelled = true; clearInterval(timer); };
+  // Re-checked when the page changes, so opening Chat clears it promptly.
+  }, [canUseChat, activeKey]);
 
   const handleExportPdf = async () => {
     if (!selectedRecord) return;
@@ -273,7 +298,13 @@ export default function DashboardPage({
         { key: 'keras', label: 'Keras' },
       ],
     },
-    { key: 'chat', icon: <MessageOutlined />, label: t('chat') },
+    {
+      key: 'chat',
+      icon: <MessageOutlined />,
+      label: chatUnread > 0
+        ? <span className="vision-menu-label">{t('chat')}<span className="vision-badge is-blue">{chatUnread}</span></span>
+        : t('chat'),
+    },
     { key: 'mail', icon: <MailOutlined />, label: t('mail') },
     { key: 'database', icon: <CloudServerOutlined />, label: t('databaseManagement') },
     { key: 'system-monitor', icon: <BarChartOutlined />, label: t('systemMonitoring') },
@@ -602,7 +633,7 @@ export default function DashboardPage({
             />
           )}
 
-          {effectiveKey === 'chat' && <ChatPage />}
+          {effectiveKey === 'chat' && <ChatPage user={user} />}
 
           {effectiveKey === 'mail' && <MailPage />}
 

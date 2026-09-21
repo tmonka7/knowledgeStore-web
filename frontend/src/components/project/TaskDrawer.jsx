@@ -89,8 +89,27 @@ export default function TaskDrawer({
       )}
       extra={(
         <Space size="small">
-          {canEdit && <Tooltip title="Edit"><Button size="small" icon={<EditOutlined />} onClick={() => onEdit(task)} /></Tooltip>}
-          {canDelete && <Tooltip title="Delete"><Button size="small" danger icon={<DeleteOutlined />} onClick={() => onDelete(task)} /></Tooltip>}
+          {canEdit && (
+            <Tooltip title="Edit">
+              <Button
+                size="small"
+                aria-label={`Edit ${task.key}`}
+                icon={<EditOutlined />}
+                onClick={() => onEdit(task)}
+              />
+            </Tooltip>
+          )}
+          {canDelete && (
+            <Tooltip title="Delete">
+              <Button
+                size="small"
+                danger
+                aria-label={`Delete ${task.key}`}
+                icon={<DeleteOutlined />}
+                onClick={() => onDelete(task)}
+              />
+            </Tooltip>
+          )}
         </Space>
       )}
     >
