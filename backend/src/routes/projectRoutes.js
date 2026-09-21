@@ -1,4 +1,7 @@
 import express from 'express';
+import fs from 'node:fs';
+import path from 'node:path';
+import multer from 'multer';
 import {
   createProjectRecord,
   deleteProject,
@@ -10,15 +13,35 @@ import {
 import {
   addComment,
   createTaskRecord,
+  deleteAttachment,
   deleteTask,
   listTasks,
   transitionTask,
   updateTask,
+  uploadAttachments,
 } from '../controllers/taskController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 import { asyncRoute } from '../helpers/asyncRoute.js';
 
 const router = express.Router();
+
+const TASK_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'tasks');
+
+// Same shape as the record and mail uploads: a generated name on disk, the
+// original kept in the database as the label.
+const taskUploads = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, callback) => {
+      fs.mkdirSync(TASK_UPLOAD_DIR, { recursive: true });
+      callback(null, TASK_UPLOAD_DIR);
+    },
+    filename: (req, file, callback) => {
+      const safeName = path.basename(file.originalname).replace(/[^\w.-]+/g, '_');
+      callback(null, `${Date.now()}-${Math.random().toString(16).slice(2, 10)}-${safeName}`);
+    },
+  }),
+  limits: { fileSize: 25 * 1024 * 1024, files: 10 },
+});
 
 const canView = [requireAuth, requirePermission('projects:view')];
 const canCreate = [requireAuth, requirePermission('projects:create')];
@@ -43,5 +66,14 @@ router.delete('/projects/:projectId/tasks/:taskId', canDelete, asyncRoute(delete
 // tester can hand a bug back without the right to rewrite it.
 router.post('/projects/:projectId/tasks/:taskId/transition', canEdit, asyncRoute(transitionTask));
 router.post('/projects/:projectId/tasks/:taskId/comments', canCreate, asyncRoute(addComment));
+
+// Attaching a file is contributing, like commenting; removing one is an edit.
+router.post(
+  '/projects/:projectId/tasks/:taskId/attachments',
+  canCreate,
+  taskUploads.array('attachments', 10),
+  asyncRoute(uploadAttachments),
+);
+router.delete('/projects/:projectId/tasks/:taskId/attachments/:attachmentId', canEdit, asyncRoute(deleteAttachment));
 
 export default router;

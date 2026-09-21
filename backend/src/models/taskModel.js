@@ -28,6 +28,20 @@ const activitySchema = new mongoose.Schema({
   at: { type: Date, default: Date.now },
 }, { _id: false });
 
+// `path` is the public /uploads/... url the browser fetches, and the value the
+// Database Management cleanup matches against when it looks for files nothing
+// references any more.
+const attachmentSchema = new mongoose.Schema({
+  id: { type: String, required: true, default: () => randomUUID() },
+  name: { type: String, default: '' },
+  path: { type: String, default: '' },
+  size: { type: Number, default: 0 },
+  mimeType: { type: String, default: '' },
+  uploadedById: { type: String, default: '' },
+  uploadedByName: { type: String, default: '' },
+  uploadedAt: { type: Date, default: Date.now },
+}, { _id: false });
+
 const taskSchema = new mongoose.Schema({
   id: { type: String, unique: true, required: true, default: () => randomUUID() },
   projectId: { type: String, required: true, index: true },
@@ -59,6 +73,7 @@ const taskSchema = new mongoose.Schema({
 
   // Position within its board column, so a manual order survives a reload.
   order: { type: Number, default: 0 },
+  attachments: { type: [attachmentSchema], default: [] },
   comments: { type: [commentSchema], default: [] },
   activity: { type: [activitySchema], default: [] },
   createdAt: { type: Date, default: Date.now },

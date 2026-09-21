@@ -36,7 +36,7 @@ const emptySummary = {
  * figures come from the API rather than being re-added in the browser, so the
  * cards, the charts and the table always agree.
  */
-export default function WalletPage({ user }) {
+export default function WalletPage({ user, embedded = false }) {
   const [entries, setEntries] = useState([]);
   const [summary, setSummary] = useState(emptySummary);
   const [loading, setLoading] = useState(false);
@@ -132,35 +132,43 @@ export default function WalletPage({ user }) {
   const totals = summary.totals || emptySummary.totals;
   const positiveBalance = totals.balance >= 0;
 
-  return (
-    <div className="vision-page vision-stack">
-      <PageHeader
-        title="Wallet Management"
-        subtitle="Record income and expenses, and see where the money went."
-        actions={(
-          <>
-            <Select
-              value={currency}
-              onChange={setCurrency}
-              options={CURRENCIES.map((code) => ({ value: code, label: code }))}
-              style={{ width: 96 }}
-            />
-            <Button className="vision-btn-ghost" icon={<ReloadOutlined />} loading={loading} onClick={load}>
-              Refresh
-            </Button>
-            {canCreate && (
-              <Button
-                type="primary"
-                className="vision-btn-primary"
-                icon={<PlusOutlined />}
-                onClick={() => { setEditingEntry(null); setModalOpen(true); }}
-              >
-                Add entry
-              </Button>
-            )}
-          </>
-        )}
+  // The toolbar is the same either way; only its frame changes. Embedded in a
+  // My Page tab it sits on its own, because that page already has the header.
+  const toolbar = (
+    <>
+      <Select
+        value={currency}
+        onChange={setCurrency}
+        options={CURRENCIES.map((code) => ({ value: code, label: code }))}
+        style={{ width: 96 }}
       />
+      <Button className="vision-btn-ghost" icon={<ReloadOutlined />} loading={loading} onClick={load}>
+        Refresh
+      </Button>
+      {canCreate && (
+        <Button
+          type="primary"
+          className="vision-btn-primary"
+          icon={<PlusOutlined />}
+          onClick={() => { setEditingEntry(null); setModalOpen(true); }}
+        >
+          Add entry
+        </Button>
+      )}
+    </>
+  );
+
+  return (
+    <div className={embedded ? 'vision-stack' : 'vision-page vision-stack'}>
+      {embedded ? (
+        <div className="vision-page-actions account-toolbar">{toolbar}</div>
+      ) : (
+        <PageHeader
+          title="Wallet Management"
+          subtitle="Record income and expenses, and see where the money went."
+          actions={toolbar}
+        />
+      )}
 
       <div className="vision-stat-grid">
         <StatCard

@@ -1,9 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Form, Input, Modal, Select, Table, Typography } from 'antd';
+import { Alert, Button, Checkbox, Form, Input, Modal, Select, Table, Typography } from 'antd';
 import {
   AppstoreFilled,
   CameraFilled,
+  CalendarOutlined,
   CameraOutlined,
+  CloudServerOutlined,
+  ContactsOutlined,
   CheckCircleFilled,
   DatabaseFilled,
   DeleteOutlined,
@@ -18,6 +21,7 @@ import {
   MessageFilled,
   PictureOutlined,
   PlusOutlined,
+  ProjectOutlined,
   PlusSquareOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
@@ -28,6 +32,7 @@ import {
   TeamOutlined,
   UploadOutlined,
   UserOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { FaceScanArt } from '../components/FaceArt';
 import FilterBar from '../components/ui/FilterBar';
@@ -37,7 +42,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import { descriptorFromFile, imageDataFromFile } from '../lib/faceRecognition';
 import { useLanguage } from '../i18n';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const ACTION_COLUMNS = ['view', 'create', 'edit', 'delete'];
 
@@ -56,6 +61,11 @@ const PAGE_META = {
   cameras: { icon: <CameraFilled />, color: '#7a5af8', tint: '#efeaff' },
   chat: { icon: <MessageFilled />, color: '#0ba5b7', tint: '#e0f7fa' },
   mail: { icon: <MailFilled />, color: '#e8417f', tint: '#ffe8f1' },
+  schedule: { icon: <CalendarOutlined />, color: '#12a370', tint: '#e3f7ef' },
+  projects: { icon: <ProjectOutlined />, color: '#7a5af8', tint: '#efeaff' },
+  wallet: { icon: <WalletOutlined />, color: '#f08c1a', tint: '#fff2e0' },
+  contacts: { icon: <ContactsOutlined />, color: '#0ba5b7', tint: '#e0f7fa' },
+  database: { icon: <CloudServerOutlined />, color: '#2f6bff', tint: '#e7efff' },
   users: { icon: <TeamOutlined />, color: '#2f6bff', tint: '#e7efff' },
   'system-monitor': { icon: <LineChartOutlined />, color: '#0ea5e9', tint: '#e3f4fd' },
 };
@@ -90,12 +100,10 @@ export default function UsersPage({
   users,
   user,
   userTableColumns,
-  handleUpdatePassword,
   handleUpdateUser,
   permissionCatalog = [],
 }) {
   const { t } = useLanguage();
-  const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const faceInputRef = useRef(null);
   const [editingUser, setEditingUser] = useState(null);
@@ -153,13 +161,6 @@ export default function UsersPage({
   const facePhoto = faceUpdate?.faceImage || editingUser?.faceImage || '';
   const hasRegisteredFace = Boolean(editingUser?.faceImage);
   const allPermissionCount = permissionCatalog.reduce((total, page) => total + page.actions.length, 0);
-
-  const onSubmit = async (values) => {
-    const ok = await handleUpdatePassword(values);
-    if (ok) {
-      form.resetFields();
-    }
-  };
 
   const openEditor = (record) => {
     setEditingUser(record);
@@ -387,50 +388,6 @@ export default function UsersPage({
         />
       </div>
 
-      <Card className="vision-settings-card">
-        <Title level={4} style={{ marginTop: 0 }}>{t('userSettings')}</Title>
-        <Text type="secondary">{t('updatePasswordBelow')}</Text>
-        <Form form={form} layout="vertical" onFinish={onSubmit} style={{ marginTop: 16, maxWidth: 460 }}>
-          <Form.Item
-            label={t('currentPassword')}
-            name="currentPassword"
-            rules={[{ required: true, message: t('enterCurrentPassword') }]}
-          >
-            <Input.Password placeholder={t('currentPassword')} />
-          </Form.Item>
-
-          <Form.Item
-            label={t('newPassword')}
-            name="newPassword"
-            rules={[{ required: true, min: 6, message: t('passwordMinLength') }]}
-          >
-            <Input.Password placeholder={t('newPassword')} />
-          </Form.Item>
-
-          <Form.Item
-            label={t('confirmNewPassword')}
-            name="confirmPassword"
-            dependencies={['newPassword']}
-            rules={[
-              { required: true, message: t('confirmNewPasswordRequired') },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('newPassword') === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error(t('passwordsDoNotMatch')));
-                },
-              }),
-            ]}
-          >
-            <Input.Password placeholder={t('confirmNewPassword')} />
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit">{t('updatePassword')}</Button>
-          </Form.Item>
-        </Form>
-      </Card>
 
       <Modal
         open={Boolean(editingUser)}

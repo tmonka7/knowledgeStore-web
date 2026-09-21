@@ -232,6 +232,76 @@ export const transitionTask = async (req, res) => {
   return res.json({ task: asPlain(task) });
 };
 
+/**
+ * POST /projects/:projectId/tasks/:taskId/attachments  (multipart)
+ *
+ * Files are attached to a task that already exists, rather than travelling
+ * with the form: a report being typed has no id to hang them on yet, and the
+ * drawer needs the same operation anyway.
+ */
+export const uploadAttachments = async (req, res) => {
+  const project = await loadProject(req, res);
+  if (!project) return undefined;
+  const task = await loadTask(req, res, project);
+  if (!task) return undefined;
+
+  const files = Array.isArray(req.files) ? req.files : [];
+  if (!files.length) return res.status(400).json({ message: 'Choose at least one file.' });
+
+  const actor = actorOf(req);
+  files.forEach((file) => {
+    task.attachments.push({
+      id: randomUUID(),
+      // multer has already written the file under a generated name; the
+      // original is kept only as the label and the download filename.
+      name: file.originalname,
+      path: `/uploads/tasks/${file.filename}`,
+      size: file.size,
+      mimeType: file.mimetype,
+      uploadedById: actor.id,
+      uploadedByName: actor.name,
+      uploadedAt: new Date(),
+    });
+  });
+
+  recordActivity(task, {
+    action: 'attached',
+    note: files.map((file) => file.originalname).join(', '),
+    actorId: actor.id,
+    actorName: actor.name,
+  });
+
+  await task.save();
+  return res.status(201).json({ task: asPlain(task) });
+};
+
+export const deleteAttachment = async (req, res) => {
+  const project = await loadProject(req, res);
+  if (!project) return undefined;
+  const task = await loadTask(req, res, project);
+  if (!task) return undefined;
+
+  const attachment = task.attachments.find((item) => item.id === req.params.attachmentId);
+  if (!attachment) return res.status(404).json({ message: 'Attachment not found.' });
+
+  task.attachments = task.attachments.filter((item) => item.id !== attachment.id);
+
+  const actor = actorOf(req);
+  recordActivity(task, {
+    action: 'detached',
+    note: attachment.name,
+    actorId: actor.id,
+    actorName: actor.name,
+  });
+
+  await task.save();
+
+  // The file itself is left on disk for the Database Management cleanup to
+  // collect: unlinking here would destroy it even if this save had failed,
+  // and nothing references it any more either way.
+  return res.json({ task: asPlain(task) });
+};
+
 export const addComment = async (req, res) => {
   const project = await loadProject(req, res);
   if (!project) return undefined;

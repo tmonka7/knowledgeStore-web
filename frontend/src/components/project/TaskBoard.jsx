@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Empty, Tooltip } from 'antd';
-import { BugOutlined, BulbOutlined, CheckSquareOutlined, MessageOutlined } from '@ant-design/icons';
+import {
+  BugOutlined,
+  BulbOutlined,
+  CheckSquareOutlined,
+  MessageOutlined,
+  PaperClipOutlined,
+} from '@ant-design/icons';
 import StatusBadge from '../ui/StatusBadge';
 import {
   PRIORITY_LABEL,
@@ -66,6 +72,9 @@ function TaskCard({ task, assignee, onOpen, onDragStart, onDragEnd, draggable })
         <div className="task-card-meta">
           {task.comments?.length > 0 && (
             <span className="task-card-count"><MessageOutlined /> {task.comments.length}</span>
+          )}
+          {task.attachments?.length > 0 && (
+            <span className="task-card-count"><PaperClipOutlined /> {task.attachments.length}</span>
           )}
           {task.reopenCount > 0 && (
             <Tooltip title={`Sent back ${task.reopenCount} time(s)`}>

@@ -7,6 +7,7 @@ import {
   SendOutlined,
 } from '@ant-design/icons';
 import StatusBadge from '../ui/StatusBadge';
+import TaskAttachments from './TaskAttachments';
 import {
   PRIORITY_LABEL,
   PRIORITY_TONE,
@@ -41,6 +42,7 @@ export default function TaskDrawer({
   open,
   task,
   members = [],
+  projectId,
   canEdit,
   canComment,
   canDelete,
@@ -49,6 +51,7 @@ export default function TaskDrawer({
   onDelete,
   onTransition,
   onComment,
+  onAttachmentsChange,
 }) {
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
@@ -131,7 +134,12 @@ export default function TaskDrawer({
       {task.description && (
         <section className="task-section">
           <h4>Description</h4>
-          <p className="task-text">{task.description}</p>
+          {/* Written in the rich editor, so it is rendered as the markup it is
+              — the same treatment a record's content gets on the Data page. */}
+          <div
+            className="html-content detail-content"
+            dangerouslySetInnerHTML={{ __html: task.description }}
+          />
         </section>
       )}
 
@@ -151,6 +159,17 @@ export default function TaskDrawer({
           {task.environment && <Field label="Environment">{task.environment}</Field>}
         </section>
       )}
+
+      <section className="task-section">
+        <h4>Attachments {task.attachments?.length ? `(${task.attachments.length})` : ''}</h4>
+        <TaskAttachments
+          projectId={projectId}
+          task={task}
+          canUpload={canComment}
+          canDelete={canEdit}
+          onChange={onAttachmentsChange}
+        />
+      </section>
 
       <section className="task-section">
         <h4>Comments {task.comments?.length ? `(${task.comments.length})` : ''}</h4>
@@ -204,6 +223,8 @@ export default function TaskDrawer({
                   {entry.action === 'created' && ' reported this'}
                   {entry.action === 'status' && ` moved it ${STATUS_LABEL[entry.from] || entry.from} → ${STATUS_LABEL[entry.to] || entry.to}`}
                   {entry.action === 'assigned' && ` assigned it to ${nameOf(entry.to) || 'nobody'}`}
+                  {entry.action === 'attached' && ' attached a file'}
+                  {entry.action === 'detached' && ' removed an attachment'}
                 </p>
                 {entry.note && <p className="task-text is-quiet">{entry.note}</p>}
                 <span className="vision-cell-muted">{formatMoment(entry.at)}</span>

@@ -1,13 +1,25 @@
 import { useEffect } from 'react';
 import { DatePicker, Form, Input, Modal, Select } from 'antd';
 import dayjs from 'dayjs';
+import HtmlEditor from '../HtmlEditor';
+import TaskAttachments from './TaskAttachments';
 import { PRIORITIES, TASK_TYPES } from './workflow';
 
 /**
  * One form for every kind of card. The reproduction fields only appear for a
  * bug: they are what a fixer needs and noise on a feature.
  */
-export default function TaskFormModal({ open, task, members = [], saving, onCancel, onSubmit }) {
+export default function TaskFormModal({
+  open,
+  task,
+  members = [],
+  projectId,
+  canAttach,
+  saving,
+  onCancel,
+  onSubmit,
+  onAttachmentsChange,
+}) {
   const [form] = Form.useForm();
   const type = Form.useWatch('type', form) || 'bug';
 
@@ -73,8 +85,10 @@ export default function TaskFormModal({ open, task, members = [], saving, onCanc
           </Form.Item>
         </div>
 
+        {/* Rich text, the same editor Data uses for a record's content, so a
+            report can carry a table, a list or a pasted screenshot. */}
         <Form.Item name="description" label="Description">
-          <Input.TextArea rows={3} placeholder="What is happening, and why does it matter?" />
+          <HtmlEditor height={260} />
         </Form.Item>
 
         {type === 'bug' && (
@@ -98,6 +112,19 @@ export default function TaskFormModal({ open, task, members = [], saving, onCanc
 
         <Form.Item name="tags" label="Tags">
           <Select mode="tags" placeholder="auth, regression" tokenSeparators={[',']} />
+        </Form.Item>
+
+        {/* Attachments are saved as they are chosen, not with the form, so the
+            list here is live rather than a pending upload. */}
+        <Form.Item label="Attachments">
+          <TaskAttachments
+            projectId={projectId}
+            task={task}
+            canUpload={canAttach}
+            canDelete={canAttach}
+            onChange={onAttachmentsChange}
+            compact
+          />
         </Form.Item>
       </Form>
     </Modal>

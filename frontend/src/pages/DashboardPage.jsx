@@ -27,7 +27,6 @@ import {
   ProjectOutlined,
   TeamOutlined,
   ToolOutlined,
-  WalletOutlined,
 } from '@ant-design/icons';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -52,7 +51,7 @@ import ConvertToolPage from './ConvertToolPage';
 import YoloToolPage from './YoloToolPage';
 import TransformersToolPage from './TransformersToolPage';
 import KerasToolPage from './KerasToolPage';
-import WalletPage from './WalletPage';
+import MyPage from './MyPage';
 import DatabasePage from './DatabasePage';
 import ProjectsPage from './ProjectsPage';
 
@@ -276,7 +275,6 @@ export default function DashboardPage({
     },
     { key: 'chat', icon: <MessageOutlined />, label: t('chat') },
     { key: 'mail', icon: <MailOutlined />, label: t('mail') },
-    { key: 'wallet', icon: <WalletOutlined />, label: t('walletManagement') },
     { key: 'database', icon: <CloudServerOutlined />, label: t('databaseManagement') },
     { key: 'system-monitor', icon: <BarChartOutlined />, label: t('systemMonitoring') },
     {
@@ -299,7 +297,9 @@ export default function DashboardPage({
   const visiblePageKeys = new Set(
     menuItems.flatMap((item) => (item.children ? item.children.map((child) => child.key) : [item.key])),
   );
-  const canViewActivePage = visiblePageKeys.has(activeKey);
+  // My Page is reached from the user menu rather than the sidebar, and is
+  // always your own account, so it needs no page permission to open.
+  const canViewActivePage = visiblePageKeys.has(activeKey) || activeKey === 'my-page';
   const firstVisiblePage = menuItems.length
     ? (menuItems[0].children ? menuItems[0].children[0].key : menuItems[0].key)
     : null;
@@ -315,7 +315,7 @@ export default function DashboardPage({
   }, [canViewActivePage, firstVisiblePage, setActiveKey]);
 
   const userMenuItems = [
-    { key: 'settings', label: t('settings'), onClick: () => setActiveKey('users') },
+    { key: 'my-page', label: t('myPage'), onClick: () => setActiveKey('my-page') },
     { type: 'divider' },
     { key: 'logout', label: t('logout'), danger: true, onClick: logout },
   ];
@@ -597,7 +597,6 @@ export default function DashboardPage({
               users={users}
               user={user}
               userTableColumns={userTableColumns}
-              handleUpdatePassword={handleUpdatePassword}
               handleUpdateUser={handleUpdateUser}
               permissionCatalog={permissionCatalog}
             />
@@ -609,7 +608,8 @@ export default function DashboardPage({
 
           {effectiveKey === 'projects' && <ProjectsPage user={user} />}
 
-          {effectiveKey === 'wallet' && <WalletPage user={user} />}
+          {/* Wallet now lives inside My Page, with the account's other personal data. */}
+          {effectiveKey === 'my-page' && <MyPage user={user} onUpdatePassword={handleUpdatePassword} />}
 
           {/* A reset or a replace-restore drops the account behind the current
               token, so the page is given the way out of a dead session. */}

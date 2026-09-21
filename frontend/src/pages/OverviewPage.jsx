@@ -298,11 +298,14 @@ export default function OverviewPage({
       status: 'ready',
     },
     {
-      key: 'wallet',
+      // My Page is your own account, so it needs no permission to reach —
+      // the wallet and contacts tabs inside it still check theirs.
+      key: 'my-page',
+      always: true,
       icon: <WalletOutlined />,
-      title: 'Wallet',
+      title: 'My Page',
       tone: 'green',
-      detail: 'Income, expenses and their statistics',
+      detail: 'Your account, wallet and contacts',
       status: 'ready',
     },
     {
@@ -330,7 +333,7 @@ export default function OverviewPage({
       status: 'ready',
     },
   // Only modules this account can actually open.
-  ].filter((item) => can(user, item.key)), [records, categories, cameras, schedule, users, systemStatus, stats, user]);
+  ].filter((item) => item.always || can(user, item.key)), [records, categories, cameras, schedule, users, systemStatus, stats, user]);
 
   const apiOnline = systemStatus.api === 'online';
 

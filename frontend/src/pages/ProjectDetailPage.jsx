@@ -84,7 +84,12 @@ export default function ProjectDetailPage({ user, projectId, members = [], onBac
       if (assigneeFilter !== 'all' && assigneeFilter !== 'unassigned' && task.assigneeId !== assigneeFilter) return false;
       if (typeFilter !== 'all' && task.type !== typeFilter) return false;
       if (!needle) return true;
-      return [task.key, task.title, task.description].some((field) => String(field || '').toLowerCase().includes(needle));
+      // The description is markup now, so its tags are stripped before
+      // matching — otherwise searching for "table" would hit every report
+      // that merely contains one.
+      const plainDescription = String(task.description || '').replace(/<[^>]+>/g, ' ');
+      return [task.key, task.title, plainDescription]
+        .some((field) => String(field || '').toLowerCase().includes(needle));
     });
   }, [tasks, search, assigneeFilter, typeFilter]);
 
@@ -363,6 +368,7 @@ export default function ProjectDetailPage({ user, projectId, members = [], onBac
         open={Boolean(openTask)}
         task={openTask}
         members={members}
+        projectId={projectId}
         canEdit={canEdit}
         canComment={canCreate}
         canDelete={canDelete}
@@ -371,15 +377,21 @@ export default function ProjectDetailPage({ user, projectId, members = [], onBac
         onDelete={removeTask}
         onTransition={startTransition}
         onComment={addComment}
+        onAttachmentsChange={replaceTask}
       />
 
       <TaskFormModal
         open={formOpen}
         task={editingTask}
         members={members}
+        projectId={projectId}
+        canAttach={canCreate}
         saving={saving}
         onCancel={() => { setFormOpen(false); setEditingTask(null); }}
         onSubmit={saveTask}
+        // An upload lands on the task straight away, so the dialog's copy has
+        // to be refreshed too, not just the board's.
+        onAttachmentsChange={(updated) => { replaceTask(updated); setEditingTask(updated); }}
       />
 
       <TransitionModal

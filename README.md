@@ -92,11 +92,27 @@ The log the third task clears is the `activity_logs` collection, written by
 these maintenance actions themselves — it lives in the database rather than in
 a file so it can be read and cleared without shell access.
 
-## Wallet Management
+## My Page
 
-**Wallet Management** records income and expenses and reports on them. A wallet
-is personal, like the schedule: every query is scoped by `ownerId`, so one
-account never sees another's figures, administrators included.
+**My Page** holds everything that belongs to the signed-in account rather than
+to the organisation. It is reached from the menu under the user avatar, not
+from the sidebar, and needs no page permission — it is always your own account.
+The tabs inside it still respect the wallet and contacts permissions, which the
+API enforces regardless.
+
+### Account
+
+Your profile, and the form for changing your own password. That form used to
+sit at the bottom of the Users page, which only administrators can open — so
+the one setting every account has was behind a permission almost nobody had.
+Name, email and face photo remain an administrator's job, and the panel says
+so rather than showing fields that would fail.
+
+### Wallet
+
+The wallet records income and expenses and reports on them. It is personal,
+like the schedule: every query is scoped by `ownerId`, so one account never
+sees another's figures, administrators included.
 
 Amounts are stored positive and `type` (`income` / `expense`) carries the sign,
 which keeps each series a plain sum. Dates are `YYYY-MM-DD` strings rather than
@@ -109,7 +125,7 @@ month boundary in the charts. The currency is a display choice held in
 breakdown on the server, against the same filters the entry list uses, so the
 stat cards, the charts and the table can never disagree.
 
-### Chart colours
+#### Chart colours
 
 Income and expense are two series that have to be told apart, so they take two
 categorical hues: the design system's primary blue and its amber. Green and red
@@ -119,6 +135,14 @@ under every common form of CVD, and each chart carries a legend or a direct
 label so identity never rests on colour alone. The running-balance line is a
 single series, so it takes one hue and no legend; only its endpoint is
 labelled.
+
+### Contacts
+
+A personal address book — name, email, phone, company, role, group, tags and
+notes — scoped by `ownerId` like the wallet. Favourites sort to the top, and
+starring one goes through `PATCH /contacts/:id/favourite` rather than the
+update route, so a star pressed in the list cannot overwrite the fields the
+card is not showing.
 
 ## Project Management
 
@@ -186,6 +210,19 @@ environment — only for bugs, where they earn their place), the moves available
 from its current status, its comments, and the history of who moved it and
 when. There is no free status dropdown anywhere on the page: every status
 change goes through the same gate.
+
+A task's description is written in the same TinyMCE editor a record's content
+uses (`components/HtmlEditor.jsx`), so a report can carry a table, a list or a
+pasted screenshot, and the drawer renders it as the markup it is. The
+reproduction fields stay plain text: they are steps, not documents.
+
+Files attach from either the edit dialog or the drawer. They upload against a
+task that already exists rather than travelling with the form — a report being
+typed has no id to hang them on yet — so the list is live rather than a pending
+upload, and both views share one component. Removing an attachment drops the
+reference and leaves the file for the Database Management cleanup to collect;
+that cleanup reads `project_tasks` as well, so a live task file is never
+mistaken for an orphan.
 
 ### Permissions
 

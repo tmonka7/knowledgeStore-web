@@ -2142,3 +2142,219 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ------------------------------------------------------------- my page */
+
+.account-toolbar {
+  justify-content: flex-end;
+}
+
+.account-profile {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--v-space-5);
+}
+
+.account-profile-photo {
+  width: 72px;
+  height: 72px;
+  flex: none;
+  border: 1px solid var(--v-border);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.account-profile-facts {
+  min-width: 260px;
+  flex: 1;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: var(--v-space-4);
+}
+
+.contact-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  padding: var(--v-space-4);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-xl);
+  background: var(--v-surface);
+  box-shadow: var(--v-shadow-xs);
+  transition: transform 0.2s var(--v-ease), box-shadow 0.2s var(--v-ease);
+}
+
+.contact-card:hover {
+  box-shadow: var(--v-shadow-sm);
+  transform: translateY(-2px);
+}
+
+.contact-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-3);
+}
+
+.contact-card-avatar {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--v-tint-violet);
+  color: #5a48d0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.contact-card-identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.contact-card-identity h4 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--v-text);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A star is a toggle, so it is a button — not a clickable icon in a div. */
+.contact-card-star {
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: #c3ceda;
+  font-size: 15px;
+  cursor: pointer;
+  transition: color 0.16s var(--v-ease);
+}
+
+.contact-card-star:hover,
+.contact-card-star.is-on {
+  color: var(--v-warning);
+}
+
+.contact-card-star:focus-visible {
+  outline: 2px solid var(--v-primary);
+  outline-offset: 2px;
+  border-radius: var(--v-radius-sm);
+}
+
+.contact-card-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-card-lines li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--v-space-2);
+  color: var(--v-text-soft);
+  font-size: 13px;
+}
+
+.contact-card-lines a {
+  overflow: hidden;
+  color: var(--v-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contact-card-notes {
+  margin: 0;
+  color: var(--v-text-soft);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.contact-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+  margin-top: auto;
+  padding-top: var(--v-space-3);
+  border-top: 1px solid #f0f4fa;
+}
+
+/* -------------------------------------------------------- task attachments */
+
+.task-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+}
+
+.task-attachment-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--v-space-3);
+}
+
+.task-attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-attachment-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-3);
+  padding: var(--v-space-2) var(--v-space-3);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface-muted);
+}
+
+.task-attachment-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  place-items: center;
+  border-radius: var(--v-radius-sm);
+  background: var(--v-tint-blue);
+  color: var(--v-primary);
+}
+
+.task-attachment-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.task-attachment-name {
+  overflow: hidden;
+  color: var(--v-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-attachment-actions {
+  display: flex;
+  flex: none;
+  gap: var(--v-space-2);
+}

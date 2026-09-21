@@ -7,6 +7,7 @@
   <text id="cameraManagement" en="Camera Management" es="Gestion de camaras" zh="摄像头管理" jp="カメラ管理" />
   <text id="schedule" en="Schedule" es="Agenda" zh="日程" jp="スケジュール" />
   <text id="projectManagement" en="Project Management" es="Gestion de proyectos" zh="项目管理" jp="プロジェクト管理" />
+  <text id="myPage" en="My Page" es="Mi pagina" zh="我的页面" jp="マイページ" />
   <text id="walletManagement" en="Wallet Management" es="Gestion de cartera" zh="钱包管理" jp="ウォレット管理" />
   <text id="databaseManagement" en="Database Management" es="Gestion de base de datos" zh="数据库管理" jp="データベース管理" />
   <text id="toolsLvgl" en="Tools / LVGL image/font converter" es="Herramientas / convertidor de imagen/fuente LVGL" zh="工具 / LVGL 图像/字体转换器" jp="ツール / LVGL 画像・フォント変換" />
