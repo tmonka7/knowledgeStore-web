@@ -205,7 +205,10 @@ export default function DashboardPage({
       setUnseenPosts(data.unseen || 0);
       setPostNotifications(data.posts || []);
     } catch (error) {
-      /* The bell is a nicety; a failed poll should not raise anything. */
+      // A 403 here means the account is missing `posts:view`, which is
+      // otherwise invisible: the bell simply stays empty and a post published
+      // for everyone reaches nobody. Worth a line in the console.
+      if (error.response?.status === 403) console.warn('Post notifications:', error.response?.data?.message);
     }
   }, [canUsePosts]);
 
@@ -215,6 +218,43 @@ export default function DashboardPage({
     const timer = setInterval(refreshPostNotifications, 60000);
     return () => clearInterval(timer);
   }, [canUsePosts, refreshPostNotifications, activeKey]);
+
+  /*
+   * Recent mail, for the mail icon in the header. Polled exactly like the
+   * chat messages beside it, and for the same reason: the count has to be
+   * visible from anywhere, not only once Mail is open.
+   */
+  const [mailUnread, setMailUnread] = useState(0);
+  const [recentMail, setRecentMail] = useState([]);
+  const [openMailId, setOpenMailId] = useState('');
+  const canUseMail = can(user, 'mail');
+
+  useEffect(() => {
+    if (!canUseMail) return undefined;
+
+    let cancelled = false;
+    const checkMail = async () => {
+      try {
+        const { data } = await api.get('/mail/recent', { params: { limit: 5 } });
+        if (cancelled) return;
+        setMailUnread(data.unread || 0);
+        setRecentMail(data.mails || []);
+      } catch (error) {
+        // Logged rather than swallowed: a 403 here means the account is
+        // missing a permission, which is otherwise invisible.
+        if (error.response?.status === 403) console.warn('Mail notifications:', error.response?.data?.message);
+      }
+    };
+
+    checkMail();
+    const timer = setInterval(checkMail, 15000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [canUseMail, activeKey]);
+
+  const openMailItem = (mailId) => {
+    setOpenMailId(mailId || '');
+    setActiveKey('mail');
+  };
 
   // Picking a post from the bell opens it, which records the view and so
   // takes it off the count.
@@ -445,6 +485,10 @@ export default function DashboardPage({
       messageCount={chatUnread}
       messageItems={recentMessages}
       onMessageSelect={openMessage}
+      showMail={canUseMail}
+      mailCount={mailUnread}
+      mailItems={recentMail}
+      onMailSelect={openMailItem}
     >
         <Modal
           open={Boolean(selectedRecord)}
@@ -723,7 +767,14 @@ export default function DashboardPage({
             />
           )}
 
-          {effectiveKey === 'mail' && <MailPage user={user} directory={directory} />}
+          {effectiveKey === 'mail' && (
+            <MailPage
+              user={user}
+              directory={directory}
+              initialMailId={openMailId}
+              onMailOpened={() => setOpenMailId('')}
+            />
+          )}
 
           {effectiveKey === 'posts' && (
             <PostsPage

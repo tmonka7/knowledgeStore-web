@@ -36,13 +36,17 @@ The **notification bell** holds two groups: "*n* new post(s)" above, then
 Choosing a post opens it on the Posts page; choosing a reminder opens the
 Schedule. With nothing in either group it reads "nothing due tomorrow".
 
-**Header icons**, right of the clock and language selector: a **message**
-icon, then the notification bell, then the user menu. The message icon carries
-the unread total as a badge and opens a menu of the five newest messages
-addressed to you — sender in bold, a one-line preview, the time on the right,
-and a dot marking an unread one. Choosing one opens Chat **on that
-conversation**; the last entry, "Open Chat", goes to the page without picking
-one. Accounts that cannot use Chat do not see the icon at all.
+**Header icons**, right of the clock and language selector: a **mail** icon, a
+**message** icon, the notification bell, then the user menu.
+
+Mail and messages are built the same way, deliberately — two inboxes that
+behaved differently would be two things to learn. Each carries its unread
+total as a badge and opens a menu of the five newest items: who it is from in
+bold, a one-line preview (the subject, for mail), the time on the right, and a
+dot marking an unread one. Choosing one opens that page **on that item** — the
+conversation, or the message, switching to the Inbox if Sent was open. The
+last entry ("Open Chat" / "Open Mail") goes to the page without picking one.
+An account that cannot use Chat, or Mail, does not see that icon at all.
 
 The browser tab carries `frontend/public/favicon.svg` — the same rounded
 square, gradient and shield as the sidebar's brand mark, so the tab and the

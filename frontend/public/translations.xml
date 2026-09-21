@@ -475,4 +475,7 @@
   <text id="cannotDeleteOthersRecords" en="Those records belong to someone else." es="Esos registros pertenecen a otra persona." zh="这些记录属于其他人。" jp="これらのレコードは他のユーザーのものです。" />
   <text id="posts" en="Posts" es="Publicaciones" zh="公告" jp="お知らせ" />
   <text id="newPosts" en="{count} new post(s)" es="{count} publicacion(es) nueva(s)" zh="{count} 条新公告" jp="新着のお知らせ {count} 件" />
+  <text id="recentMail" en="Recent mail" es="Correo reciente" zh="最近的邮件" jp="最近のメール" />
+  <text id="noMailYet" en="No mail yet" es="Aun no hay correo" zh="暂无邮件" jp="メールはありません" />
+  <text id="openMail" en="Open Mail" es="Abrir correo" zh="打开邮件" jp="メールを開く" />
 </translations>

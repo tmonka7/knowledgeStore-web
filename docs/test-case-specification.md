@@ -139,6 +139,9 @@ granted by default).
 | TC-MSG-10 | FR-MSG-09 | As ADMIN, call `GET /mail/:id` for a message between USER1 and USER2. | 404 — administrators have no access to a mailbox. |
 | TC-MSG-11 | FR-MSG-03 | Attempt to send with no recipient, then with no subject, then a 30 MB attachment. | Each is refused with a message naming what is missing or too large. |
 | TC-MSG-12 | FR-MSG-10 | Search the Inbox for a word in a subject, then in a sender's name. | Both narrow the list; clearing restores it. |
+| TC-MSG-13 | FR-MSG-11 | Have USER2 send USER1 two messages while USER1 is on the Overview page. | The header mail icon shows 2 and its menu lists both, newest first, with sender, subject and time, marked unread. |
+| TC-MSG-14 | FR-MSG-12 | With the Sent folder open, choose a message from the mail menu. | Mail switches to the Inbox and opens that message; the badge falls by one. |
+| TC-MSG-15 | FR-MSG-12 | Revoke `mail:view` from USER1 and reload. | The mail icon is absent from the header, and `GET /mail/recent` returns 403. |
 | TC-SCH-01 | FR-SCH-01 | Create a repeating schedule entry. | It appears on the expected days and in the upcoming list. |
 
 ## 6a. Posts
@@ -155,6 +158,9 @@ granted by default).
 | TC-PST-08 | FR-PST-02 | As USER1, who holds only `posts:view`. | No New post, Edit or Delete control is offered; `POST /posts` returns 403. |
 | TC-PST-09 | FR-PST-02 | As ADMIN, edit a post's content, then delete it. | The change is visible to a reader; deletion removes it and its reader list. |
 | TC-PST-10 | FR-PST-05 | Open a post, then look at the list. | Its **New** badge is gone and the row is no longer bold. |
+| TC-PST-11 | FR-PST-03, FR-USR-12 | On a database whose accounts predate Posts, start the API and sign in as a **non-administrator**. Publish a post as ADMIN and wait a minute. | Posts is in their sidebar and the new post is in their bell. **Regression guard:** these accounts had no `posts:view`, so a post published for everyone reached nobody. |
+| TC-PST-12 | FR-USR-12 | Revoke `posts:view` from USER1, restart the API, sign in as USER1. | It stays revoked — the backfill does not run a second time. |
+| TC-PST-13 | FR-USR-12 | Inspect `app_migrations` after the first start. | One marker row for the posts backfill, with the time it was applied. |
 
 ## 6b. Cameras
 
@@ -203,6 +209,7 @@ Run at minimum: TC-USR-01 … 04 (user list), TC-AUTH-05 … 08 and TC-USR-06 �
 transfer and retention), TC-DBA-08 (retained chat files survive cleanup),
 TC-REC-05 … 15 (record sharing — TC-REC-09 and TC-REC-15 are the two that
 would let data leak if they regressed), TC-CHT-14 … 18 (header messages),
-TC-MSG-01 … 12 (mail delivery and open tracking — TC-MSG-10 is the privacy
-guard), TC-PST-01 … 10 (posts and the notification count) and TC-CAM-02 … 05
-(camera permissions and the edit dialog).
+TC-MSG-01 … 15 (mail delivery, open tracking and the header icon — TC-MSG-10
+is the privacy guard), TC-PST-01 … 13 (posts, the notification count and the
+permission backfill — TC-PST-11 is the one that failed in the field) and
+TC-CAM-02 … 05 (camera permissions and the edit dialog).

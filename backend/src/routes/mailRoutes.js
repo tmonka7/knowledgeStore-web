@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { createMail, deleteMail, getMail, listMail, unreadCount } from '../controllers/mailController.js';
+import { createMail, deleteMail, getMail, listMail, recentMail, unreadCount } from '../controllers/mailController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 import { asyncRoute } from '../helpers/asyncRoute.js';
 
@@ -28,8 +28,10 @@ const canView = [requireAuth, requirePermission('mail:view')];
 // previous build used, and answers the same thing.
 router.get('/mail', canView, asyncRoute(listMail));
 router.get('/mail/inbox', canView, asyncRoute(listMail));
-// Before '/mail/:mailId' would be, so 'unread' is never read as a message id.
+// Before '/mail/:mailId' would be, so neither 'unread' nor 'recent' is ever
+// read as a message id.
 router.get('/mail/unread', canView, asyncRoute(unreadCount));
+router.get('/mail/recent', canView, asyncRoute(recentMail));
 router.get('/mail/:mailId', canView, asyncRoute(getMail));
 router.post('/mail', requireAuth, requirePermission('mail:create'), upload.single('attachment'), asyncRoute(createMail));
 router.delete('/mail/:mailId', requireAuth, requirePermission('mail:delete'), asyncRoute(deleteMail));

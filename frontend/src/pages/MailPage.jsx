@@ -90,7 +90,7 @@ function OpenStatus({ mail }) {
  * addresses, and are delivered: Inbox is what was sent to you, Sent is what
  * you sent, and a sent message carries the open status of every recipient.
  */
-export default function MailPage({ user, directory = [] }) {
+export default function MailPage({ user, directory = [], initialMailId = '', onMailOpened }) {
   const { t } = useLanguage();
   const [folder, setFolder] = useState('inbox');
   const [mails, setMails] = useState([]);
@@ -132,7 +132,7 @@ export default function MailPage({ user, directory = [] }) {
    * Opening a message is what marks it read, so the list is refreshed from
    * what the server says rather than assumed.
    */
-  const openMail = async (mail) => {
+  const openMail = useCallback(async (mail) => {
     setSelectedId(mail.id);
     try {
       const { data } = await api.get(`/mail/${mail.id}`);
@@ -142,7 +142,23 @@ export default function MailPage({ user, directory = [] }) {
     } catch (openError) {
       message.error(openError.response?.data?.message || 'Unable to open that message.');
     }
-  };
+  }, []);
+
+  /*
+   * A message picked from the header's mail menu.
+   *
+   * Those are always inbox messages, so the folder is switched first if the
+   * Sent tab happened to be open; the effect runs again once that folder has
+   * loaded and the message is there to open.
+   */
+  useEffect(() => {
+    if (!initialMailId) return;
+    if (folder !== 'inbox') { setFolder('inbox'); return; }
+    const wanted = mails.find((item) => item.id === initialMailId);
+    if (!wanted) return;
+    if (selectedId !== wanted.id) openMail(wanted);
+    onMailOpened?.();
+  }, [initialMailId, folder, mails, selectedId, openMail, onMailOpened]);
 
   const removeMail = (mail) => {
     Modal.confirm({

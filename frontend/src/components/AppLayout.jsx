@@ -28,6 +28,10 @@ export default function AppLayout({
   messageCount,
   messageItems,
   onMessageSelect,
+  showMail,
+  mailCount,
+  mailItems,
+  onMailSelect,
   children,
 }) {
   const { t } = useLanguage();
@@ -62,6 +66,10 @@ export default function AppLayout({
           messageCount={messageCount}
           messageItems={messageItems}
           onMessageSelect={onMessageSelect}
+          showMail={showMail}
+          mailCount={mailCount}
+          mailItems={mailItems}
+          onMailSelect={onMailSelect}
         />
         <Content className="vision-content">{children}</Content>
         <Footer className="vision-footer">{t('footerBrand')}</Footer>

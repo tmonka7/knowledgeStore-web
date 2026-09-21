@@ -80,6 +80,7 @@ All collections use a UUID string `id` as the public identifier; Mongo's
 | `chat_threads` | participantIds[2] (sorted), lastMessageAt, lastMessagePreview, lastMessageSenderId | two participants |
 | `chat_messages` | threadId, senderId, recipientId, body, **attachment**, readAt | two participants |
 | `activity_logs` | level, source, action, message, actor, meta | shared |
+| `app_migrations` | id, appliedAt, note — markers for one-off tasks such as permission backfills | — |
 
 Dates that mean a **calendar day** — a schedule date, a wallet entry date, a
 birthday — are stored as `YYYY-MM-DD` strings, not `Date` values. A `Date`
@@ -248,7 +249,26 @@ that prefetched bodies would otherwise mark everything read without anyone
 reading it. The Posts page calls back into the shell when it records one, so
 the bell recounts immediately instead of at the next poll.
 
-### 4.7 Database maintenance
+### 4.7 Permissions added after the fact
+
+`DEFAULT_USER_PERMISSIONS` is read only when an account is created, so adding
+a key to it does nothing for anyone who registered earlier. That gap is not
+theoretical: when Posts shipped, every existing account lacked `posts:view`,
+so the page was hidden from their sidebar and their notification poll answered
+403 — a post published for everyone reached nobody, and nothing said so.
+
+`helpers/permissionBackfill.js` holds a list of such keys, each with its own
+id, and `models/migrationModel.js` records which have been applied in
+`app_migrations`. Each runs **once**: re-applying a backfill on every boot
+would quietly undo a revocation an administrator made on purpose. A key is
+validated against the catalog before it is written, so a typo cannot store a
+permission no route checks, and administrators are skipped because they bypass
+the list anyway.
+
+The frontend now logs a 403 from a notification poll rather than swallowing
+it, so the same class of gap is visible in the console next time.
+
+### 4.8 Database maintenance
 
 `databaseMaintenance.js` covers backup (canonical Extended JSON via the BSON
 library Mongoose already ships, so `Date` and `ObjectId` round-trip), restore
@@ -272,7 +292,7 @@ is built from every model that stores a path.
 | Cameras | `GET/POST /cameras`, `PUT/DELETE /cameras/:id` |
 | Projects | `GET /projects/members`, CRUD on `/projects[/:id]`, CRUD on `/projects/:projectId/tasks[/:taskId]`, `POST …/transition`, `POST …/comments`, `POST/DELETE …/attachments` |
 | Chat | `GET /chat/users`, `GET /chat/recent`, `GET/POST /chat/threads`, `GET/POST /chat/threads/:id/messages`, `POST /chat/threads/:id/attachments`, `POST /chat/threads/:id/read` |
-| Mail | `GET /mail?folder=inbox\|sent`, `GET /mail/inbox`, `GET /mail/unread`, `GET/DELETE /mail/:mailId`, `POST /mail` |
+| Mail | `GET /mail?folder=inbox\|sent`, `GET /mail/inbox`, `GET /mail/unread`, `GET /mail/recent`, `GET/DELETE /mail/:mailId`, `POST /mail` |
 | Posts | `GET /posts`, `GET /posts/notifications`, `POST /posts`, `GET/PUT/DELETE /posts/:id`, `POST /posts/:id/view` |
 | Schedule | `GET /schedules`, `GET /schedules/upcoming`, `POST /schedules`, `PUT/DELETE /schedules/:id` |
 | Wallet | `GET /wallet/summary`, `GET /wallet/entries`, `POST /wallet/entries`, `PUT/DELETE /wallet/entries/:id` |

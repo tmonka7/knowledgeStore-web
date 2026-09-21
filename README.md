@@ -54,6 +54,22 @@ privacy gate and, like chat's, has no administrator bypass.
 
 ## Posts
 
+### Permissions added after accounts exist
+
+`DEFAULT_USER_PERMISSIONS` is read when an account is created, so adding
+`posts:view` to it did nothing for anyone who had registered earlier: the page
+was hidden from their sidebar and their notification poll answered 403, which
+the poll swallowed. A post published for everyone reached nobody, and nothing
+said so.
+
+`helpers/permissionBackfill.js` grants such a key to existing accounts once,
+against a marker in `app_migrations`, and never again — re-running it on every
+boot would undo a revocation an administrator made on purpose. Adding another
+late default is one entry in that list. The notification polls now log a 403
+rather than swallowing it, so the next gap of this kind is visible.
+
+### How a post is stored
+
 Administrators publish announcements; everyone reads them. A post stores its
 readers rather than a counter, because the page has to show not just how many
 have read it but exactly who:
@@ -191,12 +207,14 @@ a file so it can be read and cleared without shell access.
 **Chat** is direct messages between accounts on this app: search for someone,
 pick them, and write to them.
 
-### The message icon in the header
+### The mail and message icons in the header
 
 `GET /chat/recent?limit=5` returns the newest messages addressed to you and
 the unread total in one response, because the header polls it every 15 seconds
 and a second round trip for the badge would double that for nothing. It
 replaced `GET /chat/unread`, which only ever served the badge.
+`GET /mail/recent?limit=5` is its counterpart for the inbox, and the two
+header menus are built the same way on purpose.
 
 Choosing a message hands its `threadId` up to DashboardPage, which switches to
 Chat and passes it down as `initialThreadId`; ChatPage opens that conversation

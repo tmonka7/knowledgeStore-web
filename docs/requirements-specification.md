@@ -61,6 +61,7 @@ polled), mobile applications, and single sign-on.
 | FR-USR-09 | Each page permission is one of view, create, edit, delete (or manage, for Database Management). A page the user cannot view is absent from the sidebar. |
 | FR-USR-10 | Every signed-in user can read a directory of accounts — id, name and username only — because addressing a share is not an administrative act. The full user list stays behind `users:view`. |
 | FR-USR-11 | An administrator's bypass is read from their account on each request, not from their token, so a demotion takes effect immediately rather than when the token expires. |
+| FR-USR-12 | A permission added to the defaults after accounts already exist must be granted to those accounts once, at startup, and not re-granted afterwards — a permission an administrator revokes has to stay revoked. |
 
 ### 3.3 Knowledge records and categories (FR-REC)
 
@@ -121,6 +122,8 @@ polled), mobile applications, and single sign-on.
 | FR-MSG-08 | Deleting removes the message from the caller's own mailbox only. Everyone else keeps their copy; the message is destroyed once nobody holds it. |
 | FR-MSG-09 | A mailbox is private to its owner. There is no administrator bypass. |
 | FR-MSG-10 | Both mailboxes can be searched by subject, sender, recipient and preview text. |
+| FR-MSG-11 | A mail icon in the header carries the unread total and opens a menu of the five newest messages in the inbox, each showing the sender, the subject and when it arrived. It behaves exactly as the message icon beside it. |
+| FR-MSG-12 | Choosing one of those opens the Mail page **on that message**, switching to the Inbox if the Sent folder was open. The icon is shown only to accounts that can use Mail. |
 
 ### 3.6a Schedule (FR-SCH)
 

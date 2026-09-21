@@ -150,6 +150,15 @@ other person has read it.
 The number beside **Chat** in the sidebar is how many unread messages you
 have. Opening a conversation clears its share of it.
 
+### The mail and message icons in the header
+
+The envelope and the speech bubble at the top right work the same way. Each
+carries its own unread count from wherever you are, and opens a list of the
+five newest things waiting for you — new mail, or new chat messages. Click any
+row to go straight to it: the message opens in Mail (switching to your Inbox
+if you were looking at Sent), the conversation opens in Chat. "Open Mail" and
+"Open Chat" at the bottom take you to the page without choosing one.
+
 ### The message icon in the header
 
 The speech-bubble icon at the top right carries the same unread count from
@@ -309,6 +318,8 @@ enrol their own face photo, and then set their role and permissions here.
 | A record you expected is not in the Data list | Its owner shared it with named people and you are not one of them. Ask them to add you. |
 | A message you sent still says "Not opened yet" | They have not opened it. The time appears by itself once they do — there is nothing to refresh. |
 | The Posts count will not go down | It counts posts you have not opened. Open each one; the count falls as you read. |
+| Posts is missing from your sidebar, and new posts never reach you | Your account does not have permission to read posts. Accounts created before Posts existed are granted it automatically the first time the server restarts; if it is still missing, ask an administrator to grant "Posts — view". |
+| A new post takes a moment to appear | The bell rechecks about once a minute, and whenever you change page. |
 | No Add or Edit button on the Cameras page | Your account can watch cameras but not change them. Ask an administrator. |
 | You cannot edit a record you can see | It belongs to someone else. Sharing lets you read it, not change it. |
 | "Invalid or expired token" | Your 8-hour session ended. Sign in again. |

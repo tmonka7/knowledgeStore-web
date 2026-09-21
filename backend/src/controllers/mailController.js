@@ -98,6 +98,45 @@ export const unreadCount = async (req, res) => {
   return res.json({ unread });
 };
 
+const RECENT_LIMIT_MAX = 20;
+
+/**
+ * GET /mail/recent?limit=5
+ *
+ * What the mail icon in the header shows: the newest messages in your inbox
+ * and the unread total, in one request — the header polls this, and a second
+ * round trip for the badge would double that for nothing.
+ *
+ * Inbox only. Your own sent mail is not news to you, in the same way your own
+ * chat messages are not.
+ */
+export const recentMail = async (req, res) => {
+  const me = req.user.sub;
+  const limit = Math.min(Math.max(Number(req.query.limit) || 5, 1), RECENT_LIMIT_MAX);
+
+  const [mails, unread] = await Promise.all([
+    getInbox(me).limit(limit),
+    countUnread(me),
+  ]);
+
+  return res.json({
+    unread,
+    mails: mails.map((mail) => {
+      const plain = asPlain(mail);
+      const mine = (plain.recipients || []).find((person) => person.userId === me);
+      return {
+        id: plain.id,
+        senderName: plain.senderName,
+        subject: plain.subject,
+        preview: plain.preview,
+        attachmentName: plain.attachmentName,
+        sentAt: plain.sentAt,
+        unread: Boolean(mine) && !mine.readAt,
+      };
+    }),
+  });
+};
+
 const readRecipientIds = (body = {}) => {
   let raw = body.to;
   if (typeof raw === 'string') {

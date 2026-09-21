@@ -2,6 +2,7 @@ import { Avatar, Badge, Button, Dropdown, Input, Layout, Select } from 'antd';
 import {
   BellOutlined,
   DownOutlined,
+  MailOutlined,
   MenuOutlined,
   MessageOutlined,
   NotificationOutlined,
@@ -40,6 +41,10 @@ export default function TopHeader({
   messageCount = 0,
   messageItems = [],
   onMessageSelect,
+  showMail = false,
+  mailCount = 0,
+  mailItems = [],
+  onMailSelect,
 }) {
   const { language, setLanguage, t } = useLanguage();
   const [clock, setClock] = useState(() => formatClock(new Date()));
@@ -125,6 +130,39 @@ export default function TopHeader({
     ]
     : [{ key: 'empty', disabled: true, label: t('noMessagesYet') }];
 
+  /*
+   * The five newest messages in your inbox, built the same way as the chat
+   * menu beside it: same rows, same unread marker, same "open the one you
+   * clicked" behaviour — two inboxes that behave differently would be two
+   * things to learn rather than one.
+   */
+  const mailMenuItems = mailItems.length
+    ? [
+      { key: 'mail-heading', type: 'group', label: t('recentMail') },
+      ...mailItems.slice(0, 5).map((item) => ({
+        key: `mail:${item.id}`,
+        label: (
+          <span className={`vision-message-item${item.unread ? ' is-unread' : ''}`}>
+            <span className="vision-message-head">
+              <strong>{item.senderName}</strong>
+              <span className="vision-message-time">{shortTime(item.sentAt)}</span>
+            </span>
+            <span className="vision-message-preview">{item.subject || item.preview || t('noPreview')}</span>
+          </span>
+        ),
+      })),
+      { type: 'divider' },
+      { key: 'mail-all', label: t('openMail') },
+    ]
+    : [{ key: 'mail-empty', disabled: true, label: t('noMailYet') }];
+
+  const onMailMenuClick = ({ key }) => {
+    if (key === 'mail-empty' || key === 'mail-heading') return;
+    // 'mail-all' carries no message, so Mail opens on the inbox.
+    const picked = mailItems.find((item) => `mail:${item.id}` === key);
+    onMailSelect?.(picked?.id || '');
+  };
+
   const onMessageMenuClick = ({ key }) => {
     if (key === 'empty' || key === 'heading') return;
     // 'all' carries no conversation, so Chat opens wherever it left off.
@@ -173,6 +211,24 @@ export default function TopHeader({
           aria-label={t('language')}
           popupMatchSelectWidth={false}
         />
+
+        {showMail && (
+          <Dropdown
+            menu={{ items: mailMenuItems, onClick: onMailMenuClick }}
+            trigger={['click']}
+            placement="bottomRight"
+            overlayClassName="vision-message-menu"
+          >
+            <Badge count={mailCount} size="small" offset={[-4, 4]}>
+              <Button
+                type="text"
+                className="vision-icon-btn"
+                icon={<MailOutlined />}
+                aria-label={`${t('mail')}${mailCount ? ` (${mailCount})` : ''}`}
+              />
+            </Badge>
+          </Dropdown>
+        )}
 
         {showMessages && (
           <Dropdown

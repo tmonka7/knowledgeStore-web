@@ -20,6 +20,7 @@ import contactRoutes from './routes/contactRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import { ensureSeedAdmin, ensureSeedCategories } from './models/store.js';
 import { startChatRetention } from './helpers/chatRetention.js';
+import { backfillDefaultPermissions } from './helpers/permissionBackfill.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
@@ -86,6 +87,8 @@ const startServer = async () => {
     console.log(`Connected to MongoDB: ${MONGODB_URI}`);
     await ensureSeedAdmin();
     await ensureSeedCategories();
+    // Permissions added to the defaults after accounts existed; applied once.
+    await backfillDefaultPermissions();
     // Chat files last a week. Swept at boot as well as hourly, so a server
     // that was down over the expiry still clears them on the way back up.
     startChatRetention();
