@@ -9,6 +9,7 @@ import api from '../api';
 import {
   COLOR_FORMATS, FLATTENS_ALPHA, SUPPORTS_DITHER, buildImageC, safeCName,
 } from '../lib/lvglImage';
+import { useLanguage } from '../i18n';
 
 // antd renders one <optgroup> per entry, keeping the long v9 format list
 // readable: true colour, greyscale, alpha only, indexed.
@@ -45,12 +46,12 @@ const downloadText = (filename, content) => {
   URL.revokeObjectURL(url);
 };
 
-const copyText = async (content) => {
+const copyText = async (content, t) => {
   try {
     await navigator.clipboard.writeText(content);
-    message.success('Copied to clipboard.');
+    message.success(t('copiedToClipboard'));
   } catch {
-    message.error('Clipboard access is unavailable in this browser.');
+    message.error(t('clipboardUnavailable'));
   }
 };
 
@@ -60,6 +61,7 @@ const formatBytes = (bytes) => (bytes > 1024 * 1024
 
 /** Result panel shared by both tabs. */
 function OutputCard({ title, result, emptyText }) {
+  const { t } = useLanguage();
   if (!result) {
     return (
       <Card title={title} bordered={false}>
@@ -77,14 +79,14 @@ function OutputCard({ title, result, emptyText }) {
           <Text type="secondary">
             {result.detail || `${result.filename} · ${formatBytes(result.bytes)}`}
           </Text>
-          <Button icon={<CopyOutlined />} onClick={() => copyText(result.code)}>Copy</Button>
+          <Button icon={<CopyOutlined />} onClick={() => copyText(result.code, t)}>{t('copy')}</Button>
           <Button
             type="primary"
             className="vision-btn-primary"
             icon={<DownloadOutlined />}
             onClick={() => downloadText(result.filename, result.code)}
           >
-            Download {result.filename.endsWith('.h') ? '.h' : '.c'}
+            {t('downloadFile', { extension: result.filename.endsWith('.h') ? '.h' : '.c' })}
           </Button>
         </Space>
       )}
@@ -100,6 +102,7 @@ function OutputCard({ title, result, emptyText }) {
  * build — see backend/src/controllers/lvglController.js.
  */
 function FontConverter() {
+  const { t } = useLanguage();
   const [file, setFile] = useState(null);
   const [name, setName] = useState('lv_font_custom');
   const [size, setSize] = useState(16);
@@ -113,11 +116,11 @@ function FontConverter() {
 
   const run = async () => {
     if (!file) {
-      setError('Choose a .ttf, .otf or .woff file first.');
+      setError(t('chooseFontFirst'));
       return;
     }
     if (!range.trim() && !symbols) {
-      setError('Provide a Unicode range, a symbol list, or both.');
+      setError(t('provideUnicodeRange'));
       return;
     }
 
@@ -150,11 +153,11 @@ function FontConverter() {
   return (
     <Row gutter={[16, 16]}>
       <Col span={24} lg={10}>
-        <Card title="Source font" bordered={false}>
+        <Card title={t('sourceFont')} bordered={false}>
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
             <label className="mail-file-picker" htmlFor="lvgl-font-upload" style={{ width: '100%' }}>
               <FontSizeOutlined />
-              <span>{file ? file.name : 'Select .ttf / .otf / .woff'}</span>
+              <span>{file ? file.name : t('selectFontFile')}</span>
             </label>
             <input
               id="lvgl-font-upload"
@@ -170,7 +173,7 @@ function FontConverter() {
               }}
             />
 
-            <Input addonBefore="Name" value={name} onChange={(event) => setName(event.target.value)} />
+            <Input addonBefore={t('name')} value={name} onChange={(event) => setName(event.target.value)} />
 
             <Space style={{ width: '100%' }}>
               <InputNumber
@@ -178,7 +181,7 @@ function FontConverter() {
                 max={200}
                 value={size}
                 onChange={(value) => setSize(value || 16)}
-                addonBefore="Size"
+                addonBefore={t('size')}
                 addonAfter="px"
               />
               <Select
@@ -191,18 +194,18 @@ function FontConverter() {
 
             <Tooltip title="Examples: 0x20-0x7F, 32-127, 0x1F450, 0x1F450=>0xF005">
               <Input
-                addonBefore="Range"
+                addonBefore={t('range')}
                 value={range}
                 onChange={(event) => setRange(event.target.value)}
-                placeholder="0x20-0x7F"
+                placeholder={t('unicodeRangePlaceholder')}
               />
             </Tooltip>
 
             <Input
-              addonBefore="Symbols"
+              addonBefore={t('symbols')}
               value={symbols}
               onChange={(event) => setSymbols(event.target.value)}
-              placeholder="Optional, e.g. abc0123"
+              placeholder={t('optionalSymbols')}
             />
 
             <Space direction="vertical">
@@ -210,24 +213,24 @@ function FontConverter() {
                 checked={options.noCompress}
                 onChange={(event) => setOptions({ ...options, noCompress: event.target.checked })}
               >
-                Disable RLE compression
+                {t('disableRleCompression')}
               </Checkbox>
               <Checkbox
                 checked={options.noKerning}
                 onChange={(event) => setOptions({ ...options, noKerning: event.target.checked })}
               >
-                Drop kerning data
+                {t('dropKerningData')}
               </Checkbox>
               <Checkbox
                 checked={options.lcd}
                 onChange={(event) => setOptions({ ...options, lcd: event.target.checked })}
               >
-                Subpixel rendering (horizontal)
+                {t('subpixelRendering')}
               </Checkbox>
             </Space>
 
             <Button type="primary" className="vision-btn-primary" loading={busy} onClick={run} block>
-              Convert font
+              {t('convertFont')}
             </Button>
 
             {error && <Alert type="error" showIcon message={error} />}
@@ -239,7 +242,7 @@ function FontConverter() {
         <OutputCard
           title="Generated lv_font_conv output"
           result={result}
-          emptyText="Upload a font and convert to generate an LVGL font .c file."
+          emptyText={t('uploadFontForLvgl')}
         />
       </Col>
     </Row>
@@ -248,6 +251,7 @@ function FontConverter() {
 
 /** Image tab. Runs entirely in the browser — see lib/lvglImage.js. */
 function ImageConverter() {
+  const { t } = useLanguage();
   const [source, setSource] = useState(null); // { url, width, height, data }
   const [name, setName] = useState('img_asset');
   const [cf, setCf] = useState('ARGB8888');
@@ -284,13 +288,13 @@ function ImageConverter() {
         : current));
       setResult(null);
     };
-    image.onerror = () => setError('That file could not be decoded as an image.');
+    image.onerror = () => setError(t('imageDecodeFailed'));
     image.src = url;
   };
 
   const run = async () => {
     if (!source) {
-      setError('Choose a PNG, JPG or WebP first.');
+      setError(t('chooseLvglImageFirst'));
       return;
     }
 
@@ -342,11 +346,11 @@ function ImageConverter() {
   return (
     <Row gutter={[16, 16]}>
       <Col span={24} lg={10}>
-        <Card title="Source image" bordered={false}>
+        <Card title={t('sourceImage')} bordered={false}>
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
             <label className="mail-file-picker" htmlFor="lvgl-image-upload" style={{ width: '100%' }}>
               <PictureOutlined />
-              <span>{source ? `${source.width} × ${source.height}` : 'Select PNG / JPG / WebP'}</span>
+              <span>{source ? `${source.width} × ${source.height}` : t('selectPngJpgWebp')}</span>
             </label>
             <input
               id="lvgl-image-upload"
@@ -356,7 +360,7 @@ function ImageConverter() {
               onChange={(event) => loadImage(event.target.files?.[0])}
             />
 
-            <Input addonBefore="Name" value={name} onChange={(event) => setName(event.target.value)} />
+            <Input addonBefore={t('name')} value={name} onChange={(event) => setName(event.target.value)} />
 
             <Select
               value={cf}
@@ -372,7 +376,7 @@ function ImageConverter() {
                 max={4096}
                 value={width}
                 onChange={setWidth}
-                addonBefore="W"
+                addonBefore={t('widthShort')}
                 disabled={!source}
               />
               <InputNumber
@@ -380,22 +384,22 @@ function ImageConverter() {
                 max={4096}
                 value={height}
                 onChange={setHeight}
-                addonBefore="H"
+                addonBefore={t('heightShort')}
                 disabled={!source}
               />
             </Space>
 
             {SUPPORTS_DITHER.has(cf) && (
               <Checkbox checked={dither} onChange={(event) => setDither(event.target.checked)}>
-                Ordered dithering (RGB565)
+                {t('orderedDithering')}
               </Checkbox>
             )}
 
             {FLATTENS_ALPHA.has(cf) && (
               <Space>
-                <Text type="secondary">Background</Text>
+                <Text type="secondary">{t('background')}</Text>
                 <ColorPicker value={background} onChange={(value) => setBackground(value.toHexString())} showText />
-                <Text type="secondary">— this format has no alpha</Text>
+                <Text type="secondary">{t('formatHasNoAlpha')}</Text>
               </Space>
             )}
 
@@ -407,7 +411,7 @@ function ImageConverter() {
               block
               disabled={!source}
             >
-              Convert image
+              {t('convertImage')}
             </Button>
 
             {error && <Alert type="error" showIcon message={error} />}
@@ -415,10 +419,10 @@ function ImageConverter() {
         </Card>
 
         {source && (
-          <Card title="Preview" bordered={false} style={{ marginTop: 16 }}>
-            <img src={source.url} alt="Source preview" className="lvgl-image-preview" />
+          <Card title={t('preview')} bordered={false} style={{ marginTop: 16 }}>
+            <img src={source.url} alt={t('sourcePreview')} className="lvgl-image-preview" />
             <Paragraph style={{ marginTop: 12, marginBottom: 0 }}>
-              <Text type="secondary">Source {source.width} × {source.height} px</Text>
+              <Text type="secondary">{t('sourceDimensionsNoName', { width: source.width, height: source.height })}</Text>
             </Paragraph>
           </Card>
         )}
@@ -428,7 +432,7 @@ function ImageConverter() {
         <OutputCard
           title="Generated lv_img_conv output"
           result={result}
-          emptyText="Upload an image and convert to generate an LVGL image .c file."
+          emptyText={t('uploadImageForLvgl')}
         />
       </Col>
     </Row>
@@ -436,14 +440,14 @@ function ImageConverter() {
 }
 
 export default function LvglToolPage() {
+  const { t } = useLanguage();
   return (
     <div className="vision-page vision-stack">
       <div className="vision-page-header">
         <div>
-          <h1 className="vision-page-title">Tools / LVGL</h1>
+          <h1 className="vision-page-title">{t('toolsLvgl')}</h1>
           <p className="vision-page-subtitle">
-            Convert fonts and images into LVGL-ready C source, using the lv_font_conv and
-            lv_img_conv formats.
+            {t('lvglSubtitle')}
           </p>
         </div>
       </div>
@@ -452,12 +456,12 @@ export default function LvglToolPage() {
         items={[
           {
             key: 'font',
-            label: <span><FontSizeOutlined /> Font converter</span>,
+            label: <span><FontSizeOutlined /> {t('fontConverter')}</span>,
             children: <FontConverter />,
           },
           {
             key: 'image',
-            label: <span><PictureOutlined /> Image converter</span>,
+            label: <span><PictureOutlined /> {t('imageConverter')}</span>,
             children: <ImageConverter />,
           },
         ]}

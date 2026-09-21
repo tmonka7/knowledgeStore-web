@@ -52,7 +52,7 @@ import KerasToolPage from './KerasToolPage';
 
 const { Title, Text } = Typography;
 
-const copyHtmlWithStyles = (htmlContent) => {
+const copyHtmlWithStyles = (htmlContent, t) => {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlContent;
 
@@ -61,11 +61,11 @@ const copyHtmlWithStyles = (htmlContent) => {
   const data = [new ClipboardItem({ 'text/html': blob })];
 
   navigator.clipboard.write(data).then(() => {
-    message.success('Content copied with styles preserved!');
+    message.success(t('contentCopiedWithStyles'));
   }).catch(() => {
     const plainText = tempDiv.innerText;
     navigator.clipboard.writeText(plainText).then(() => {
-      message.success('Content copied!');
+      message.success(t('contentCopied'));
     });
   });
 };
@@ -148,7 +148,7 @@ export default function DashboardPage({
 
     const exportNode = document.getElementById('record-detail-export');
     if (!exportNode) {
-      message.error('Unable to export the current record.');
+      message.error(t('unableToExportRecord'));
       return;
     }
 
@@ -195,10 +195,10 @@ export default function DashboardPage({
       }
 
       pdf.save(`${(selectedRecord.title || 'record').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-detail.pdf`);
-      message.success('PDF exported successfully.');
+      message.success(t('pdfExported'));
     } catch (error) {
       console.error(error);
-      message.error('Unable to export PDF.');
+      message.error(t('unableToExportPdf'));
     }
   };
 
@@ -242,10 +242,10 @@ export default function DashboardPage({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      message.success('Word document exported successfully.');
+      message.success(t('wordExported'));
     } catch (error) {
       console.error(error);
-      message.error('Unable to export Word document.');
+      message.error(t('unableToExportWord'));
     }
   };
 
@@ -339,10 +339,10 @@ export default function DashboardPage({
           title={selectedRecord?.title || 'Record details'}
           onCancel={() => setSelectedRecord(null)}
           footer={[
-            <Button key="copy" icon={<CopyOutlined />} onClick={() => selectedRecord && copyHtmlWithStyles(selectedRecord.content)}>Copy Content</Button>,
-            <Button key="pdf" onClick={handleExportPdf}>Export PDF</Button>,
-            <Button key="word" onClick={handleExportWord}>Export Word</Button>,
-            <Button key="close" onClick={() => setSelectedRecord(null)}>Close</Button>,
+            <Button key="copy" icon={<CopyOutlined />} onClick={() => selectedRecord && copyHtmlWithStyles(selectedRecord.content, t)}>{t('copyContent')}</Button>,
+            <Button key="pdf" onClick={handleExportPdf}>{t('exportPdf')}</Button>,
+            <Button key="word" onClick={handleExportWord}>{t('exportWord')}</Button>,
+            <Button key="close" onClick={() => setSelectedRecord(null)}>{t('close')}</Button>,
           ]}
           width={900}
         >
@@ -351,20 +351,20 @@ export default function DashboardPage({
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <Tag>{selectedRecord.category}</Tag>
                 {selectedRecord.attempt && (
-                  <Card size="small" title="Attempt">
+                  <Card size="small" title={t('attempt')}>
                     <div className="html-content detail-content">{selectedRecord.attempt}</div>
                   </Card>
                 )}
                 {selectedRecord.attachment && (
                   <a href={resolveAttachmentUrl(selectedRecord.attachment)} target="_blank" rel="noreferrer">
-                    Open attachment
+                    {t('openAttachment')}
                   </a>
                 )}
                 <div
                   className="html-content detail-content"
                   dangerouslySetInnerHTML={{ __html: selectedRecord.content || '<p>No content</p>' }}
                 />
-                <Text type="secondary">Created: {new Date(selectedRecord.createdAt).toLocaleString()}</Text>
+                <Text type="secondary">{t('createdAt', { value: new Date(selectedRecord.createdAt).toLocaleString() })}</Text>
               </Space>
             </div>
           )}
@@ -372,7 +372,7 @@ export default function DashboardPage({
 
         <Modal
           open={Boolean(editingRecord)}
-          title={editingRecord?.title ? `Edit: ${editingRecord.title}` : 'Edit Record'}
+          title={editingRecord?.title ? t('editRecordNamed', { title: editingRecord.title }) : t('editRecord')}
           onCancel={() => {
             setEditingRecord(null);
             recordForm.resetFields();
@@ -383,38 +383,38 @@ export default function DashboardPage({
           <Form key={editingRecord?.id || 'edit-record'} form={recordForm} layout="vertical" onFinish={handleUpdateRecord}>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+                <Form.Item name="title" label={t('title')} rules={[{ required: true }]}>
                   <Input />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="categoryId" label="Category" rules={[{ required: true }]}>
+                <Form.Item name="categoryId" label={t('category')} rules={[{ required: true }]}>
                   <TreeSelect
                     treeData={categoryTreeData(categories)}
                     treeDefaultExpandAll
-                    placeholder="Select category"
+                    placeholder={t('selectCategory')}
                     allowClear
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
               </Col>
             </Row>
-            <Form.Item name="attempt" label="Attempt">
+            <Form.Item name="attempt" label={t('attempt')}>
               <Input.TextArea
                 rows={4}
-                placeholder="Add your attempt details here"
+                placeholder={t('attemptDetailsPlaceholder')}
                 value={recordForm.getFieldValue('attempt') || ''}
                 onChange={(event) => recordForm.setFieldValue('attempt', event.target.value)}
               />
             </Form.Item>
-            <Form.Item name="content" label="Content" rules={[{ required: true }]}>
+            <Form.Item name="content" label={t('content')} rules={[{ required: true }]}>
               <HtmlEditor />
             </Form.Item>
-            <Form.Item label="Attachment" name="attachment">
+            <Form.Item label={t('attachment')} name="attachment">
               <div className="mail-attachment-controls">
                 <label className="mail-file-picker" htmlFor="record-edit-upload">
                   <PaperClipOutlined />
-                  <span>{attachmentName ? 'Change files' : 'Upload files'}</span>
+                  <span>{attachmentName ? t('changeFiles') : t('uploadFiles')}</span>
                 </label>
                 <input
                   id="record-edit-upload"
@@ -436,15 +436,15 @@ export default function DashboardPage({
               <Button onClick={() => {
                 setEditingRecord(null);
                 recordForm.resetFields();
-              }}>Cancel</Button>
-              <Button type="primary" htmlType="submit" loading={loading}>Update Record</Button>
+              }}>{t('cancel')}</Button>
+              <Button type="primary" htmlType="submit" loading={loading}>{t('updateRecord')}</Button>
             </Space>
           </Form>
         </Modal>
 
         <Modal
           open={isAddModalOpen}
-          title="Add Record"
+          title={t('addRecord')}
           onCancel={() => {
             setIsAddModalOpen(false);
             addForm.resetFields();
@@ -455,33 +455,33 @@ export default function DashboardPage({
           <Form form={addForm} layout="vertical" onFinish={handleSaveRecord}>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+                <Form.Item name="title" label={t('title')} rules={[{ required: true }]}>
                   <Input />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="categoryId" label="Category" rules={[{ required: true }]}>
+                <Form.Item name="categoryId" label={t('category')} rules={[{ required: true }]}>
                   <TreeSelect
                     treeData={categoryTreeData(categories)}
                     treeDefaultExpandAll
-                    placeholder="Select category"
+                    placeholder={t('selectCategory')}
                     allowClear
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
               </Col>
             </Row>
-            <Form.Item name="attempt" label="Attempt">
-              <Input.TextArea rows={4} placeholder="Add your attempt details here" />
+            <Form.Item name="attempt" label={t('attempt')}>
+              <Input.TextArea rows={4} placeholder={t('attemptDetailsPlaceholder')} />
             </Form.Item>
-            <Form.Item name="content" label="Content" rules={[{ required: true }]}>
+            <Form.Item name="content" label={t('content')} rules={[{ required: true }]}>
               <HtmlEditor />
             </Form.Item>
-            <Form.Item label="Attachment" name="attachment">
+            <Form.Item label={t('attachment')} name="attachment">
               <div className="mail-attachment-controls">
                 <label className="mail-file-picker" htmlFor="record-add-upload">
                   <PaperClipOutlined />
-                  <span>{attachmentName ? 'Change files' : 'Upload files'}</span>
+                  <span>{attachmentName ? t('changeFiles') : t('uploadFiles')}</span>
                 </label>
                 <input
                   id="record-add-upload"
@@ -503,8 +503,8 @@ export default function DashboardPage({
               <Button onClick={() => {
                 setIsAddModalOpen(false);
                 addForm.resetFields();
-              }}>Cancel</Button>
-              <Button type="primary" htmlType="submit" loading={loading}>Save Record</Button>
+              }}>{t('cancel')}</Button>
+              <Button type="primary" htmlType="submit" loading={loading}>{t('saveRecord')}</Button>
             </Space>
           </Form>
         </Modal>

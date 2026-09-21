@@ -22,14 +22,14 @@ import {
   imageDataFromCanvas,
   imageDataFromFile,
 } from '../lib/faceRecognition';
+import { useLanguage } from '../i18n';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const REMEMBER_KEY = 'rememberedUsername';
-const FACE_REQUIRED_MESSAGE = 'Please take or upload a clear face photo before registering.';
-
 function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, idleText }) {
+  const { t } = useLanguage();
   const videoRef = useRef(null);
   const fileRef = useRef(null);
   const streamRef = useRef(null);
@@ -52,7 +52,7 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
 
   const openCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setStatus({ tone: 'error', text: 'Camera is not available in this browser. Upload a photo instead.' });
+      setStatus({ tone: 'error', text: t('cameraUnavailableUploadInstead') });
       return;
     }
     try {
@@ -64,9 +64,9 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
       stopTracks();
       streamRef.current = nextStream;
       setStream(nextStream);
-      setStatus({ tone: 'idle', text: 'Center your face in the frame, then capture.' });
+      setStatus({ tone: 'idle', text: t('centerFaceThenCapture') });
     } catch {
-      setStatus({ tone: 'error', text: 'Camera access was denied. Upload a photo instead.' });
+      setStatus({ tone: 'error', text: t('cameraAccessDeniedUploadInstead') });
     }
   };
 
@@ -88,20 +88,20 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
 
   const processFace = async (source) => {
     setBusy(true);
-    setStatus({ tone: 'busy', text: 'Checking face...' });
+    setStatus({ tone: 'busy', text: t('checkingFace') });
     try {
       const isFile = source instanceof File;
       const descriptor = isFile ? await descriptorFromFile(source) : await descriptorFromImage(source);
       const faceImage = isFile ? await imageDataFromFile(source) : imageDataFromCanvas(source);
       if (!mountedRef.current) return;
       setPreview(faceImage);
-      setStatus({ tone: 'success', text: 'Face captured. You are all set.' });
+      setStatus({ tone: 'success', text: t('faceCapturedReady') });
       closeCamera();
       onDescriptor({ descriptor, faceImage });
     } catch (error) {
       if (!mountedRef.current) return;
       setPreview('');
-      setStatus({ tone: 'error', text: error.message || 'Unable to process that photo.' });
+      setStatus({ tone: 'error', text: error.message || t('unableToProcessPhoto') });
       onDescriptor(null);
     } finally {
       if (mountedRef.current) setBusy(false);
@@ -111,7 +111,7 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
   const processFile = (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setStatus({ tone: 'error', text: 'Please choose an image file.' });
+      setStatus({ tone: 'error', text: t('chooseImageFile') });
       return;
     }
     processFace(file);
@@ -162,7 +162,7 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
           {status.tone === 'success' && <CheckCircleFilled className="face-capture-badge" />}
         </div>
         <div className="face-capture-text">
-          <Text strong>Face photo</Text>
+          <Text strong>{t('facePhoto')}</Text>
           <span className={`face-status face-status-${status.tone}`} role="status">
             {status.tone === 'busy' && <LoadingOutlined />} {status.text}
           </span>
@@ -171,16 +171,16 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
       <div className="face-capture-actions">
         {stream ? (
           <>
-            <Button type="primary" icon={<CameraOutlined />} onClick={capture} loading={busy}>Capture</Button>
-            <Button icon={<CloseOutlined />} onClick={closeCamera} disabled={busy}>Cancel</Button>
+            <Button type="primary" icon={<CameraOutlined />} onClick={capture} loading={busy}>{t('capture')}</Button>
+            <Button icon={<CloseOutlined />} onClick={closeCamera} disabled={busy}>{t('cancel')}</Button>
           </>
         ) : (
           <>
             <Button icon={preview ? <ReloadOutlined /> : <CameraOutlined />} onClick={openCamera} disabled={busy}>
-              {preview ? 'Retake' : 'Use Camera'}
+              {preview ? t('retake') : t('useCamera')}
             </Button>
             <Button icon={<UploadOutlined />} onClick={() => fileRef.current?.click()} loading={busy && !stream}>
-              Upload Photo
+              {t('uploadPhoto')}
             </Button>
           </>
         )}
@@ -202,66 +202,68 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
 }
 
 function RegisterForm({ loading, faceError, onFaceDescriptor, onSubmit }) {
+  const { t } = useLanguage();
   const [registerForm] = Form.useForm();
 
   return (
     <Form form={registerForm} size="large" onFinish={onSubmit} requiredMark={false} scrollToFirstError>
-      <Form.Item name="fullName" rules={[{ required: true, whitespace: true, message: 'Please enter your full name.' }]}>
-        <Input prefix={<UserOutlined />} autoComplete="name" placeholder="Full Name" />
+      <Form.Item name="fullName" rules={[{ required: true, whitespace: true, message: t('enterFullName') }]}>
+        <Input prefix={<UserOutlined />} autoComplete="name" placeholder={t('fullName')} />
       </Form.Item>
       <Form.Item
         name="username"
         normalize={(value) => value?.trim()}
         rules={[
-          { required: true, message: 'Please enter a username.' },
-          { min: 3, message: 'Username must be at least 3 characters.' },
+          { required: true, message: t('enterUsername') },
+          { min: 3, message: t('usernameMinLength') },
         ]}
       >
-        <Input prefix={<UserOutlined />} autoComplete="username" placeholder="Username" />
+        <Input prefix={<UserOutlined />} autoComplete="username" placeholder={t('username')} />
       </Form.Item>
       <Form.Item
         name="email"
         normalize={(value) => value?.trim()}
         validateTrigger="onBlur"
         rules={[
-          { required: true, message: 'Please enter your email.' },
-          { type: 'email', message: 'Please enter a valid email address.' },
+          { required: true, message: t('enterEmail') },
+          { type: 'email', message: t('validEmail') },
         ]}
       >
-        <Input prefix={<MailOutlined />} autoComplete="email" placeholder="Email" />
+        <Input prefix={<MailOutlined />} autoComplete="email" placeholder={t('email')} />
       </Form.Item>
       <Form.Item
         name="password"
         rules={[
-          { required: true, message: 'Please enter a password.' },
-          { min: 6, message: 'Password must be at least 6 characters.' },
+          { required: true, message: t('enterPassword') },
+          { min: 6, message: t('passwordMinLength') },
         ]}
       >
-        <Input.Password prefix={<LockOutlined />} autoComplete="new-password" placeholder="Password" />
+        <Input.Password prefix={<LockOutlined />} autoComplete="new-password" placeholder={t('password')} />
       </Form.Item>
       <Form.Item
         name="confirmPassword"
         dependencies={['password']}
         rules={[
-          { required: true, message: 'Please confirm your password.' },
+          { required: true, message: t('confirmYourPassword') },
           ({ getFieldValue }) => ({
             validator(_, value) {
               return !value || getFieldValue('password') === value
                 ? Promise.resolve()
-                : Promise.reject(new Error('Passwords do not match.'));
+                : Promise.reject(new Error(t('passwordsDoNotMatch')));
             },
           }),
         ]}
       >
-        <Input.Password prefix={<LockOutlined />} autoComplete="new-password" placeholder="Confirm Password" />
+        <Input.Password prefix={<LockOutlined />} autoComplete="new-password" placeholder={t('confirmPassword')} />
       </Form.Item>
       <FaceRegistration onChange={onFaceDescriptor} error={faceError} />
-      <Button type="primary" htmlType="submit" block loading={loading}>Register</Button>
+      <Button type="primary" htmlType="submit" block loading={loading}>{t('register')}</Button>
     </Form>
   );
 }
 
 export default function AuthPage({ defaultUser, loading, loginForm, handleLogin, handleRegister }) {
+  const { t } = useLanguage();
   const [rememberedUsername] = useState(() => localStorage.getItem(REMEMBER_KEY) || '');
   const [remember, setRemember] = useState(Boolean(rememberedUsername));
   const [faceLoginOpen, setFaceLoginOpen] = useState(false);
@@ -302,12 +304,12 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
 
   const handleRegisterFace = (data) => {
     setRegisterFaceData(data);
-    setFaceError(data ? '' : FACE_REQUIRED_MESSAGE);
+    setFaceError(data ? '' : t('faceRequiredForRegistration'));
   };
 
   const submitRegistration = ({ confirmPassword, ...values }) => {
     if (!registerFaceData) {
-      setFaceError(FACE_REQUIRED_MESSAGE);
+      setFaceError(t('faceRequiredForRegistration'));
       return;
     }
     handleRegister({ ...values, faceDescriptor: registerFaceData.descriptor, faceImage: registerFaceData.faceImage });
@@ -327,27 +329,27 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
             </div>
             {isLogin ? (
               <div className="auth-brand-copy">
-                <strong>Secure Access</strong>
-                <span>Use your face to login to the system</span>
+                <strong>{t('secureAccess')}</strong>
+                  <span>{t('faceLoginDescription')}</span>
               </div>
             ) : (
               <div className="auth-brand-copy">
-                <span>Create your account and start using face recognition.</span>
+                <span>{t('createAccountDescription')}</span>
               </div>
             )}
             <FaceScanArt mesh={isLogin} />
             {!isLogin && (
               <ul className="auth-benefits">
-                <li><SafetyCertificateOutlined /> Secure</li>
-                <li><ClockCircleOutlined /> Fast</li>
-                <li><CheckSquareOutlined /> Convenient</li>
+                <li><SafetyCertificateOutlined /> {t('secure')}</li>
+                <li><ClockCircleOutlined /> {t('fast')}</li>
+                <li><CheckSquareOutlined /> {t('convenient')}</li>
               </ul>
             )}
           </aside>
           <section className="auth-form-panel">
             <div className="auth-form-heading">
-              <Title level={2}>{isLogin ? 'Login' : 'Register'}</Title>
-              <Text type="secondary">{isLogin ? 'Please enter your account information.' : 'Please fill in the information below.'}</Text>
+              <Title level={2}>{isLogin ? t('login') : t('register')}</Title>
+              <Text type="secondary">{isLogin ? t('enterAccountInformation') : t('fillInformationBelow')}</Text>
             </div>
             {isLogin ? (
               <Form
@@ -357,36 +359,36 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
                 onFinish={(values) => submitLogin(values)}
                 initialValues={rememberedUsername ? { username: rememberedUsername } : defaultUser}
               >
-                <Form.Item name="username" normalize={(value) => value?.trim()} rules={[{ required: true, message: 'Please enter your username.' }]}>
+                <Form.Item name="username" normalize={(value) => value?.trim()} rules={[{ required: true, message: t('enterUsername') }]}>
                   <Input prefix={<UserOutlined />} autoComplete="username" placeholder="Username" />
                 </Form.Item>
-                <Form.Item name="password" rules={[{ required: true, message: 'Please enter your password.' }]}>
+                <Form.Item name="password" rules={[{ required: true, message: t('enterPassword') }]}>
                   <Input.Password prefix={<LockOutlined />} autoComplete="current-password" placeholder="Password" />
                 </Form.Item>
                 <div className="auth-form-options">
-                  <Checkbox checked={remember} onChange={(event) => setRemember(event.target.checked)}>Remember me</Checkbox>
-                  <button type="button" className="auth-link" onClick={() => message.info('Please contact your administrator to reset your password.')}>
-                    Forgot password?
+                  <Checkbox checked={remember} onChange={(event) => setRemember(event.target.checked)}>{t('rememberMe')}</Checkbox>
+                  <button type="button" className="auth-link" onClick={() => message.info(t('contactAdministratorResetPassword'))}>
+                    {t('forgotPassword')}
                   </button>
                 </div>
-                <Button type="primary" htmlType="submit" block loading={loading}>Login</Button>
-                <div className="auth-divider"><span>or</span></div>
+                <Button type="primary" htmlType="submit" block loading={loading}>{t('login')}</Button>
+                <div className="auth-divider"><span>{t('or')}</span></div>
                 <Button className="face-login-button" block icon={<FaceIdIcon />} onClick={startFaceLogin} disabled={loading}>
-                  Login with Face
+                  {t('loginWithFace')}
                 </Button>
-                <div className="auth-switch">Don't have an account? <button type="button" onClick={() => switchMode('register')}>Register</button></div>
+                <div className="auth-switch">{t('noAccount')} <button type="button" onClick={() => switchMode('register')}>{t('register')}</button></div>
               </Form>
             ) : (
               <>
                 <RegisterForm loading={loading} faceError={faceError} onFaceDescriptor={handleRegisterFace} onSubmit={submitRegistration} />
-                <div className="auth-switch">Already have an account? <button type="button" onClick={() => switchMode('login')}>Login</button></div>
+                <div className="auth-switch">{t('alreadyHaveAccount')} <button type="button" onClick={() => switchMode('login')}>{t('login')}</button></div>
               </>
             )}
           </section>
         </div>
       </Content>
       <Modal
-        title="Login with Face"
+        title={t('loginWithFace')}
         open={faceLoginOpen}
         onCancel={() => setFaceLoginOpen(false)}
         footer={null}
@@ -398,7 +400,7 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
           <FaceCapture
             autoOpenCamera
             onDescriptor={handleLoginFace}
-            idleText="Look at the camera, then capture to verify it is you."
+            idleText={t('lookAtCameraToVerify')}
           />
         </div>
       </Modal>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { VideoCameraOutlined } from '@ant-design/icons';
+import { useLanguage } from '../../i18n';
 
 /**
  * The stream itself, in whichever element can actually show it.
@@ -24,6 +25,7 @@ export default function StreamSurface({
   onReady,
   onError,
 }) {
+  const { t } = useLanguage();
   // 'cors' -> try readable; 'plain' -> picture only; 'failed' -> neither worked.
   const [mode, setMode] = useState('cors');
 
@@ -43,8 +45,8 @@ export default function StreamSurface({
         <VideoCameraOutlined />
         <span>
           {mediaKind === 'none'
-            ? 'Detection needs an HTTP or HTTPS stream — an rtsp:// address cannot be read in a browser.'
-            : 'This address did not return a playable video or image stream.'}
+            ? t('detectionNeedsHttpStream')
+            : t('unplayableStream')}
         </span>
       </div>
     );

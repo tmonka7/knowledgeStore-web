@@ -1,12 +1,14 @@
 import { Button } from 'antd';
 import { CheckCircleFilled, CloseCircleFilled, ReloadOutlined } from '@ant-design/icons';
+import { useLanguage } from '../../i18n';
 
 /** Confirmation step: the cropped face plus the checks it passed. */
 export default function FaceCaptureConfirmation({ image, checks, saving, onRetake, onConfirm }) {
+  const { t } = useLanguage();
   return (
     <div className="face-confirm">
       <div className="face-confirm-preview">
-        <img src={image} alt="Captured face" />
+        <img src={image} alt={t('capturedFace')} />
       </div>
 
       <ul className="face-confirm-checks">
@@ -20,10 +22,10 @@ export default function FaceCaptureConfirmation({ image, checks, saving, onRetak
 
       <div className="face-modal-actions">
         <Button className="vision-btn-ghost" icon={<ReloadOutlined />} onClick={onRetake} disabled={saving}>
-          Retake
+          {t('retake')}
         </Button>
         <Button type="primary" className="vision-btn-primary" onClick={onConfirm} loading={saving}>
-          Use This Face
+          {t('useThisFace')}
         </Button>
       </div>
     </div>

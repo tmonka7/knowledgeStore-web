@@ -6,6 +6,7 @@ import FacePreview from './FacePreview';
 import FaceStatus from './FaceStatus';
 import FaceUpload from './FaceUpload';
 import { imageFromFile } from '../../lib/faceCrop';
+import { useLanguage } from '../../i18n';
 
 const { Text } = Typography;
 
@@ -16,6 +17,7 @@ const { Text } = Typography;
  * camera or upload mode. `onChange` receives { descriptor, faceImage } or null.
  */
 export default function FaceRegistration({ onChange, error }) {
+  const { t } = useLanguage();
   const [face, setFace] = useState(null);
   const [modal, setModal] = useState(null); // { mode, imageSrc }
   const [uploadError, setUploadError] = useState('');
@@ -45,7 +47,7 @@ export default function FaceRegistration({ onChange, error }) {
       await imageFromFile(file);
       setModal({ mode: 'image', imageSrc: URL.createObjectURL(file) });
     } catch (caught) {
-      setUploadError(caught.message || 'That image could not be opened.');
+      setUploadError(caught.message || t('imageCouldNotBeOpened'));
     } finally {
       setPreparing(false);
     }
@@ -62,7 +64,7 @@ export default function FaceRegistration({ onChange, error }) {
 
   return (
     <section className={`face-section${problem ? ' has-error' : ''}`} aria-labelledby="face-section-title">
-      <h3 className="face-section-title" id="face-section-title">Face Photo</h3>
+      <h3 className="face-section-title" id="face-section-title">{t('facePhoto')}</h3>
 
       <FacePreview
         image={face?.faceImage}
@@ -76,7 +78,7 @@ export default function FaceRegistration({ onChange, error }) {
       <div className="face-section-actions">
         <button type="button" className="face-action-btn" onClick={openCamera} disabled={preparing}>
           {registered ? <ReloadOutlined /> : <CameraOutlined />}
-          {registered ? 'Change Face' : 'Register Face'}
+          {registered ? t('changeFace') : t('registerFace')}
         </button>
         <FaceUpload onFile={openUpload} onError={setUploadError} disabled={preparing} />
       </div>

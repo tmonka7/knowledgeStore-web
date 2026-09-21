@@ -1,8 +1,16 @@
 import { Button, Form, Input, Tree, TreeSelect } from 'antd';
 import { DeleteOutlined, FolderOpenOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import PageHeader from '../components/ui/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
+import { useLanguage } from '../i18n';
+
+const categoryTreeData = (items = []) => items.map((item) => ({
+  title: item.name,
+  value: item.id,
+  key: item.id,
+  children: categoryTreeData(item.children || []),
+}));
 
 export default function CategoriesPage({
   categories,
@@ -12,53 +20,41 @@ export default function CategoriesPage({
   loading,
 }) {
   const [categorySearch, setCategorySearch] = useState('');
+  const { t } = useLanguage();
 
-  const categoryTreeData = (items = []) => items.map((item) => ({
-    title: item.name,
-    value: item.id,
-    key: item.id,
-    children: categoryTreeData(item.children || []),
-  }));
+  const visibleCategories = useMemo(() => {
+    const needle = categorySearch.trim().toLowerCase();
+    if (!needle) return categories;
 
-  const filterCategoryTree = (items = [], search = '') => {
-    const value = search.trim().toLowerCase();
-    if (!value) return items;
+    const filter = (items) => items
+      .map((item) => ({ ...item, children: filter(item.children || []) }))
+      .filter((item) => item.name.toLowerCase().includes(needle) || item.children.length > 0);
 
-    return items.reduce((result, item) => {
-      const children = filterCategoryTree(item.children || [], value);
-      const matches = item.name.toLowerCase().includes(value);
-
-      if (matches || children.length > 0) {
-        result.push({ ...item, children });
-      }
-      return result;
-    }, []);
-  };
-
-  const visibleCategories = filterCategoryTree(categories, categorySearch);
+    return filter(categories);
+  }, [categories, categorySearch]);
 
   return (
-    <div className="vision-page">
+    <div className="vision-page vision-stack">
       <PageHeader
-        title="Category Tree Management"
-        subtitle="Create, organise and remove the categories records are filed under."
-        actions={<StatusBadge tone="blue">Hierarchy</StatusBadge>}
+        title={t('categoryTreeManagement')}
+        subtitle={t('categoryTreeSubtitle')}
+        actions={<StatusBadge tone="blue">{t('hierarchy')}</StatusBadge>}
       />
 
-      <div className="vision-categories-layout">
+      <div className="vision-category-layout">
         <section className="vision-panel vision-panel-tight">
-          <h3 className="vision-section-title">New category</h3>
+          <h3 className="vision-section-title">{t('newCategory')}</h3>
           <Form form={categoryForm} layout="vertical" onFinish={handleCreateCategory}>
-            <Form.Item name="name" label="Category name" rules={[{ required: true }]}>
-              <Input placeholder="Enter category name" />
+            <Form.Item name="name" label={t('categoryName')} rules={[{ required: true }]}>
+              <Input placeholder={t('enterCategoryName')} />
             </Form.Item>
-            <Form.Item name="parentId" label="Parent category">
+            <Form.Item name="parentId" label={t('parentCategory')}>
               <TreeSelect
                 treeData={categoryTreeData(categories)}
                 treeDefaultExpandAll
-                placeholder="Select parent"
+                placeholder={t('selectParent')}
                 allowClear
-                className="vision-category-select"
+                style={{ width: '100%' }}
               />
             </Form.Item>
             <Button
@@ -68,22 +64,22 @@ export default function CategoriesPage({
               icon={<PlusOutlined />}
               className="vision-btn-primary vision-category-submit"
             >
-              Create Category
+              {t('createCategory')}
             </Button>
           </Form>
         </section>
 
         <section className="vision-panel vision-panel-tight">
           <div className="vision-panel-head">
-            <h3 className="vision-section-title">Structure</h3>
-            <span className="vision-toolbar-meta">{categories.length} items</span>
+            <h3 className="vision-section-title">{t('structure')}</h3>
+            <span className="vision-toolbar-meta">{t('itemsCount', { count: categories.length })}</span>
           </div>
 
           <Input
             className="vision-category-search"
             allowClear
             prefix={<SearchOutlined />}
-            placeholder="Search category"
+            placeholder={t('searchCategory')}
             value={categorySearch}
             onChange={(event) => setCategorySearch(event.target.value)}
           />
@@ -108,7 +104,7 @@ export default function CategoriesPage({
                       handleDeleteCategory(nodeData.value);
                     }}
                   >
-                    Delete
+                    {t('delete')}
                   </Button>
                 </div>
               )}
@@ -116,7 +112,7 @@ export default function CategoriesPage({
           ) : (
             <div className="vision-empty">
               <FolderOpenOutlined />
-              No categories match your search.
+              {t('noCategoriesMatch')}
             </div>
           )}
         </section>

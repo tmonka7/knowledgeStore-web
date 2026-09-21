@@ -1,10 +1,12 @@
 import { Drawer, Layout, Menu } from 'antd';
 import { SafetyCertificateFilled } from '@ant-design/icons';
 import NetworkArt from './ui/NetworkArt';
+import { useLanguage } from '../i18n';
 
 const { Sider } = Layout;
 
 function SidebarBody({ items, selectedKey, onSelect, collapsed }) {
+  const { t } = useLanguage();
   return (
     <>
       <div className="vision-brand">
@@ -12,7 +14,7 @@ function SidebarBody({ items, selectedKey, onSelect, collapsed }) {
         {!collapsed && (
           <span className="vision-brand-text">
             <span className="vision-brand-name">VisionAI</span>
-            <span className="vision-brand-sub">AI Security Platform</span>
+            <span className="vision-brand-sub">{t('aiSecurityPlatform')}</span>
           </span>
         )}
       </div>
@@ -29,9 +31,9 @@ function SidebarBody({ items, selectedKey, onSelect, collapsed }) {
         <NetworkArt />
         {!collapsed && (
           <div className="vision-tagline">
-            Smarter Security
+            {t('smarterSecurity')}
             <br />
-            Safer Tomorrow
+            {t('saferTomorrow')}
           </div>
         )}
       </div>

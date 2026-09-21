@@ -3,8 +3,10 @@ import { Alert, Avatar, Button, Input, message } from 'antd';
 import { MessageOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons';
 import PageHeader from '../components/ui/PageHeader';
 import api from '../api';
+import { useLanguage } from '../i18n';
 
 export default function ChatPage() {
+  const { t } = useLanguage();
   const [conversations, setConversations] = useState([]);
   const [selectedConversationId, setSelectedConversationId] = useState('');
   const [messageText, setMessageText] = useState('');
@@ -25,7 +27,7 @@ export default function ChatPage() {
         setSelectedConversationId(nextConversations[0].id);
       }
     } catch (fetchError) {
-      const messageText = fetchError.response?.data?.message || 'Unable to load conversation history.';
+      const messageText = fetchError.response?.data?.message || t('unableToLoadConversationHistory');
       setError(messageText);
     } finally {
       setLoading(false);
@@ -51,9 +53,9 @@ export default function ChatPage() {
       setConversations((current) => [nextConversation, ...current]);
       setSelectedConversationId(nextConversation.id);
       setMessageText('');
-      message.success('New chat created');
+      message.success(t('newChatCreated'));
     } catch (createError) {
-      message.error(createError.response?.data?.message || 'Unable to create a new chat.');
+      message.error(createError.response?.data?.message || t('unableToCreateChat'));
     } finally {
       setIsCreatingChat(false);
     }
@@ -74,9 +76,9 @@ export default function ChatPage() {
       setConversations((current) => current.map((entry) => entry.id === nextConversation.id ? nextConversation : entry));
       setMessageText('');
       setSelectedConversationId(nextConversation.id);
-      message.success('Message sent');
+      message.success(t('messageSent'));
     } catch (sendError) {
-      message.error(sendError.response?.data?.message || 'Unable to send message.');
+      message.error(sendError.response?.data?.message || t('unableToSendMessage'));
     } finally {
       setIsSending(false);
     }
@@ -85,14 +87,14 @@ export default function ChatPage() {
   return (
     <div className="vision-page">
       <PageHeader
-        title="Chat"
-        subtitle="Conversations with your team and the VisionAI assistant."
+        title={t('chat')}
+        subtitle={t('chatSubtitle')}
       />
 
       <div className="vision-chat-layout">
         <aside className="vision-panel vision-panel-tight vision-chat-sidebar">
           <div className="vision-panel-head">
-            <h3 className="vision-section-title">Messages</h3>
+            <h3 className="vision-section-title">{t('messages')}</h3>
             <Button
               type="primary"
               className="vision-btn-primary"
@@ -100,15 +102,15 @@ export default function ChatPage() {
               loading={isCreatingChat}
               onClick={handleCreateConversation}
             >
-              New chat
+              {t('newChat')}
             </Button>
           </div>
 
-          <Input.Search placeholder="Search conversations" allowClear className="vision-chat-search" />
+          <Input.Search placeholder={t('searchConversations')} allowClear className="vision-chat-search" />
 
           <div className="vision-chat-list">
             {loading && conversations.length === 0 ? (
-              <div className="vision-empty">Loading conversations...</div>
+              <div className="vision-empty">{t('loadingConversations')}</div>
             ) : (
               conversations.map((conversation) => (
                 <button
@@ -163,15 +165,15 @@ export default function ChatPage() {
                     <div className="vision-chat-thread-status">{selectedConversation.role}</div>
                   </div>
                 </div>
-                <Button className="vision-btn-ghost">View profile</Button>
+                <Button className="vision-btn-ghost">{t('viewProfile')}</Button>
               </div>
 
               <div className="vision-chat-messages">
                 {(selectedConversation.messages || []).length === 0 ? (
                   <div className="vision-empty">
                     <MessageOutlined />
-                    <div className="vision-chat-empty-title">Start a new conversation</div>
-                    <div>Write the first message to begin.</div>
+                    <div className="vision-chat-empty-title">{t('startNewConversation')}</div>
+                    <div>{t('writeFirstMessage')}</div>
                   </div>
                 ) : (
                   (selectedConversation.messages || []).map((messageItem) => (
@@ -193,7 +195,7 @@ export default function ChatPage() {
                   rows={1}
                   value={messageText}
                   onChange={(event) => setMessageText(event.target.value)}
-                  placeholder="Type a message..."
+                  placeholder={t('typeMessage')}
                   autoSize={{ minRows: 1, maxRows: 4 }}
                   className="vision-chat-composer-input"
                   onKeyDown={(event) => {
@@ -210,7 +212,7 @@ export default function ChatPage() {
                   loading={isSending}
                   onClick={handleSendMessage}
                 >
-                  Send
+                  {t('send')}
                 </Button>
               </div>
             </>

@@ -35,6 +35,7 @@ import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import { descriptorFromFile, imageDataFromFile } from '../lib/faceRecognition';
+import { useLanguage } from '../i18n';
 
 const { Title, Text } = Typography;
 
@@ -93,6 +94,7 @@ export default function UsersPage({
   handleUpdateUser,
   permissionCatalog = [],
 }) {
+  const { t } = useLanguage();
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const faceInputRef = useRef(null);
@@ -282,11 +284,11 @@ export default function UsersPage({
   return (
     <div className="vision-page">
       <PageHeader
-        title="Users Management"
-        subtitle="Manage system users and their permissions."
+        title={t('usersManagement')}
+        subtitle={t('usersManagementSubtitle')}
         actions={isAdmin && (
           <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => setAddUserOpen(true)}>
-            Add User
+            {t('addUser')}
           </Button>
         )}
       />
@@ -295,7 +297,7 @@ export default function UsersPage({
         <StatCard
           tone="blue"
           icon={<TeamOutlined />}
-          label="Total Users"
+          label={t('totalUsers')}
           value={users.length}
           meta={`${newThisWeek} new this week`}
           trend={newThisWeek > 0 ? 'up' : undefined}
@@ -303,21 +305,21 @@ export default function UsersPage({
         <StatCard
           tone="violet"
           icon={<SafetyCertificateOutlined />}
-          label="Administrators"
+          label={t('administrators')}
           value={adminCount}
           meta={percentOf(adminCount)}
         />
         <StatCard
           tone="cyan"
           icon={<UserOutlined />}
-          label="Regular Users"
+          label={t('regularUsers')}
           value={regularCount}
           meta={percentOf(regularCount)}
         />
         <StatCard
           tone="green"
           icon={<ScanOutlined />}
-          label="Face ID Enrolled"
+          label={t('faceIdEnrolled')}
           value={faceEnrolled}
           meta={percentOf(faceEnrolled)}
         />
@@ -327,10 +329,10 @@ export default function UsersPage({
         actions={(
           <>
             <Button type="primary" className="vision-btn-primary" icon={<SearchOutlined />} onClick={applyFilters}>
-              Search
+              {t('search')}
             </Button>
             <Button className="vision-btn-ghost" icon={<ReloadOutlined />} onClick={resetFilters}>
-              Reset
+              {t('reset')}
             </Button>
           </>
         )}
@@ -339,7 +341,7 @@ export default function UsersPage({
           allowClear
           className="vision-filter-search"
           prefix={<SearchOutlined />}
-          placeholder="Search by name, email, role..."
+          placeholder={t('searchUsersPlaceholder')}
           value={queryDraft}
           onChange={(event) => setQueryDraft(event.target.value)}
           onPressEnter={applyFilters}
@@ -349,9 +351,9 @@ export default function UsersPage({
           value={roleDraft}
           onChange={setRoleDraft}
           options={[
-            { value: 'all', label: 'All Roles' },
-            { value: 'admin', label: 'Admin' },
-            { value: 'user', label: 'User' },
+            { value: 'all', label: t('allRoles') },
+            { value: 'admin', label: t('admin') },
+            { value: 'user', label: t('user') },
           ]}
         />
         <Select
@@ -359,9 +361,9 @@ export default function UsersPage({
           value={faceDraft}
           onChange={setFaceDraft}
           options={[
-            { value: 'all', label: 'All Face ID' },
-            { value: 'enrolled', label: 'Face ID enrolled' },
-            { value: 'missing', label: 'No face photo' },
+            { value: 'all', label: t('allFaceId') },
+            { value: 'enrolled', label: t('faceIdEnrolled') },
+            { value: 'missing', label: t('noFacePhoto') },
           ]}
         />
       </FilterBar>
@@ -386,46 +388,46 @@ export default function UsersPage({
       </div>
 
       <Card className="vision-settings-card">
-        <Title level={4} style={{ marginTop: 0 }}>User Settings</Title>
-        <Text type="secondary">Update your password below.</Text>
+        <Title level={4} style={{ marginTop: 0 }}>{t('userSettings')}</Title>
+        <Text type="secondary">{t('updatePasswordBelow')}</Text>
         <Form form={form} layout="vertical" onFinish={onSubmit} style={{ marginTop: 16, maxWidth: 460 }}>
           <Form.Item
-            label="Current password"
+            label={t('currentPassword')}
             name="currentPassword"
-            rules={[{ required: true, message: 'Please enter your current password.' }]}
+            rules={[{ required: true, message: t('enterCurrentPassword') }]}
           >
-            <Input.Password placeholder="Current password" />
+            <Input.Password placeholder={t('currentPassword')} />
           </Form.Item>
 
           <Form.Item
-            label="New password"
+            label={t('newPassword')}
             name="newPassword"
-            rules={[{ required: true, min: 6, message: 'New password must be at least 6 characters.' }]}
+            rules={[{ required: true, min: 6, message: t('passwordMinLength') }]}
           >
-            <Input.Password placeholder="New password" />
+            <Input.Password placeholder={t('newPassword')} />
           </Form.Item>
 
           <Form.Item
-            label="Confirm new password"
+            label={t('confirmNewPassword')}
             name="confirmPassword"
             dependencies={['newPassword']}
             rules={[
-              { required: true, message: 'Please confirm your new password.' },
+              { required: true, message: t('confirmNewPasswordRequired') },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('newPassword') === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('The two passwords do not match.'));
+                  return Promise.reject(new Error(t('passwordsDoNotMatch')));
                 },
               }),
             ]}
           >
-            <Input.Password placeholder="Confirm new password" />
+            <Input.Password placeholder={t('confirmNewPassword')} />
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit">Update password</Button>
+            <Button type="primary" htmlType="submit">{t('updatePassword')}</Button>
           </Form.Item>
         </Form>
       </Card>
@@ -461,7 +463,7 @@ export default function UsersPage({
                     className="user-editor-avatar-button"
                     onClick={() => faceInputRef.current?.click()}
                     disabled={faceUpdating}
-                    aria-label="Change face photo"
+                    aria-label={t('changeFacePhoto')}
                   >
                     <CameraOutlined />
                   </button>
@@ -541,7 +543,7 @@ export default function UsersPage({
                       label={<span className="user-editor-label"><UserOutlined /> Full name</span>}
                       rules={[{ required: true, whitespace: true, message: 'Full name is required.' }]}
                     >
-                      <Input placeholder="Full name" />
+                      <Input placeholder={t('fullName')} />
                     </Form.Item>
                     <Form.Item
                       name="email"
@@ -549,7 +551,7 @@ export default function UsersPage({
                       normalize={(value) => value?.trim()}
                       rules={[{ required: true, type: 'email', message: 'Enter a valid email address.' }]}
                     >
-                      <Input placeholder="Email" />
+                      <Input placeholder={t('email')} />
                     </Form.Item>
                     <Form.Item
                       label={<span className="user-editor-label"><IdcardOutlined /> Role</span>}
@@ -690,7 +692,7 @@ export default function UsersPage({
 
       <Modal
         open={addUserOpen}
-        title="Add User"
+        title={t('addUser')}
         onCancel={() => setAddUserOpen(false)}
         footer={[<Button key="ok" type="primary" onClick={() => setAddUserOpen(false)}>Got it</Button>]}
         width={460}

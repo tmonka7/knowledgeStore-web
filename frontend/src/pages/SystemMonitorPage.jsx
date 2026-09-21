@@ -11,8 +11,10 @@ import {
 import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge from '../components/ui/StatusBadge';
+import { useLanguage } from '../i18n';
 
 export default function SystemMonitorDashboard({ systemStatus, records, users, categories }) {
+  const { t } = useLanguage();
   const graphHistory = systemStatus.history && systemStatus.history.length ? systemStatus.history : [
     { time: 'now', memory: 0, cpu: 0 },
   ];
@@ -44,11 +46,11 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
   return (
     <div className="vision-page vision-stack">
       <PageHeader
-        title="System Monitoring"
-        subtitle="Live performance, database totals and runtime health."
+        title={t('systemMonitoring')}
+        subtitle={t('systemMonitoringSubtitle')}
         actions={(
           <StatusBadge tone={isOnline ? 'green' : 'red'} dot>
-            {isOnline ? 'Live' : 'Offline'}
+            {isOnline ? t('live') : t('offline')}
           </StatusBadge>
         )}
       />
@@ -94,7 +96,7 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
       <div className="vision-monitor-graphs">
         <section className="vision-panel vision-panel-tight">
           <div className="vision-panel-head">
-            <h3 className="vision-section-title">Memory Usage</h3>
+            <h3 className="vision-section-title">{t('memoryUsage')}</h3>
             <StatusBadge tone="violet">{memoryPercent}%</StatusBadge>
           </div>
           <div className="vision-graph-head">
@@ -105,7 +107,7 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
             <span className="vision-graph-value">{memoryPercent}%</span>
             <span className="vision-cell-muted">of browser heap</span>
           </div>
-          <svg viewBox="0 0 320 120" className="vision-graph-svg" role="img" aria-label="Memory usage graph">
+          <svg viewBox="0 0 320 120" className="vision-graph-svg" role="img" aria-label={t('memoryUsageGraph')}>
             <g className="vision-graph-grid">
               <line x1="10" y1="20" x2="310" y2="20" />
               <line x1="10" y1="50" x2="310" y2="50" />
@@ -126,7 +128,7 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
 
         <section className="vision-panel vision-panel-tight">
           <div className="vision-panel-head">
-            <h3 className="vision-section-title">CPU Load</h3>
+            <h3 className="vision-section-title">{t('cpuLoad')}</h3>
             <StatusBadge tone="blue">{cpuPercent}%</StatusBadge>
           </div>
           <div className="vision-graph-head">
@@ -137,7 +139,7 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
             <span className="vision-graph-value">{cpuPercent}%</span>
             <span className="vision-cell-muted">processor load</span>
           </div>
-          <svg viewBox="0 0 320 120" className="vision-graph-svg" role="img" aria-label="CPU usage graph">
+          <svg viewBox="0 0 320 120" className="vision-graph-svg" role="img" aria-label={t('cpuUsageGraph')}>
             <g className="vision-graph-grid">
               <line x1="10" y1="20" x2="310" y2="20" />
               <line x1="10" y1="50" x2="310" y2="50" />
@@ -158,7 +160,7 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
 
         <section className="vision-panel vision-panel-tight">
           <div className="vision-panel-head">
-            <h3 className="vision-section-title">Network Usage</h3>
+            <h3 className="vision-section-title">{t('networkUsageTitle')}</h3>
             <StatusBadge tone="cyan">--</StatusBadge>
           </div>
           <div className="vision-graph-head">
@@ -169,7 +171,7 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
             <span className="vision-graph-value">--</span>
             <span className="vision-cell-muted">network bandwidth</span>
           </div>
-          <svg viewBox="0 0 320 120" className="vision-graph-svg" role="img" aria-label="Network usage graph">
+          <svg viewBox="0 0 320 120" className="vision-graph-svg" role="img" aria-label={t('networkUsageGraph')}>
             <g className="vision-graph-grid">
               <line x1="10" y1="20" x2="310" y2="20" />
               <line x1="10" y1="50" x2="310" y2="50" />
@@ -194,7 +196,7 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
           <div className="vision-panel-head">
             <div className="vision-panel-head-title">
               <span className="vision-panel-icon"><DatabaseOutlined /></span>
-              <h3 className="vision-section-title">Database Summary</h3>
+              <h3 className="vision-section-title">{t('databaseSummary')}</h3>
             </div>
           </div>
           <ul className="vision-facts">
@@ -208,7 +210,7 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
           <div className="vision-panel-head">
             <div className="vision-panel-head-title">
               <span className="vision-panel-icon"><DesktopOutlined /></span>
-              <h3 className="vision-section-title">Runtime Info</h3>
+              <h3 className="vision-section-title">{t('runtimeInfo')}</h3>
             </div>
           </div>
           <ul className="vision-facts">
@@ -222,7 +224,7 @@ export default function SystemMonitorDashboard({ systemStatus, records, users, c
           <div className="vision-panel-head">
             <div className="vision-panel-head-title">
               <span className="vision-panel-icon"><HeartOutlined /></span>
-              <h3 className="vision-section-title">Health Notes</h3>
+              <h3 className="vision-section-title">{t('healthNotes')}</h3>
             </div>
             <StatusBadge tone={isOnline ? 'green' : 'red'} dot>
               {isOnline ? 'Healthy' : 'Degraded'}
