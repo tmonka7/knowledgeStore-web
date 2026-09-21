@@ -14,7 +14,9 @@ export const PERMISSION_CATALOG = [
   { key: 'yolo', label: 'Tools / YOLO dataset', actions: ['view'] },
   { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view'] },
   { key: 'keras', label: 'Tools / Keras dataset', actions: ['view'] },
+  { key: 'wallet', label: 'Wallet Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'users', label: 'Users', actions: ['view', 'edit'] },
+  { key: 'database', label: 'Database Management', actions: ['view', 'manage'] },
   { key: 'system-monitor', label: 'System Monitoring', actions: ['view'] },
 ];
 
@@ -34,6 +36,10 @@ export const DEFAULT_USER_PERMISSIONS = [
   'schedule:create',
   'schedule:edit',
   'schedule:delete',
+  'wallet:view',
+  'wallet:create',
+  'wallet:edit',
+  'wallet:delete',
   'lvgl-tool:view',
   'convert-tool:view',
   'yolo:view',

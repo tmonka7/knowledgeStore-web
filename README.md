@@ -25,6 +25,101 @@ A full-stack starter app with:
 - Username: `admin`
 - Password: `admin123`
 
+## Database Management
+
+**Database Management** (admin, or the `database:view` / `database:manage`
+permissions) is four tabs over the same MongoDB connection the app already
+uses. Everything it does is a driver command — nothing shells out to
+`mongo`, `mongodump` or `mongorestore`, so it works wherever the API runs.
+
+### Initialization
+
+Syncs the indexes the models declare, seeds the root categories when none
+exist, and creates a superuser. An account matching the username or email is
+promoted to `admin` and re-keyed rather than duplicated, so running it twice
+leaves one usable administrator either way.
+
+*Reset and initialize* additionally drops every collection. It demands the
+typed confirmation `RESET` and a superuser — without one, nobody could sign
+back in — and always writes a backup first, so a mistaken reset is recoverable
+from the Restoration tab. Because it drops `users`, the session that made the
+request is dead on arrival; the page says so and signs you out.
+
+### Restoration
+
+A backup is one extended-JSON dump of every collection, written to
+`backend/backups` (git-ignored). Canonical EJSON is what keeps `Date` and
+`ObjectId` values round-trippable — plain `JSON.stringify` would turn both into
+strings and the restore would quietly change every document's types.
+
+Restores come in two modes. *Replace* empties each collection first, making the
+backup the whole truth, and takes its own safety backup beforehand. *Merge*
+keeps what is there and skips documents whose `_id` or unique key already
+exists. Backups can be downloaded, uploaded and deleted from the same tab.
+
+The dump is assembled in memory before it is written, which suits a store of
+this size. A database large enough to strain that wants `mongodump`, not a web
+page.
+
+### Replication
+
+`rs.initiate()`, `rs.add()` and `rs.remove()`, driven through
+`replSetInitiate` / `replSetReconfig`, plus a live `replSetGetStatus` view of
+the members. Replication is a server-level feature: a `mongod` started without
+`--replSet` has none, and the tab says exactly that rather than showing an
+empty member list. Starting the server with `--replSet` is the one step that
+cannot be done from here.
+
+### Optimization
+
+System maintenance, each task reported separately so one refusal does not hide
+another task's success:
+
+| Task | What it does |
+| --- | --- |
+| Delete unlinked uploaded files | Removes files under `uploads/` that no record or mail attachment references |
+| Clear activity logs | Deletes the stored maintenance log, optionally keeping the last *n* days |
+| Compact collections | `compact` per collection, to release space deleted documents left behind |
+| Sync indexes | Recreates the declared indexes and drops the ones the models no longer declare |
+
+Orphan detection compares the files on disk against every `attachment` /
+`attachments` value in `records` and `mail_inbox`. Files modified in the last
+hour are listed but never deleted: an upload is written by multer *before* the
+record that will reference it is saved, and a half-finished compose still holds
+its file.
+
+The log the third task clears is the `activity_logs` collection, written by
+these maintenance actions themselves — it lives in the database rather than in
+a file so it can be read and cleared without shell access.
+
+## Wallet Management
+
+**Wallet Management** records income and expenses and reports on them. A wallet
+is personal, like the schedule: every query is scoped by `ownerId`, so one
+account never sees another's figures, administrators included.
+
+Amounts are stored positive and `type` (`income` / `expense`) carries the sign,
+which keeps each series a plain sum. Dates are `YYYY-MM-DD` strings rather than
+`Date` values for the same reason schedules are — an entry belongs to a
+calendar day in the owner's timezone, and an instant would drift across the
+month boundary in the charts. The currency is a display choice held in
+`localStorage`; switching it never rewrites a stored figure.
+
+`GET /wallet/summary` adds up the totals, the monthly series and the category
+breakdown on the server, against the same filters the entry list uses, so the
+stat cards, the charts and the table can never disagree.
+
+### Chart colours
+
+Income and expense are two series that have to be told apart, so they take two
+categorical hues: the design system's primary blue and its amber. Green and red
+is the conventional pairing and precisely the reason it is avoided here — it is
+the pair red-green colour blindness collapses. Blue and amber stay separable
+under every common form of CVD, and each chart carries a legend or a direct
+label so identity never rests on colour alone. The running-balance line is a
+single series, so it takes one hue and no legend; only its endpoint is
+labelled.
+
 ## Camera object detection
 
 The camera view (**Cameras -> View -> Detect Objects**) outlines people and

@@ -5,6 +5,7 @@ import {
   ArrowRightOutlined,
   CalendarOutlined,
   CameraOutlined,
+  CloudServerOutlined,
   DatabaseOutlined,
   FileTextOutlined,
   FolderOutlined,
@@ -14,10 +15,12 @@ import {
   SwapOutlined,
   TeamOutlined,
   ToolOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge from '../components/ui/StatusBadge';
+import { roundedTopBar } from '../components/ui/chartShapes';
 import api from '../api';
 import { can } from '../permissions';
 import { localDateKey } from '../components/schedule/useScheduleReminders';
@@ -42,23 +45,6 @@ const formatDate = (value) => {
   const date = value ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) return '—';
   return date.toLocaleDateString(undefined, { dateStyle: 'medium' });
-};
-
-/**
- * A bar with only its top corners rounded, so the mark still reads as anchored
- * to the baseline rather than floating.
- */
-const roundedTopBar = (x, y, width, height, radius) => {
-  const r = Math.min(radius, width / 2, height);
-  return [
-    `M${x},${y + height}`,
-    `L${x},${y + r}`,
-    `Q${x},${y} ${x + r},${y}`,
-    `L${x + width - r},${y}`,
-    `Q${x + width},${y} ${x + width},${y + r}`,
-    `L${x + width},${y + height}`,
-    'Z',
-  ].join(' ');
 };
 
 /**
@@ -298,6 +284,22 @@ export default function OverviewPage({
       title: 'Mail',
       tone: 'violet',
       detail: 'Internal inbox',
+      status: 'ready',
+    },
+    {
+      key: 'wallet',
+      icon: <WalletOutlined />,
+      title: 'Wallet',
+      tone: 'green',
+      detail: 'Income, expenses and their statistics',
+      status: 'ready',
+    },
+    {
+      key: 'database',
+      icon: <CloudServerOutlined />,
+      title: 'Database',
+      tone: 'blue',
+      detail: 'Initialization, backups, replication and cleanup',
       status: 'ready',
     },
     {

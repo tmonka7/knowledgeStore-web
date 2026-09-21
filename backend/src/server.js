@@ -13,13 +13,18 @@ import mailRoutes from './routes/mailRoutes.js';
 import cameraRoutes from './routes/cameraRoutes.js';
 import toolRoutes from './routes/toolRoutes.js';
 import scheduleRoutes from './routes/scheduleRoutes.js';
+import walletRoutes from './routes/walletRoutes.js';
+import databaseRoutes from './routes/databaseRoutes.js';
 import { ensureSeedAdmin, ensureSeedCategories } from './models/store.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
 const uploadDir = path.join(process.cwd(), 'uploads');
+// Database backups are written here by the Database Management page.
+const backupDir = path.join(process.cwd(), 'backups');
 
 fs.mkdirSync(uploadDir, { recursive: true });
+fs.mkdirSync(backupDir, { recursive: true });
 console.log(`Starting Knowledge Store API on port ${process.env.PORT}...`);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/knowledge-store';
 // Vite falls back to another port when 5173/4173 is taken (strictPort is off),
@@ -52,6 +57,8 @@ app.use('/api', mailRoutes);
 app.use('/api', cameraRoutes);
 app.use('/api', toolRoutes);
 app.use('/api', scheduleRoutes);
+app.use('/api', walletRoutes);
+app.use('/api', databaseRoutes);
 
 // Without this, CORS/body-parser failures return an HTML error page that the
 // frontend cannot read, so every failure looks the same to the user.

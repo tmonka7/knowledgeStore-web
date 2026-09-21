@@ -54,3 +54,34 @@ export const createUser = async ({ username, email, fullName, password, role = '
 export const getUsers = () => User.find().select('+faceImage').sort({ createdAt: -1 });
 export const getUserById = (id) => User.findOne({ id }).select('+faceImage');
 export const getUserByUsername = (username) => User.findOne({ username: String(username).toLowerCase() }).select('+faceDescriptor');
+
+/**
+ * Creates the superuser used by Database Management, or promotes and re-keys
+ * the matching account when one already exists — running initialization twice
+ * should leave you with a usable administrator either way.
+ */
+export const ensureSuperuser = async ({ username, email, fullName, password }) => {
+  const cleanUsername = String(username).trim().toLowerCase();
+  const cleanEmail = String(email).trim().toLowerCase();
+  const existing = await User.findOne({ $or: [{ username: cleanUsername }, { email: cleanEmail }] });
+
+  if (!existing) {
+    const user = await createUser({
+      username: cleanUsername,
+      email: cleanEmail,
+      fullName: String(fullName || '').trim() || 'System Administrator',
+      password,
+      role: 'admin',
+    });
+    return { created: true, user };
+  }
+
+  existing.username = cleanUsername;
+  existing.email = cleanEmail;
+  if (fullName) existing.fullName = String(fullName).trim();
+  existing.role = 'admin';
+  existing.passwordHash = await bcrypt.hash(password, 10);
+  await existing.save();
+
+  return { created: false, user: existing };
+};

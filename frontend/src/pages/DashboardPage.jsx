@@ -19,12 +19,14 @@ import {
   CopyOutlined,
   DatabaseOutlined,
   CameraOutlined,
+  CloudServerOutlined,
   DashboardOutlined,
   MailOutlined,
   MessageOutlined,
   PaperClipOutlined,
   TeamOutlined,
   ToolOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -49,6 +51,8 @@ import ConvertToolPage from './ConvertToolPage';
 import YoloToolPage from './YoloToolPage';
 import TransformersToolPage from './TransformersToolPage';
 import KerasToolPage from './KerasToolPage';
+import WalletPage from './WalletPage';
+import DatabasePage from './DatabasePage';
 
 const { Title, Text } = Typography;
 
@@ -269,6 +273,8 @@ export default function DashboardPage({
     },
     { key: 'chat', icon: <MessageOutlined />, label: t('chat') },
     { key: 'mail', icon: <MailOutlined />, label: t('mail') },
+    { key: 'wallet', icon: <WalletOutlined />, label: t('walletManagement') },
+    { key: 'database', icon: <CloudServerOutlined />, label: t('databaseManagement') },
     { key: 'system-monitor', icon: <BarChartOutlined />, label: t('systemMonitoring') },
     {
       key: 'basic-data',
@@ -597,6 +603,12 @@ export default function DashboardPage({
           {effectiveKey === 'chat' && <ChatPage />}
 
           {effectiveKey === 'mail' && <MailPage />}
+
+          {effectiveKey === 'wallet' && <WalletPage user={user} />}
+
+          {/* A reset or a replace-restore drops the account behind the current
+              token, so the page is given the way out of a dead session. */}
+          {effectiveKey === 'database' && <DatabasePage user={user} onSessionInvalidated={logout} />}
 
           {effectiveKey === 'system-monitor' && (
             <SystemMonitorPage
