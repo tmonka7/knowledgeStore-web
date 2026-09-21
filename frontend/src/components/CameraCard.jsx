@@ -65,9 +65,15 @@ export default function CameraCard({ camera, onView, onEdit, onDelete }) {
       </div>
 
       <div className="vision-camera-footer">
+        {/* Absent rather than disabled when the account cannot use them: a
+            camera you may only watch has nothing to edit. */}
         <div className="vision-row-actions">
-          <Button type="text" icon={<EditOutlined />} onClick={onEdit} aria-label={t('editCamera', { name: camera.name })} />
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={onDelete} aria-label={t('deleteCamera', { name: camera.name })} />
+          {onEdit && (
+            <Button type="text" icon={<EditOutlined />} onClick={onEdit} aria-label={t('editCamera', { name: camera.name })} />
+          )}
+          {onDelete && (
+            <Button type="text" danger icon={<DeleteOutlined />} onClick={onDelete} aria-label={t('deleteCamera', { name: camera.name })} />
+          )}
         </div>
         <Button className="vision-btn-ghost" icon={<PlayCircleOutlined />} onClick={onView}>
           {t('view')}

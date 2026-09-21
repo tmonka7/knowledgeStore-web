@@ -23,6 +23,7 @@ import {
   DashboardOutlined,
   MailOutlined,
   MessageOutlined,
+  NotificationOutlined,
   PaperClipOutlined,
   ProjectOutlined,
   ShareAltOutlined,
@@ -32,7 +33,7 @@ import {
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { asBlob } from 'html-docx-js-typescript';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import api from '../api';
 import AppLayout from '../components/AppLayout';
 import HtmlEditor from '../components/HtmlEditor';
@@ -55,6 +56,7 @@ import YoloToolPage from './YoloToolPage';
 import TransformersToolPage from './TransformersToolPage';
 import KerasToolPage from './KerasToolPage';
 import MyPage from './MyPage';
+import PostsPage from './PostsPage';
 import DatabasePage from './DatabasePage';
 import ProjectsPage from './ProjectsPage';
 
@@ -183,6 +185,43 @@ export default function DashboardPage({
     return () => { cancelled = true; clearInterval(timer); };
   // Re-checked when the page changes, so opening Chat clears it promptly.
   }, [canUseChat, activeKey]);
+
+  /*
+   * Posts nobody has read yet, for the notification bell.
+   *
+   * The count is of posts this account has not opened, so it falls as they
+   * are read — `refreshPostNotifications` is what the Posts page calls once a
+   * view has been recorded, rather than waiting for the next poll.
+   */
+  const [unseenPosts, setUnseenPosts] = useState(0);
+  const [postNotifications, setPostNotifications] = useState([]);
+  const [openPostId, setOpenPostId] = useState('');
+  const canUsePosts = can(user, 'posts');
+
+  const refreshPostNotifications = useCallback(async () => {
+    if (!canUsePosts) return;
+    try {
+      const { data } = await api.get('/posts/notifications', { params: { limit: 5 } });
+      setUnseenPosts(data.unseen || 0);
+      setPostNotifications(data.posts || []);
+    } catch (error) {
+      /* The bell is a nicety; a failed poll should not raise anything. */
+    }
+  }, [canUsePosts]);
+
+  useEffect(() => {
+    if (!canUsePosts) return undefined;
+    refreshPostNotifications();
+    const timer = setInterval(refreshPostNotifications, 60000);
+    return () => clearInterval(timer);
+  }, [canUsePosts, refreshPostNotifications, activeKey]);
+
+  // Picking a post from the bell opens it, which records the view and so
+  // takes it off the count.
+  const openPost = (postId) => {
+    setOpenPostId(postId || '');
+    setActiveKey('posts');
+  };
 
   // Picking a message from the header opens Chat on that conversation rather
   // than dropping the reader on the page and making them find it again.
@@ -324,6 +363,13 @@ export default function DashboardPage({
         : t('chat'),
     },
     { key: 'mail', icon: <MailOutlined />, label: t('mail') },
+    {
+      key: 'posts',
+      icon: <NotificationOutlined />,
+      label: unseenPosts > 0
+        ? <span className="vision-menu-label">{t('posts')}<span className="vision-badge is-blue">{unseenPosts}</span></span>
+        : t('posts'),
+    },
     { key: 'database', icon: <CloudServerOutlined />, label: t('databaseManagement') },
     { key: 'system-monitor', icon: <BarChartOutlined />, label: t('systemMonitoring') },
     {
@@ -388,9 +434,13 @@ export default function DashboardPage({
       searchValue={searchText}
       onSearchChange={onSearchInputChange}
       onSearchSubmit={handleGlobalSearch}
-      notificationCount={reminders.length}
+      // The bell carries both things that are waiting to be looked at: posts
+      // nobody has opened, and tomorrow's schedule.
+      notificationCount={reminders.length + unseenPosts}
       notificationItems={reminders}
       onNotificationSelect={() => setActiveKey('schedule')}
+      postItems={postNotifications}
+      onPostSelect={openPost}
       showMessages={canUseChat}
       messageCount={chatUnread}
       messageItems={recentMessages}
@@ -628,7 +678,7 @@ export default function DashboardPage({
             />
           )}
 
-          {effectiveKey === 'cameras' && <CamerasPage cameras={cameras} setCameras={setCameras} />}
+          {effectiveKey === 'cameras' && <CamerasPage user={user} cameras={cameras} setCameras={setCameras} />}
 
           {effectiveKey === 'schedule' && (
             <SchedulePage
@@ -673,7 +723,16 @@ export default function DashboardPage({
             />
           )}
 
-          {effectiveKey === 'mail' && <MailPage />}
+          {effectiveKey === 'mail' && <MailPage user={user} directory={directory} />}
+
+          {effectiveKey === 'posts' && (
+            <PostsPage
+              user={user}
+              initialPostId={openPostId}
+              onPostOpened={() => setOpenPostId('')}
+              onViewed={refreshPostNotifications}
+            />
+          )}
 
           {effectiveKey === 'projects' && <ProjectsPage user={user} />}
 

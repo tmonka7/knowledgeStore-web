@@ -10,6 +10,7 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import api from '../api';
+import { can } from '../permissions';
 import CameraCard from '../components/CameraCard';
 import FilterBar from '../components/ui/FilterBar';
 import PageHeader from '../components/ui/PageHeader';
@@ -18,8 +19,14 @@ import CameraViewPage from './CameraViewPage';
 import CameraWallPage from './CameraWallPage';
 import { useLanguage } from '../i18n';
 
-export default function CamerasPage({ cameras, setCameras }) {
+export default function CamerasPage({ user, cameras, setCameras }) {
   const { t } = useLanguage();
+  // This page used to offer Add, Edit and Delete to anyone who could open it,
+  // and the API answered 403. The permissions decide what is shown, as they do
+  // on every other page.
+  const canCreate = can(user, 'cameras', 'create');
+  const canEdit = can(user, 'cameras', 'edit');
+  const canDelete = can(user, 'cameras', 'delete');
   const [form] = Form.useForm();
   const [editingCamera, setEditingCamera] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -66,9 +73,15 @@ export default function CamerasPage({ cameras, setCameras }) {
     loadCameras();
   }, []);
 
+  /*
+   * The dialog is destroyOnClose, so its Form does not exist yet when this
+   * runs — setFieldsValue here reached a form instance that was connected to
+   * nothing, antd warned, and the edit dialog opened empty every time. The
+   * values are handed to the Form as initialValues instead, with a key so a
+   * different camera remounts it.
+   */
   const openCameraForm = (camera = null) => {
     setEditingCamera(camera);
-    form.setFieldsValue(camera || { status: 'offline' });
     setModalOpen(true);
   };
 
@@ -127,9 +140,11 @@ export default function CamerasPage({ cameras, setCameras }) {
             <Button className="vision-btn-ghost" icon={<AppstoreOutlined />} onClick={() => setShowCameraWall(true)}>
               {t('liveCameraView')}
             </Button>
-            <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
-              {t('addCamera')}
-            </Button>
+            {canCreate && (
+              <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
+                {t('addCamera')}
+              </Button>
+            )}
           </>
         )}
       />
@@ -168,7 +183,7 @@ export default function CamerasPage({ cameras, setCameras }) {
       </div>
 
       <FilterBar
-        actions={(
+        actions={canCreate && (
           <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
             {t('addCamera')}
           </Button>
@@ -211,8 +226,8 @@ export default function CamerasPage({ cameras, setCameras }) {
               key={camera.id}
               camera={camera}
               onView={() => setViewingCamera(camera)}
-              onEdit={() => openCameraForm(camera)}
-              onDelete={() => removeCamera(camera)}
+              onEdit={canEdit ? () => openCameraForm(camera) : null}
+              onDelete={canDelete ? () => removeCamera(camera) : null}
             />
           ))}
         </div>
@@ -232,7 +247,14 @@ export default function CamerasPage({ cameras, setCameras }) {
         footer={null}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" onFinish={saveCamera} preserve={false}>
+        <Form
+          key={editingCamera?.id || 'new-camera'}
+          form={form}
+          layout="vertical"
+          onFinish={saveCamera}
+          preserve={false}
+          initialValues={editingCamera || { status: 'offline' }}
+        >
           <Form.Item name="name" label={t('cameraName')} rules={[{ required: true, message: t('enterCameraName') }]}>
             <Input placeholder={t('frontEntrance')} />
           </Form.Item>

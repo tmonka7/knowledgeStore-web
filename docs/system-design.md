@@ -71,7 +71,8 @@ All collections use a UUID string `id` as the public identifier; Mongo's
 | `categories` | name, parentId, path, level | shared |
 | `cameras` | name, location, address, status, notes | shared |
 | `schedules` | title, notes, date, time, repeat, repeatUntil, ownerId | per owner |
-| `mails` | from, to, subject, body, attachment, unread, ownerId | per owner |
+| `mail_messages` | senderId, subject, body, **recipients[{userId, name, readAt, deletedAt}]**, recipientIds[], attachment, replyToId, sentAt | sender + recipients |
+| `posts` | title, body, authorId, pinned, **views[{userId, userName, viewedAt}]**, viewerIds[] | shared |
 | `contacts` | fullName, email, phone, company, jobTitle, group, tags[], favourite, ownerId | per owner |
 | `wallet_entries` | type, amount, **currency**, category, note, method, date, ownerId | per owner |
 | `projects` | key, name, status, colour, dates, memberIds[], progressOverride, taskCounter | shared |
@@ -191,7 +192,63 @@ username for every account behind nothing but `requireAuth`. Sharing is not an
 administrative act, so it cannot sit behind `users:view`; it is deliberately
 narrower than `GET /users`, which also carries email, role and permissions.
 
-### 4.5 Database maintenance
+### 4.5 Mail delivery and open tracking
+
+The previous model gave every message a single `ownerId`, addressed `to` as
+free text and filed what it created under 'Draft' — so sending mail wrote a
+note to yourself that no recipient could receive. It is replaced for the same
+reason chat was: none of those fields describe a message with two ends.
+
+One document per message, with a row per recipient, rather than a copy per
+mailbox:
+
+```
+mail_messages: { senderId, subject, body, attachment,
+                 recipients: [{ userId, name, readAt, deletedAt }],
+                 recipientIds: [ … ] }
+```
+
+That shape is what makes the open status answerable. The sender's copy *is*
+the recipients' copy, so `readAt` — stamped once, when a recipient first opens
+the message — is the same fact the sender reads back as "opened at 14:12".
+A separate receipt record could disagree with the mailbox it describes; this
+cannot.
+
+Inbox is `recipients` matching `{ userId, deletedAt: null }`; Sent is
+`senderId` with `deletedBySender` false. Deleting is therefore per person: it
+stamps `deletedAt` on your own row, and the document is destroyed only once
+nobody is holding it — which is also what stops its attachment being
+collected while someone can still open it.
+
+`getMailFor(userId, id)` is the single privacy gate, and like chat's it has no
+administrator bypass.
+
+### 4.6 Posts and the notification count
+
+A post stores its readers rather than a counter:
+
+```
+posts: { title, body, authorId, pinned,
+         views: [{ userId, userName, viewedAt }], viewerIds: [ … ] }
+```
+
+A count cannot answer "has the late shift seen this yet?", and the page has to
+show exactly who. `viewerIds` is the same data flattened, so "have I seen
+this?" is an indexed test rather than a scan of subdocuments on every
+notification poll.
+
+`recordPostView` filters on `viewerIds: { $ne: userId }` and both `$addToSet`s
+the id and `$push`es the row, so a second reading cannot add a second row —
+the count stays a number of people, not a number of page loads.
+
+The bell counts posts where `viewerIds` does not contain you, which is why
+reading one makes the number fall. Recording the view is its own request
+(`POST /posts/:id/view`) rather than a side effect of fetching a post: a list
+that prefetched bodies would otherwise mark everything read without anyone
+reading it. The Posts page calls back into the shell when it records one, so
+the bell recounts immediately instead of at the next poll.
+
+### 4.7 Database maintenance
 
 `databaseMaintenance.js` covers backup (canonical Extended JSON via the BSON
 library Mongoose already ships, so `Date` and `ObjectId` round-trip), restore
@@ -215,7 +272,8 @@ is built from every model that stores a path.
 | Cameras | `GET/POST /cameras`, `PUT/DELETE /cameras/:id` |
 | Projects | `GET /projects/members`, CRUD on `/projects[/:id]`, CRUD on `/projects/:projectId/tasks[/:taskId]`, `POST …/transition`, `POST …/comments`, `POST/DELETE …/attachments` |
 | Chat | `GET /chat/users`, `GET /chat/recent`, `GET/POST /chat/threads`, `GET/POST /chat/threads/:id/messages`, `POST /chat/threads/:id/attachments`, `POST /chat/threads/:id/read` |
-| Mail | `GET /mail/inbox`, `GET/DELETE /mail/:mailId`, `POST /mail` |
+| Mail | `GET /mail?folder=inbox\|sent`, `GET /mail/inbox`, `GET /mail/unread`, `GET/DELETE /mail/:mailId`, `POST /mail` |
+| Posts | `GET /posts`, `GET /posts/notifications`, `POST /posts`, `GET/PUT/DELETE /posts/:id`, `POST /posts/:id/view` |
 | Schedule | `GET /schedules`, `GET /schedules/upcoming`, `POST /schedules`, `PUT/DELETE /schedules/:id` |
 | Wallet | `GET /wallet/summary`, `GET /wallet/entries`, `POST /wallet/entries`, `PUT/DELETE /wallet/entries/:id` |
 | Contacts | `GET/POST /contacts`, `PUT/DELETE /contacts/:id`, `PATCH /contacts/:id/favourite` |

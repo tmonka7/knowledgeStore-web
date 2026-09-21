@@ -2,8 +2,9 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { createMail, deleteMail, getMail, listInbox } from '../controllers/mailController.js';
+import { createMail, deleteMail, getMail, listMail, unreadCount } from '../controllers/mailController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
+import { asyncRoute } from '../helpers/asyncRoute.js';
 
 const router = express.Router();
 const mailUploadDir = 'uploads/mail';
@@ -21,9 +22,16 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-router.get('/mail/inbox', requireAuth, requirePermission('mail:view'), listInbox);
-router.get('/mail/:mailId', requireAuth, requirePermission('mail:view'), getMail);
-router.post('/mail', requireAuth, requirePermission('mail:create'), upload.single('attachment'), createMail);
-router.delete('/mail/:mailId', requireAuth, requirePermission('mail:delete'), deleteMail);
+const canView = [requireAuth, requirePermission('mail:view')];
+
+// '/mail' takes ?folder=inbox|sent; '/mail/inbox' is kept as the name the
+// previous build used, and answers the same thing.
+router.get('/mail', canView, asyncRoute(listMail));
+router.get('/mail/inbox', canView, asyncRoute(listMail));
+// Before '/mail/:mailId' would be, so 'unread' is never read as a message id.
+router.get('/mail/unread', canView, asyncRoute(unreadCount));
+router.get('/mail/:mailId', canView, asyncRoute(getMail));
+router.post('/mail', requireAuth, requirePermission('mail:create'), upload.single('attachment'), asyncRoute(createMail));
+router.delete('/mail/:mailId', requireAuth, requirePermission('mail:delete'), asyncRoute(deleteMail));
 
 export default router;

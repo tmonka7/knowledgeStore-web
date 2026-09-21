@@ -20,14 +20,21 @@ Every signed-in screen sits inside one shell:
 
 **Sidebar order:** Overview · Users · Data · Camera Management · Project
 Management · Schedule · Tools (LVGL, Converting, YOLO, Transformers, Keras) ·
-Chat · Mail · Database Management · System Monitoring · Basic Data (Category).
+Chat · Mail · Posts · Database Management · System Monitoring · Basic Data
+(Category).
 
 A menu entry is present only if the account can view that page; a parent with
 no visible children disappears with them. **My Page is not in the sidebar** —
 it is reached from the avatar menu in the header, because it belongs to the
 person rather than to the organisation.
 
-**Chat** carries an unread count as a blue badge on its own label.
+**Chat** and **Posts** carry a count as a blue badge on their own label —
+unread messages, and posts this account has not opened.
+
+The **notification bell** holds two groups: "*n* new post(s)" above, then
+"due tomorrow" for the schedule, separated by a rule. Its badge is the sum.
+Choosing a post opens it on the Posts page; choosing a reminder opens the
+Schedule. With nothing in either group it reads "nothing due tomorrow".
 
 **Header icons**, right of the clock and language selector: a **message**
 icon, then the notification bell, then the user menu. The message icon carries
@@ -207,6 +214,43 @@ the bug fields, attachments, comments and the full history. Only the moves
 the lifecycle allows are offered as buttons; columns that cannot accept the
 dragged card are dimmed.
 
+### 3.7a Mail
+
+Two columns. The left one holds the folder switch — **Inbox** (with its unread
+count) and **Sent** — a search box, and the message list. An unread message
+carries a bold subject and a dot; a sent one carries an "Opened *n*/*m*" chip.
+
+The reading pane shows the sender, the recipients, the time, the body, and the
+attachment with its size. Then the open tracking, which differs by side:
+
+- **Sent:** "Opened by 2 of 3", and a row per recipient — name, then either
+  *Opened 14 Mar 14:12* or *Not opened yet*.
+- **Inbox:** one line, either when you opened it or a note that opening it
+  marks it read for the sender.
+
+Reply and Delete sit at the top right; Reply is offered only on a message you
+received, Delete only with the permission.
+
+**Compose** is a dialog: recipients as a multi-select of accounts (never a
+typed address), subject, the rich-text editor, and one attachment.
+
+### 3.7b Posts
+
+Table: Title (pinned ones first, marked with a pin, with a **New** badge until
+you open it) · Author · Posted · **Read by** · Actions.
+
+The "Read by" cell is a count that is itself a button — the number and
+"exactly who" are one question, so one leads to the other. It opens a dialog
+listing every reader with the time they opened it.
+
+Clicking a title opens the post: author, date, and the rich-text body, with
+"Read by *n*" in the footer. Opening is what records your view, which is what
+takes it off the notification count.
+
+New post, Edit and Delete appear only with the matching permissions; the
+editor is a dialog with Title, the rich-text editor and a "Pin to the top"
+switch.
+
 ### 3.8 Database Management
 
 Four panels: Initialization (safe or reset, the latter requiring the word
@@ -225,9 +269,8 @@ of the measured series. Nothing on this page is simulated.
 |---|---|
 | Data | Filter bar (text, category, mode, date range), table, record detail drawer with Word export, add/edit modal with a rich-text editor, attachments and the sharing control below them. |
 | Category | Tree with add and delete. |
-| Camera Management / Camera Wall | Table of cameras; wall of live tiles. |
+| Camera Management / Camera Wall | Card grid of cameras with a preview or a "no preview" placeholder, status badge, protocol chip and per-card actions (Edit and Delete only with the permission); a wall of live tiles; a single-camera view with fullscreen and object detection. |
 | Schedule | Month view with an entry dialog and an upcoming list. |
-| Mail | Inbox list, reading pane, compose dialog with one attachment. |
 | Contacts (My Page tab) | Searchable list with favourite toggle and a contact dialog. |
 | Tools | One page per tool: LVGL, Converting, YOLO, Transformers, Keras. |
 

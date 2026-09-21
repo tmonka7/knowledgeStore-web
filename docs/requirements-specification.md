@@ -107,12 +107,38 @@ polled), mobile applications, and single sign-on.
 | FR-CHT-10 | A message icon in the header carries the unread total and opens a menu of the five most recent messages addressed to the user, each showing who sent it, a preview and when. |
 | FR-CHT-11 | Choosing one of those messages opens the Chat page **on that conversation**. The menu is shown only to accounts that can use Chat. |
 
-### 3.6 Mail and schedule (FR-MSG)
+### 3.6 Mail (FR-MSG)
 
 | ID | Requirement |
 |---|---|
-| FR-MSG-01 | A user can compose, read and delete internal mail with a single attachment. Mail does not leave the installation. |
-| FR-MSG-02 | A user can create, edit and delete schedule entries with a date, time and repeat rule, and see what is coming up. |
+| FR-MSG-01 | A message is addressed to one or more **accounts on this installation**, chosen from a list, not to a typed address. Mail never leaves the installation. |
+| FR-MSG-02 | A sent message is delivered: it appears in every recipient's Inbox and in the sender's Sent folder. |
+| FR-MSG-03 | A message carries a subject, rich-text content and at most one attachment of up to 10 MB. |
+| FR-MSG-04 | Inbox shows how many messages are unread, and which. Opening one marks it read. |
+| FR-MSG-05 | **Open tracking.** A sender can see, for each recipient, whether they have opened the message and at what time. The summary "opened *n* of *m*" is shown on the message and in the Sent list. |
+| FR-MSG-06 | The open time is recorded once, on first opening. Re-reading a message must not move it. |
+| FR-MSG-07 | A user can reply to a message they received; the reply is addressed to the sender with the original quoted. |
+| FR-MSG-08 | Deleting removes the message from the caller's own mailbox only. Everyone else keeps their copy; the message is destroyed once nobody holds it. |
+| FR-MSG-09 | A mailbox is private to its owner. There is no administrator bypass. |
+| FR-MSG-10 | Both mailboxes can be searched by subject, sender, recipient and preview text. |
+
+### 3.6a Schedule (FR-SCH)
+
+| ID | Requirement |
+|---|---|
+| FR-SCH-01 | A user can create, edit and delete schedule entries with a date, time and repeat rule, and see what is coming up. |
+
+### 3.6b Posts (FR-PST)
+
+| ID | Requirement |
+|---|---|
+| FR-PST-01 | An account holding `posts:create` — in practice an administrator — can publish a post with a title and rich-text content, and can pin one above the rest. |
+| FR-PST-02 | Posts can be edited and deleted by accounts holding the matching permission. Everyone with `posts:view` can read them. |
+| FR-PST-03 | Recent posts the reader has not opened appear in the notification bell, alongside the schedule reminders, and the sidebar entry carries the same count. |
+| FR-PST-04 | The count is of posts **this account has not opened**, so it falls as they are read. Choosing one from the bell opens it. |
+| FR-PST-05 | Opening a post records who read it and when. A second reading must not add a second record. |
+| FR-PST-06 | The post list shows how many people have read each post. |
+| FR-PST-07 | The reader can see exactly **who** has read a post, with the time each of them opened it. |
 
 ### 3.7 Wallet (FR-WAL)
 
@@ -138,6 +164,9 @@ polled), mobile applications, and single sign-on.
 | ID | Requirement |
 |---|---|
 | FR-CAM-01 | A user can register cameras with a name, location, address, status and notes, and view a single camera or a wall of them. |
+| FR-CAM-02 | The Add, Edit and Delete controls are shown only to accounts holding the matching camera permission; a viewer sees the cameras and nothing else. |
+| FR-CAM-03 | Opening the edit dialog shows the camera's current values. |
+| FR-CAM-04 | A stream is previewed in the page only when it is an http(s) source and the camera is marked online; anything else states that no preview is available rather than showing a broken frame. Status is a value an operator sets — the system does not probe the camera. |
 
 ### 3.10 Database management (FR-DBA)
 

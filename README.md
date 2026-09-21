@@ -25,6 +25,55 @@ A full-stack starter app with:
 - Username: `admin`
 - Password: `admin123`
 
+## Mail
+
+Mail was a private notepad: every message carried a single `ownerId`, `to` was
+free text, and everything it created was filed as 'Draft', so sending produced
+a document no recipient could ever receive. Replaced rather than extended, for
+the same reason chat was — none of those fields describe a message with two
+ends.
+
+One document per message with a row per recipient, not a copy per mailbox:
+
+```
+mail_messages: { senderId, subject, body, attachment,
+                 recipients: [{ userId, name, readAt, deletedAt }], recipientIds: [] }
+```
+
+That is what makes **open tracking** answerable. The sender's copy *is* the
+recipients' copy, so the `readAt` stamped when a recipient first opens the
+message is the same fact the sender reads back as "opened at 14:12" — a
+separate receipt record could drift from the mailbox it describes; this
+cannot. The stamp is written once, so re-reading never moves it.
+
+Inbox is `recipients` matching `{ userId, deletedAt: null }`, Sent is
+`senderId` with `deletedBySender` false, and deleting is per person: your row
+is stamped and the document goes only when nobody holds it — which also keeps
+its attachment alive while someone can still open it. `getMailFor` is the one
+privacy gate and, like chat's, has no administrator bypass.
+
+## Posts
+
+Administrators publish announcements; everyone reads them. A post stores its
+readers rather than a counter, because the page has to show not just how many
+have read it but exactly who:
+
+```
+posts: { title, body, authorId, pinned,
+         views: [{ userId, userName, viewedAt }], viewerIds: [] }
+```
+
+`recordPostView` filters on `viewerIds: { $ne: userId }` and both `$addToSet`s
+the id and `$push`es the row, so a second reading cannot add a second row —
+the count is a number of people, not of page loads.
+
+The bell counts posts whose `viewerIds` does not contain you, which is why
+reading one makes the number fall. Recording a view is its own request
+(`POST /posts/:id/view`) rather than a side effect of a GET: a list that
+prefetched bodies would otherwise mark everything read without anyone reading
+it. The Posts page calls back into the shell after recording one, so the bell
+recounts immediately rather than at the next minute's poll.
+
 ## Record sharing
 
 A record carries `visibility` (`everyone` or `selected`) and `sharedWith`. The

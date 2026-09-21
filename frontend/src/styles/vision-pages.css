@@ -2554,3 +2554,179 @@
   font-size: 9px;
   vertical-align: middle;
 }
+
+/* ------------------------------------------------------------ mail: folders */
+
+.mail-folders {
+  display: flex;
+  gap: var(--v-space-2);
+  margin-bottom: var(--v-space-3);
+}
+
+.mail-folder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface);
+  color: var(--v-text-soft);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mail-folder.is-active {
+  border-color: var(--v-primary);
+  background: var(--v-tint-blue);
+  color: var(--v-primary);
+}
+
+/* Unread is carried by weight and a dot, never by colour alone. */
+.vision-mail-item.is-unread .vision-mail-item-subject {
+  font-weight: 700;
+  color: var(--v-text);
+}
+
+.mail-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--v-primary);
+  flex: none;
+}
+
+/* ------------------------------------------------------ mail: open tracking */
+
+.mail-receipt-panel {
+  margin-top: var(--v-space-4);
+  padding-top: var(--v-space-3);
+  border-top: 1px solid var(--v-border);
+}
+
+.mail-receipts {
+  list-style: none;
+  margin: var(--v-space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mail-receipts li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+  font-size: 13px;
+}
+
+.mail-receipt-name {
+  font-weight: 600;
+}
+
+.mail-receipt-open {
+  color: var(--v-success);
+}
+
+.mail-receipt-unopened {
+  color: var(--v-text-soft);
+}
+
+.mail-receipt-note {
+  margin-top: var(--v-space-3);
+}
+
+/* ----------------------------------------------------------------- posts */
+
+.post-title-link {
+  border: none;
+  background: none;
+  padding: 0;
+  margin-right: var(--v-space-2);
+  font: inherit;
+  font-weight: 600;
+  color: var(--v-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.post-title-link:hover {
+  color: var(--v-primary);
+}
+
+.post-row-unread .post-title-link {
+  font-weight: 700;
+}
+
+.post-pin {
+  margin-right: 6px;
+  color: var(--v-warning);
+}
+
+/* The count is the control: the number and "exactly who" are one question. */
+.post-viewer-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-pill);
+  background: var(--v-surface);
+  color: var(--v-text-soft);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.post-viewer-count:hover {
+  border-color: var(--v-primary);
+  color: var(--v-primary);
+}
+
+.post-viewer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.post-viewer-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+}
+
+.post-viewer-name {
+  font-weight: 600;
+}
+
+.post-meta {
+  margin-top: 0;
+}
+
+/* A post in the notification bell: icon, title, then who wrote it. */
+.vision-bell-item.is-post {
+  align-items: center;
+  max-width: 280px;
+}
+
+.vision-bell-post-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.vision-bell-post-author {
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+  flex: none;
+}

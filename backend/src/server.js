@@ -17,6 +17,7 @@ import walletRoutes from './routes/walletRoutes.js';
 import databaseRoutes from './routes/databaseRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
+import postRoutes from './routes/postRoutes.js';
 import { ensureSeedAdmin, ensureSeedCategories } from './models/store.js';
 import { startChatRetention } from './helpers/chatRetention.js';
 
@@ -64,6 +65,7 @@ app.use('/api', walletRoutes);
 app.use('/api', databaseRoutes);
 app.use('/api', projectRoutes);
 app.use('/api', contactRoutes);
+app.use('/api', postRoutes);
 
 // Without this, CORS/body-parser failures return an HTML error page that the
 // frontend cannot read, so every failure looks the same to the user.

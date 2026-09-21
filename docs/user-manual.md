@@ -200,6 +200,61 @@ A bug also carries steps to reproduce, the expected result, the actual result
 and the environment. Everything that happens to a task — who moved it, who
 commented, who attached what — is kept in its history.
 
+## 8a. Mail
+
+Mail goes to people on this installation — you pick them from a list, not by
+typing an address — and it never leaves it.
+
+### Sending
+
+**Compose**, then choose one or more recipients, a subject, write the message,
+and attach one file if you need to (up to 10 MB). **Send**.
+
+### Reading
+
+**Inbox** is what was sent to you; the number beside it is how many you have
+not read. Unread messages are in bold with a dot. Click one to read it, which
+marks it read. **Reply** answers the sender with the original quoted below.
+
+### Knowing whether it was read
+
+Open a message in **Sent**. Under it you will see *Opened by 2 of 3*, and a
+line for each person: either the date and time they opened it, or *Not opened
+yet*. The Sent list shows the same summary as a small chip on each row.
+
+The time is recorded when the message is first opened and never changes after
+that, so what you see is when they actually read it.
+
+### Deleting
+
+**Delete** removes the message from *your* mailbox. Everyone else keeps their
+copy — deleting from your inbox does not unsend anything.
+
+## 8b. Posts
+
+**Posts** are announcements. Anyone can read them; writing them is an
+administrator's job.
+
+### Reading
+
+New posts you have not opened show up in two places: the number beside
+**Posts** in the sidebar, and the bell at the top right, which lists the five
+newest under "*n* new post(s)". Click one there and it opens straight away.
+
+Opening a post is what clears it — the count falls by one as you read.
+
+### Who has read what
+
+The post list has a **Read by** column showing how many people have opened
+each post. Click that number to see exactly who, with the time each of them
+opened it. The same button is at the bottom of an open post.
+
+### Writing one (administrators)
+
+**New post**, then a title and the content. **Pin to the top** keeps it above
+the others for everyone. Posts can be edited and deleted later; deleting one
+also deletes its record of who read it.
+
 ## 9. Other pages
 
 | Page | What it does |
@@ -209,7 +264,8 @@ commented, who attached what — is kept in its history.
 | Category | The tree that records are filed under. |
 | Camera Management | Register cameras and watch them, singly or as a wall. |
 | Schedule | Your own calendar entries, including repeating ones. |
-| Mail | Internal mail with one attachment. It does not leave this installation. |
+| Mail | Internal mail with one attachment, and the open status of everything you send. It does not leave this installation. |
+| Posts | Announcements, and who has read them. |
 | Contacts | Your own address book, on My Page. |
 | Tools | LVGL, Converting, YOLO, Transformers and Keras helpers. |
 | Users | For administrators: accounts, roles and permissions. |
@@ -251,6 +307,9 @@ enrol their own face photo, and then set their role and permissions here.
 | Someone is missing from a project member or assignee list | Close the dialog and open it again; the list is re-read each time it opens. |
 | A chat file will not download | If its name ends in **(deleted)** it is past its week and has been removed. |
 | A record you expected is not in the Data list | Its owner shared it with named people and you are not one of them. Ask them to add you. |
+| A message you sent still says "Not opened yet" | They have not opened it. The time appears by itself once they do — there is nothing to refresh. |
+| The Posts count will not go down | It counts posts you have not opened. Open each one; the count falls as you read. |
+| No Add or Edit button on the Cameras page | Your account can watch cameras but not change them. Ask an administrator. |
 | You cannot edit a record you can see | It belongs to someone else. Sharing lets you read it, not change it. |
 | "Invalid or expired token" | Your 8-hour session ended. Sign in again. |
 | A wallet total looks wrong | Check which currency block you are reading. USD and REM are reported separately and are never added together. |

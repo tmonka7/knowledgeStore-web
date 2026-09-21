@@ -4,6 +4,7 @@ import {
   DownOutlined,
   MenuOutlined,
   MessageOutlined,
+  NotificationOutlined,
   SearchOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -33,6 +34,8 @@ export default function TopHeader({
   notificationCount = 0,
   notificationItems = [],
   onNotificationSelect,
+  postItems = [],
+  onPostSelect,
   showMessages = false,
   messageCount = 0,
   messageItems = [],
@@ -41,8 +44,31 @@ export default function TopHeader({
   const { language, setLanguage, t } = useLanguage();
   const [clock, setClock] = useState(() => formatClock(new Date()));
 
-  // Reminders for tomorrow; selecting any of them jumps to the Schedule page.
-  const bellMenuItems = notificationItems.length
+  /*
+   * The bell carries two kinds of thing waiting to be looked at: posts nobody
+   * has opened, and tomorrow's schedule. They are separate groups rather than
+   * one merged list, because opening a post and opening the schedule are
+   * different destinations, and a mixed list would not say which is which.
+   *
+   * Post keys are prefixed so a post id can never collide with a reminder key.
+   */
+  const postMenuItems = postItems.length
+    ? [
+      { key: 'posts-heading', type: 'group', label: t('newPosts', { count: postItems.length }) },
+      ...postItems.slice(0, 5).map((item) => ({
+        key: `post:${item.id}`,
+        label: (
+          <span className="vision-bell-item is-post">
+            <NotificationOutlined />
+            <span className="vision-bell-post-title">{item.title}</span>
+            <span className="vision-bell-post-author">{item.authorName}</span>
+          </span>
+        ),
+      })),
+    ]
+    : [];
+
+  const reminderMenuItems = notificationItems.length
     ? [
       { key: 'heading', type: 'group', label: t('dueTomorrow', { count: notificationItems.length }) },
       ...notificationItems.slice(0, 8).map((item) => ({
@@ -55,7 +81,24 @@ export default function TopHeader({
         ),
       })),
     ]
+    : [];
+
+  const bellMenuItems = postMenuItems.length || reminderMenuItems.length
+    ? [
+      ...postMenuItems,
+      ...(postMenuItems.length && reminderMenuItems.length ? [{ type: 'divider' }] : []),
+      ...reminderMenuItems,
+    ]
     : [{ key: 'empty', disabled: true, label: t('nothingDueTomorrow') }];
+
+  const onBellClick = ({ key }) => {
+    if (key === 'empty') return;
+    if (String(key).startsWith('post:')) {
+      onPostSelect?.(String(key).slice('post:'.length));
+      return;
+    }
+    onNotificationSelect?.();
+  };
 
   /*
    * The five newest messages addressed to you. Each row carries who wrote it,
@@ -150,7 +193,7 @@ export default function TopHeader({
         )}
 
         <Dropdown
-          menu={{ items: bellMenuItems, onClick: ({ key }) => key !== 'empty' && onNotificationSelect?.() }}
+          menu={{ items: bellMenuItems, onClick: onBellClick }}
           trigger={['click']}
           placement="bottomRight"
         >

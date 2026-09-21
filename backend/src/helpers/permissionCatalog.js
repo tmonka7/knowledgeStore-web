@@ -17,6 +17,7 @@ export const PERMISSION_CATALOG = [
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'wallet', label: 'My Page / Wallet', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'contacts', label: 'My Page / Contacts', actions: ['view', 'create', 'edit', 'delete'] },
+  { key: 'posts', label: 'Posts', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'users', label: 'Users', actions: ['view', 'edit'] },
   { key: 'database', label: 'Database Management', actions: ['view', 'manage'] },
   { key: 'system-monitor', label: 'System Monitoring', actions: ['view'] },
@@ -49,6 +50,9 @@ export const DEFAULT_USER_PERMISSIONS = [
   'contacts:create',
   'contacts:edit',
   'contacts:delete',
+  // Everyone reads posts; writing them is an administrator's job, so only
+  // 'view' is granted by default.
+  'posts:view',
   'lvgl-tool:view',
   'convert-tool:view',
   'yolo:view',

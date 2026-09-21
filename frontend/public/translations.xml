@@ -473,4 +473,6 @@
   <text id="noPreview" en="(no text)" es="(sin texto)" zh="（无文本）" jp="（本文なし）" />
   <text id="openChat" en="Open Chat" es="Abrir chat" zh="打开聊天" jp="チャットを開く" />
   <text id="cannotDeleteOthersRecords" en="Those records belong to someone else." es="Esos registros pertenecen a otra persona." zh="这些记录属于其他人。" jp="これらのレコードは他のユーザーのものです。" />
+  <text id="posts" en="Posts" es="Publicaciones" zh="公告" jp="お知らせ" />
+  <text id="newPosts" en="{count} new post(s)" es="{count} publicacion(es) nueva(s)" zh="{count} 条新公告" jp="新着のお知らせ {count} 件" />
 </translations>

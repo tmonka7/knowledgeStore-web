@@ -127,11 +127,47 @@ granted by default).
 | TC-REC-13 | FR-REC-06 | Insert a record directly in MongoDB with no `visibility` field. Look as another account. | It is visible — a legacy record reads as shared with everyone. |
 | TC-REC-14 | FR-USR-10 | As USER1, who lacks `users:view`, open the add-record dialog and choose "Selected people". | The picker lists every account by name and username. `GET /users` still returns 403. |
 | TC-REC-15 | FR-USR-11 | Sign in as an administrator, have another administrator demote them, then list records without signing out. | Only records they own or that are shared with them come back — the bypass is gone immediately. |
-| TC-MSG-01 | FR-MSG-01 | Send internal mail with an attachment, read it, delete it. | Each step succeeds; the attachment downloads before deletion. |
-| TC-MSG-02 | FR-MSG-02 | Create a repeating schedule entry. | It appears on the expected days and in the upcoming list. |
+| TC-MSG-01 | FR-MSG-01, FR-MSG-02 | As USER1, compose to USER2 with a subject, content and a 1 MB attachment, and send. | It appears in USER1's Sent folder and in USER2's Inbox, marked unread, with the attachment. |
+| TC-MSG-02 | FR-MSG-01 | Open the compose dialog. | Recipients are chosen from a list of accounts; there is no free-text address field. |
+| TC-MSG-03 | FR-MSG-04 | As USER2, look at the Inbox before and after opening that message. | The Inbox count drops by one; the row stops being bold. |
+| TC-MSG-04 | FR-MSG-05 | As USER1, open the message in Sent after USER2 has read it. | "Opened by 1 of 1", with USER2's name and the time they opened it. |
+| TC-MSG-05 | FR-MSG-05 | Send to two people; have one open it. | Sent shows "Opened 1/2"; the unopened recipient reads "Not opened yet". |
+| TC-MSG-06 | FR-MSG-06 | Have USER2 open the same message again an hour later. | The time shown to the sender is unchanged. |
+| TC-MSG-07 | FR-MSG-07 | As USER2, reply. | The reply is addressed to USER1, the subject is prefixed "Re:", and the original is quoted below. |
+| TC-MSG-08 | FR-MSG-08 | As USER2, delete a message; check USER1's Sent folder. | It is gone from USER2's inbox and still in USER1's Sent. |
+| TC-MSG-09 | FR-MSG-08 | Delete the same message from both sides, then inspect `mail_messages`. | The document is gone once nobody holds it. |
+| TC-MSG-10 | FR-MSG-09 | As ADMIN, call `GET /mail/:id` for a message between USER1 and USER2. | 404 — administrators have no access to a mailbox. |
+| TC-MSG-11 | FR-MSG-03 | Attempt to send with no recipient, then with no subject, then a 30 MB attachment. | Each is refused with a message naming what is missing or too large. |
+| TC-MSG-12 | FR-MSG-10 | Search the Inbox for a word in a subject, then in a sender's name. | Both narrow the list; clearing restores it. |
+| TC-SCH-01 | FR-SCH-01 | Create a repeating schedule entry. | It appears on the expected days and in the upcoming list. |
+
+## 6a. Posts
+
+| ID | Requirement | Steps | Expected |
+|---|---|---|---|
+| TC-PST-01 | FR-PST-01 | As ADMIN, publish a post with a title and content. | It appears at the top of the list, authored by ADMIN. |
+| TC-PST-02 | FR-PST-01 | Publish a second post and pin it. | The pinned post sorts above the newer unpinned one and carries a pin. |
+| TC-PST-03 | FR-PST-03, FR-PST-04 | As USER1, who has not read either post, look at the bell and the sidebar. | Both show 2; the bell lists the posts under "2 new post(s)" above the schedule reminders. |
+| TC-PST-04 | FR-PST-04 | Choose one of them from the bell. | The Posts page opens with that post open. The count falls to 1 without a reload. |
+| TC-PST-05 | FR-PST-05 | As USER1, close and reopen the same post; then check the reader list. | USER1 appears once, with the time of the first opening. |
+| TC-PST-06 | FR-PST-06 | As ADMIN, look at the list after three people have read a post. | The "Read by" cell reads 3. |
+| TC-PST-07 | FR-PST-07 | Click that count. | A dialog lists all three readers by name with the time each opened it. |
+| TC-PST-08 | FR-PST-02 | As USER1, who holds only `posts:view`. | No New post, Edit or Delete control is offered; `POST /posts` returns 403. |
+| TC-PST-09 | FR-PST-02 | As ADMIN, edit a post's content, then delete it. | The change is visible to a reader; deletion removes it and its reader list. |
+| TC-PST-10 | FR-PST-05 | Open a post, then look at the list. | Its **New** badge is gone and the row is no longer bold. |
+
+## 6b. Cameras
+
+| ID | Requirement | Steps | Expected |
+|---|---|---|---|
+| TC-CAM-02 | FR-CAM-03 | Open the edit dialog for an existing camera. | Every field is filled in with that camera's current values. **Regression guard:** this dialog opened empty in the previous build. |
+| TC-CAM-03 | FR-CAM-02 | Grant USER1 `cameras:view` only. | The page lists cameras; no Add, Edit or Delete control appears anywhere on it. |
+| TC-CAM-04 | FR-CAM-02 | Grant USER1 `cameras:view` and `cameras:edit`. | Edit appears on each card; Delete does not. |
+| TC-CAM-05 | FR-CAM-04 | Register one camera with an `http://` address marked online, and one with `rtsp://`. | The first previews in the card; the second says no preview is available and still offers its details. |
+| TC-CAM-06 | FR-CAM-01 | Open a camera, use fullscreen, and start object detection on an http stream. | The stream fills the screen; detection outlines people and vehicles. |
 | TC-CON-01 | FR-CON-01 | Create a contact, favourite it, edit, delete. | Each succeeds; favourites sort to the top. |
 | TC-CON-02 | FR-CON-02 | As USER2, list contacts. | USER1's contacts are absent. |
-| TC-CAM-01 | FR-CAM-01 | Register a camera and open the wall. | The camera appears with its status. |
+| TC-CAM-01 | FR-CAM-01 | Register a camera and open the wall. | The camera appears with its status. (More camera cases in §6b.) |
 | TC-SYS-01 | FR-SYS-01 | Watch System Monitoring for a minute. | Latency varies with real requests; no series sits at a constant zero. |
 | TC-I18N-01 | FR-I18N-01 | Switch the language to each of Spanish, Chinese and Japanese. | Interface text changes; no key appears raw on the new screens (Gender, Birthday, Phone number, Address, Job). |
 | TC-I18N-02 | FR-I18N-02 | Rename `translations.xml` and reload. | The application still renders, falling back to keys rather than showing a blank page. |
@@ -166,4 +202,7 @@ Run at minimum: TC-USR-01 … 04 (user list), TC-AUTH-05 … 08 and TC-USR-06 �
 09 (personal details), TC-WAL-01 … 09 (two currencies), TC-CHT-06 … 13 (file
 transfer and retention), TC-DBA-08 (retained chat files survive cleanup),
 TC-REC-05 … 15 (record sharing — TC-REC-09 and TC-REC-15 are the two that
-would let data leak if they regressed) and TC-CHT-14 … 18 (header messages).
+would let data leak if they regressed), TC-CHT-14 … 18 (header messages),
+TC-MSG-01 … 12 (mail delivery and open tracking — TC-MSG-10 is the privacy
+guard), TC-PST-01 … 10 (posts and the notification count) and TC-CAM-02 … 05
+(camera permissions and the edit dialog).

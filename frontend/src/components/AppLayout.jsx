@@ -22,6 +22,8 @@ export default function AppLayout({
   notificationCount,
   notificationItems,
   onNotificationSelect,
+  postItems,
+  onPostSelect,
   showMessages,
   messageCount,
   messageItems,
@@ -54,6 +56,8 @@ export default function AppLayout({
           notificationCount={notificationCount}
           notificationItems={notificationItems}
           onNotificationSelect={onNotificationSelect}
+          postItems={postItems}
+          onPostSelect={onPostSelect}
           showMessages={showMessages}
           messageCount={messageCount}
           messageItems={messageItems}
