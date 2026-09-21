@@ -15,6 +15,7 @@ import {
 import {
   AppstoreOutlined,
   BarChartOutlined,
+  CalendarOutlined,
   CopyOutlined,
   DatabaseOutlined,
   CameraOutlined,
@@ -41,7 +42,10 @@ import ChatPage from './ChatPage';
 import MailPage from './MailPage';
 import { useLanguage } from '../i18n';
 import CamerasPage from './CamerasPage';
+import SchedulePage from './SchedulePage';
+import useScheduleReminders from '../components/schedule/useScheduleReminders';
 import LvglToolPage from './LvglToolPage';
+import ConvertToolPage from './ConvertToolPage';
 import YoloToolPage from './YoloToolPage';
 import TransformersToolPage from './TransformersToolPage';
 import KerasToolPage from './KerasToolPage';
@@ -134,6 +138,11 @@ export default function DashboardPage({
   onAiSearch,
 }) {
   const { t } = useLanguage();
+
+  // Polls for anything due tomorrow. Gated on the permission so a user without
+  // Schedule access never triggers the request (the API would 403 anyway).
+  const canUseSchedule = can(user, 'schedule');
+  const { reminders, permission, requestPermission } = useScheduleReminders({ enabled: canUseSchedule });
 
   const handleExportPdf = async () => {
     if (!selectedRecord) return;
@@ -246,12 +255,14 @@ export default function DashboardPage({
     { key: 'users', icon: <TeamOutlined />, label: t('users') },
     { key: 'records', icon: <DatabaseOutlined />, label: t('data') },
     { key: 'cameras', icon: <CameraOutlined />, label: t('cameraManagement') },
+    { key: 'schedule', icon: <CalendarOutlined />, label: t('schedule') },
     {
       key: 'tools',
       icon: <ToolOutlined />,
       label: 'Tools',
       children: [
         { key: 'lvgl-tool', label: 'LVGL' },
+        { key: 'convert-tool', label: 'Converting' },
         { key: 'yolo', label: 'YOLO' },
         { key: 'transformers', label: 'Transformers' },
         { key: 'keras', label: 'Keras' },
@@ -320,7 +331,9 @@ export default function DashboardPage({
       searchValue={searchText}
       onSearchChange={onSearchInputChange}
       onSearchSubmit={handleGlobalSearch}
-      notificationCount={1}
+      notificationCount={reminders.length}
+      notificationItems={reminders}
+      onNotificationSelect={() => setActiveKey('schedule')}
     >
         <Modal
           open={Boolean(selectedRecord)}
@@ -542,7 +555,16 @@ export default function DashboardPage({
 
           {effectiveKey === 'cameras' && <CamerasPage cameras={cameras} setCameras={setCameras} />}
 
+          {effectiveKey === 'schedule' && (
+            <SchedulePage
+              reminders={reminders}
+              notificationPermission={permission}
+              onRequestNotifications={requestPermission}
+            />
+          )}
+
           {effectiveKey === 'lvgl-tool' && <LvglToolPage />}
+          {effectiveKey === 'convert-tool' && <ConvertToolPage />}
           {effectiveKey === 'yolo' && <YoloToolPage />}
           {effectiveKey === 'transformers' && <TransformersToolPage />}
           {effectiveKey === 'keras' && <KerasToolPage />}

@@ -21,9 +21,27 @@ export default function TopHeader({
   userMenuItems,
   onOpenDrawer,
   notificationCount = 0,
+  notificationItems = [],
+  onNotificationSelect,
 }) {
   const { language, setLanguage, t } = useLanguage();
   const [clock, setClock] = useState(() => formatClock(new Date()));
+
+  // Reminders for tomorrow; selecting any of them jumps to the Schedule page.
+  const bellMenuItems = notificationItems.length
+    ? [
+      { key: 'heading', type: 'group', label: `Due tomorrow (${notificationItems.length})` },
+      ...notificationItems.slice(0, 8).map((item) => ({
+        key: `${item.scheduleId}:${item.date}`,
+        label: (
+          <span className="vision-bell-item">
+            <strong>{item.time}</strong>
+            <span>{item.title}</span>
+          </span>
+        ),
+      })),
+    ]
+    : [{ key: 'empty', disabled: true, label: 'Nothing due tomorrow' }];
 
   useEffect(() => {
     const timer = setInterval(() => setClock(formatClock(new Date())), 1000);
@@ -67,14 +85,20 @@ export default function TopHeader({
           popupMatchSelectWidth={false}
         />
 
-        <Badge dot={notificationCount > 0} offset={[-4, 4]}>
-          <Button
-            type="text"
-            className="vision-icon-btn"
-            icon={<BellOutlined />}
-            aria-label={`Notifications${notificationCount ? ` (${notificationCount})` : ''}`}
-          />
-        </Badge>
+        <Dropdown
+          menu={{ items: bellMenuItems, onClick: ({ key }) => key !== 'empty' && onNotificationSelect?.() }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Badge count={notificationCount} size="small" offset={[-4, 4]}>
+            <Button
+              type="text"
+              className="vision-icon-btn"
+              icon={<BellOutlined />}
+              aria-label={`Notifications${notificationCount ? ` (${notificationCount})` : ''}`}
+            />
+          </Badge>
+        </Dropdown>
 
         <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
           <button type="button" className="vision-user-pill" aria-label="Open user menu">

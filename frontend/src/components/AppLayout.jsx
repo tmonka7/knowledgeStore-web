@@ -19,6 +19,8 @@ export default function AppLayout({
   onSearchChange,
   onSearchSubmit,
   notificationCount,
+  notificationItems,
+  onNotificationSelect,
   children,
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -44,6 +46,8 @@ export default function AppLayout({
           userMenuItems={userMenuItems}
           onOpenDrawer={() => setDrawerOpen(true)}
           notificationCount={notificationCount}
+          notificationItems={notificationItems}
+          onNotificationSelect={onNotificationSelect}
         />
         <Content className="vision-content">{children}</Content>
         <Footer className="vision-footer">VisionAI · AI Security Platform © 2026</Footer>

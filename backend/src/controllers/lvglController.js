@@ -11,9 +11,40 @@
 // and depends on the native `canvas` module, while a browser already has a
 // perfectly good canvas to decode with.
 
-import convert from 'lv_font_conv/lib/convert.js';
-
 const MAX_UNICODE = 0x10ffff;
+
+let converter;
+
+/**
+ * Resolve lv_font_conv on first use.
+ *
+ * Loaded lazily, not at module scope: a top-level import of a package that has
+ * not been installed yet takes the entire API down at boot with
+ * ERR_MODULE_NOT_FOUND. This way a missing dependency disables one endpoint and
+ * explains itself, and every other route keeps serving.
+ *
+ * @returns the convert function, or null when the package is not installed.
+ */
+const loadConverter = async () => {
+  if (converter !== undefined) return converter;
+
+  try {
+    const module = await import('lv_font_conv/lib/convert.js');
+    converter = module.default || module;
+  } catch {
+    converter = null;
+  }
+
+  return converter;
+};
+
+const NOT_INSTALLED = 'Font conversion needs the lv_font_conv package. Run "npm install" in backend/ and restart the API.';
+
+/** GET /tools/lvgl/capabilities — lets the page disable the tab up front. */
+export const fontCapabilities = async (req, res) => {
+  const loaded = await loadConverter();
+  return res.json({ font: Boolean(loaded), message: loaded ? '' : NOT_INSTALLED });
+};
 
 /** Parse one code point, decimal or 0x-prefixed hex. Mirrors the upstream CLI. */
 const unicodePoint = (value) => {
@@ -77,6 +108,9 @@ export const convertFont = async (req, res, next) => {
     if (!BPP_CHOICES.includes(bpp)) {
       return res.status(400).json({ message: `Bpp must be one of ${BPP_CHOICES.join(', ')}.` });
     }
+
+    const convert = await loadConverter();
+    if (!convert) return res.status(503).json({ message: NOT_INSTALLED });
 
     // Either is accepted, matching --range / --symbols upstream, but at least
     // one must be present or the converter has no glyphs to emit.
