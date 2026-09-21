@@ -155,7 +155,7 @@ function PersonAvatar({ person, size = 42 }) {
  * newer than its last message and the list polls for previews and unread
  * counts. Both are cheap: a quiet chat returns an empty array.
  */
-export default function ChatPage({ user }) {
+export default function ChatPage({ user, initialThreadId = '', onThreadOpened }) {
   const { t } = useLanguage();
 
   const [threads, setThreads] = useState([]);
@@ -238,6 +238,24 @@ export default function ChatPage({ user }) {
       setLoadingThread(false);
     }
   }, []);
+
+  /*
+   * A conversation picked from the header's message menu.
+   *
+   * It waits for the thread list, because that is where the other person's
+   * name and avatar come from, and clears the request once it has been acted
+   * on so returning to Chat later does not reopen it.
+   *
+   * Declared after openThread on purpose: a dependency array is evaluated
+   * during render, so naming the callback before its const exists would throw.
+   */
+  useEffect(() => {
+    if (!initialThreadId || !threads.length) return;
+    const wanted = threads.find((thread) => thread.id === initialThreadId);
+    if (!wanted) return;
+    if (activeThreadIdRef.current !== wanted.id) openThread(wanted);
+    onThreadOpened?.();
+  }, [initialThreadId, threads, openThread, onThreadOpened]);
 
   const startChatWith = async (person) => {
     try {

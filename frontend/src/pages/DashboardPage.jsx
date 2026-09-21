@@ -25,6 +25,7 @@ import {
   MessageOutlined,
   PaperClipOutlined,
   ProjectOutlined,
+  ShareAltOutlined,
   TeamOutlined,
   ToolOutlined,
 } from '@ant-design/icons';
@@ -35,6 +36,7 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 import AppLayout from '../components/AppLayout';
 import HtmlEditor from '../components/HtmlEditor';
+import ShareWithField, { describeSharing } from '../components/records/ShareWithField';
 import { can } from '../permissions';
 import OverviewPage from './OverviewPage';
 import RecordsPage from './RecordsPage';
@@ -124,6 +126,7 @@ export default function DashboardPage({
   handleUpdateUser,
   onRefreshUsers,
   permissionCatalog,
+  directory = [],
   loading,
   isAddModalOpen,
   setIsAddModalOpen,
@@ -151,29 +154,42 @@ export default function DashboardPage({
   const canUseSchedule = can(user, 'schedule');
   const { reminders, permission, requestPermission } = useScheduleReminders({ enabled: canUseSchedule });
 
-  // Unread direct messages, so the count is visible from anywhere in the app
-  // rather than only once Chat is already open.
+  // Unread direct messages and the newest few, so both the sidebar count and
+  // the header's message menu work from anywhere in the app rather than only
+  // once Chat is already open. One request serves both.
   const [chatUnread, setChatUnread] = useState(0);
+  const [recentMessages, setRecentMessages] = useState([]);
+  // The conversation the header asked Chat to open, if any.
+  const [chatThreadId, setChatThreadId] = useState('');
   const canUseChat = can(user, 'chat');
 
   useEffect(() => {
     if (!canUseChat) return undefined;
 
     let cancelled = false;
-    const checkUnread = async () => {
+    const checkMessages = async () => {
       try {
-        const { data } = await api.get('/chat/unread');
-        if (!cancelled) setChatUnread(data.unread || 0);
+        const { data } = await api.get('/chat/recent', { params: { limit: 5 } });
+        if (cancelled) return;
+        setChatUnread(data.unread || 0);
+        setRecentMessages(data.messages || []);
       } catch (error) {
         /* The badge is a nicety; a failed poll should not raise anything. */
       }
     };
 
-    checkUnread();
-    const timer = setInterval(checkUnread, 15000);
+    checkMessages();
+    const timer = setInterval(checkMessages, 15000);
     return () => { cancelled = true; clearInterval(timer); };
   // Re-checked when the page changes, so opening Chat clears it promptly.
   }, [canUseChat, activeKey]);
+
+  // Picking a message from the header opens Chat on that conversation rather
+  // than dropping the reader on the page and making them find it again.
+  const openMessage = (threadId) => {
+    setChatThreadId(threadId || '');
+    setActiveKey('chat');
+  };
 
   const handleExportPdf = async () => {
     if (!selectedRecord) return;
@@ -375,6 +391,10 @@ export default function DashboardPage({
       notificationCount={reminders.length}
       notificationItems={reminders}
       onNotificationSelect={() => setActiveKey('schedule')}
+      showMessages={canUseChat}
+      messageCount={chatUnread}
+      messageItems={recentMessages}
+      onMessageSelect={openMessage}
     >
         <Modal
           open={Boolean(selectedRecord)}
@@ -391,7 +411,14 @@ export default function DashboardPage({
           {selectedRecord && (
             <div id="record-detail-export">
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <Tag>{selectedRecord.category}</Tag>
+                <Space size="small" wrap>
+                  <Tag>{selectedRecord.category}</Tag>
+                  {/* Who can read it, stated on the record rather than left to
+                      be remembered from the form that created it. */}
+                  <Tag icon={<ShareAltOutlined />} color={selectedRecord.visibility === 'selected' ? 'blue' : undefined}>
+                    {describeSharing(selectedRecord, directory, t)}
+                  </Tag>
+                </Space>
                 {selectedRecord.attempt && (
                   <Card size="small" title={t('attempt')}>
                     <div className="html-content detail-content">{selectedRecord.attempt}</div>
@@ -474,6 +501,7 @@ export default function DashboardPage({
               </div>
               {attachmentName && <div className="mail-file-name">{attachmentName}</div>}
             </Form.Item>
+            <ShareWithField form={recordForm} directory={directory} currentUserId={user?.id} />
             <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Button onClick={() => {
                 setEditingRecord(null);
@@ -541,6 +569,7 @@ export default function DashboardPage({
               </div>
               {attachmentName && <div className="mail-file-name">{attachmentName}</div>}
             </Form.Item>
+            <ShareWithField form={addForm} directory={directory} currentUserId={user?.id} />
             <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Button onClick={() => {
                 setIsAddModalOpen(false);
@@ -636,7 +665,13 @@ export default function DashboardPage({
             />
           )}
 
-          {effectiveKey === 'chat' && <ChatPage user={user} />}
+          {effectiveKey === 'chat' && (
+            <ChatPage
+              user={user}
+              initialThreadId={chatThreadId}
+              onThreadOpened={() => setChatThreadId('')}
+            />
+          )}
 
           {effectiveKey === 'mail' && <MailPage />}
 

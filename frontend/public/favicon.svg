@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="VisionAI">
+  <!--
+    The tab icon, drawn to match the brand mark in the sidebar: the same
+    135deg primary-to-secondary gradient on a rounded square, with the shield
+    the sidebar uses. SVG rather than a bitmap so it stays sharp at every size
+    a browser asks for, and small enough to be inlined by the build if it ever
+    needs to be.
+  -->
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1677ff" />
+      <stop offset="100%" stop-color="#6c5ce7" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#brand)" />
+  <path
+    d="M32 13 45.5 18.6v12.6c0 8.7-5.6 16.6-13.5 19.2-7.9-2.6-13.5-10.5-13.5-19.2V18.6L32 13Z"
+    fill="#ffffff"
+    fill-opacity="0.95"
+  />
+  <path
+    d="m25.8 32.4 4.4 4.5 8.2-9"
+    fill="none"
+    stroke="#1677ff"
+    stroke-width="3.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

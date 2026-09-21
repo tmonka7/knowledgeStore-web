@@ -67,7 +67,7 @@ All collections use a UUID string `id` as the public identifier; Mongo's
 | Collection | Key fields | Ownership |
 |---|---|---|
 | `users` | username, email, fullName, role, permissions[], passwordHash, faceDescriptor, faceImage, **gender, birthday, phone, address, job** | — |
-| `records` | title, categoryId, content (HTML), attachment(s), ownerId | shared |
+| `records` | title, categoryId, content (HTML), attachment(s), ownerId, **visibility, sharedWith[]** | owner + whoever it is shared with |
 | `categories` | name, parentId, path, level | shared |
 | `cameras` | name, location, address, status, notes | shared |
 | `schedules` | title, notes, date, time, repeat, repeatUntil, ownerId | per owner |
@@ -155,7 +155,43 @@ the order it was sent. `expiresAt` is stamped one week ahead at upload.
 The message is never removed. The record that a file was sent outlives the
 file, and the tagged name is what tells the UI to stop offering a download.
 
-### 4.4 Database maintenance
+### 4.4 Record sharing
+
+A record carries `visibility` (`everyone` or `selected`) and `sharedWith`, a
+list of account ids. `recordAccessFilter(userId, isAdmin)` in `recordModel.js`
+turns that into the clause every read goes through:
+
+```
+owner is me  OR  visibility != 'selected'  OR  sharedWith contains me
+```
+
+`!= 'selected'` rather than `== 'everyone'`, because a record written before
+this field existed has no `visibility` at all, and a missing value has to read
+the same way as the default a new record gets. The consequence is stated in
+the Requirements Specification: existing records become readable by everyone.
+
+Two details are easy to get wrong and are handled deliberately:
+
+- **The filter is a clause, not a top-level key.** Both the access filter and
+  a text search are `$or` expressions, so a query that spread one over the
+  other would silently drop the access check and let a search return records
+  the caller cannot read. Everything composes through `allOf`, which nests
+  each condition under `$and`.
+- **The administrator bypass is read from the account**, via `req.currentUser`
+  that `requirePermission` has already loaded — not from `req.user.role` in
+  the token. With records selectively shared, a demoted administrator keeping
+  the bypass until their eight-hour token expired would be a real leak.
+
+Sharing is read access. `updateData` and `deleteData` still require ownership
+or administrator, and the list hides those controls on a record you do not
+own rather than offering a button that answers 403.
+
+The picker is filled by `GET /users/directory`, which returns id, name and
+username for every account behind nothing but `requireAuth`. Sharing is not an
+administrative act, so it cannot sit behind `users:view`; it is deliberately
+narrower than `GET /users`, which also carries email, role and permissions.
+
+### 4.5 Database maintenance
 
 `databaseMaintenance.js` covers backup (canonical Extended JSON via the BSON
 library Mongoose already ships, so `Date` and `ObjectId` round-trip), restore
@@ -173,12 +209,12 @@ is built from every model that stores a path.
 | Area | Endpoints |
 |---|---|
 | Auth | `POST /auth/register`, `POST /auth/login` |
-| Users | `GET /users`, `PUT /users/:id`, `GET /permissions/catalog`, `GET /user/profile`, `PUT /user/password`, `PUT /user/profile` |
+| Users | `GET /users`, `GET /users/directory`, `PUT /users/:id`, `GET /permissions/catalog`, `GET /user/profile`, `PUT /user/password`, `PUT /user/profile` |
 | Records | `GET /data`, `GET /data/search`, `POST /data`, `PUT /data/:id`, `DELETE /data/:id` |
 | Categories | `GET/POST /categories`, `DELETE /categories/:id` |
 | Cameras | `GET/POST /cameras`, `PUT/DELETE /cameras/:id` |
 | Projects | `GET /projects/members`, CRUD on `/projects[/:id]`, CRUD on `/projects/:projectId/tasks[/:taskId]`, `POST …/transition`, `POST …/comments`, `POST/DELETE …/attachments` |
-| Chat | `GET /chat/users`, `GET /chat/unread`, `GET/POST /chat/threads`, `GET/POST /chat/threads/:id/messages`, `POST /chat/threads/:id/attachments`, `POST /chat/threads/:id/read` |
+| Chat | `GET /chat/users`, `GET /chat/recent`, `GET/POST /chat/threads`, `GET/POST /chat/threads/:id/messages`, `POST /chat/threads/:id/attachments`, `POST /chat/threads/:id/read` |
 | Mail | `GET /mail/inbox`, `GET/DELETE /mail/:mailId`, `POST /mail` |
 | Schedule | `GET /schedules`, `GET /schedules/upcoming`, `POST /schedules`, `PUT/DELETE /schedules/:id` |
 | Wallet | `GET /wallet/summary`, `GET /wallet/entries`, `POST /wallet/entries`, `PUT/DELETE /wallet/entries/:id` |

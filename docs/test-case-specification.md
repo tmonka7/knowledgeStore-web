@@ -90,6 +90,11 @@ granted by default).
 | TC-CHT-11 | FR-CHT-08 | Run the sweep a second time over the same message. | The tag is not appended twice; nothing errors. |
 | TC-CHT-12 | FR-DBA-06 | With a fresh chat attachment in place, run Database Management → Optimization → delete unlinked uploads. | The chat file is **not** deleted, and is counted as referenced. |
 | TC-CHT-13 | FR-CHT-06 | Revoke `chat:create` from USER1 and try to send a file. | 403; the message is not created. |
+| TC-CHT-14 | FR-CHT-10 | Have USER2 send USER1 three messages while USER1 is on the Overview page. | The header message icon shows 3 and its menu lists the three, newest first, each with sender, preview and time, marked unread. |
+| TC-CHT-15 | FR-CHT-11 | Click one of those messages. | Chat opens with that conversation already selected and its messages loaded. |
+| TC-CHT-16 | FR-CHT-10 | Send a file with no note, then open the header menu. | Its preview reads `📎 <file name>` rather than being blank. |
+| TC-CHT-17 | FR-CHT-11 | Revoke `chat:view` from USER1 and reload. | The message icon is absent from the header, and `GET /chat/recent` returns 403. |
+| TC-CHT-18 | FR-CHT-10 | Leave the app open with the header menu never touched. | `/chat/recent` is polled about every 15 seconds; the badge and the menu stay in step without a reload. |
 
 ## 6. Projects
 
@@ -111,6 +116,17 @@ granted by default).
 | TC-REC-02 | FR-REC-02 | Search by text, then by category, then by date range. | Each filter narrows the list; clearing restores it. |
 | TC-REC-03 | FR-REC-03 | Export a record to Word. | A `.docx` downloads and opens with the record's title and content. |
 | TC-REC-04 | FR-REC-04 | Create a child category and delete it. | The tree updates without a reload. |
+| TC-REC-05 | FR-REC-05, FR-REC-06 | As USER1, create a record without touching the sharing control. | Saved with "Everyone"; USER2 sees it in their Data list. |
+| TC-REC-06 | FR-REC-05 | As USER1, create a record shared with USER2 only. Check as USER2, then as a third account. | USER2 sees it; the third account does not; USER1 still does. |
+| TC-REC-07 | FR-REC-07 | As USER1, create a record with "Selected people" and nobody chosen. | The hint says only you can see it. USER2 does not see it; USER1 does. |
+| TC-REC-08 | FR-REC-05 | Edit that record and switch it back to Everyone. | USER2 sees it on their next load. |
+| TC-REC-09 | FR-REC-10 | With a record shared only with USER2, search as a third account for a word in its title. | It is not in the results. **Regression guard:** a text search must not widen access. |
+| TC-REC-10 | FR-REC-08 | As USER2, open a record USER1 shared with them. | It opens and reads. No edit or delete button is offered; `PUT /data/:id` returns 403 if called directly. |
+| TC-REC-11 | FR-REC-08 | As USER2, select a shared record and a record of their own and press Delete in the toolbar. | Only their own is deleted; the shared one is skipped with a message rather than erroring mid-run. |
+| TC-REC-12 | FR-REC-09 | Open the detail dialog of an everyone record, a selectively shared one, and a private one. | The tag reads "Shared with everyone", "Shared with <names>" and "Private to you" respectively. |
+| TC-REC-13 | FR-REC-06 | Insert a record directly in MongoDB with no `visibility` field. Look as another account. | It is visible — a legacy record reads as shared with everyone. |
+| TC-REC-14 | FR-USR-10 | As USER1, who lacks `users:view`, open the add-record dialog and choose "Selected people". | The picker lists every account by name and username. `GET /users` still returns 403. |
+| TC-REC-15 | FR-USR-11 | Sign in as an administrator, have another administrator demote them, then list records without signing out. | Only records they own or that are shared with them come back — the bypass is gone immediately. |
 | TC-MSG-01 | FR-MSG-01 | Send internal mail with an attachment, read it, delete it. | Each step succeeds; the attachment downloads before deletion. |
 | TC-MSG-02 | FR-MSG-02 | Create a repeating schedule entry. | It appears on the expected days and in the upcoming list. |
 | TC-CON-01 | FR-CON-01 | Create a contact, favourite it, edit, delete. | Each succeeds; favourites sort to the top. |
@@ -148,4 +164,6 @@ granted by default).
 
 Run at minimum: TC-USR-01 … 04 (user list), TC-AUTH-05 … 08 and TC-USR-06 …
 09 (personal details), TC-WAL-01 … 09 (two currencies), TC-CHT-06 … 13 (file
-transfer and retention), TC-DBA-08 (retained chat files survive cleanup).
+transfer and retention), TC-DBA-08 (retained chat files survive cleanup),
+TC-REC-05 … 15 (record sharing — TC-REC-09 and TC-REC-15 are the two that
+would let data leak if they regressed) and TC-CHT-14 … 18 (header messages).

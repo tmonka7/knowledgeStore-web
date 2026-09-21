@@ -237,8 +237,42 @@ export const markRead = async (req, res) => {
   return res.json({ ok: true, updated: result.modifiedCount || 0 });
 };
 
-/** Total unread across every thread — the number the chat badge shows. */
-export const unreadTotal = async (req, res) => {
-  const total = await ChatMessage.countDocuments({ recipientId: req.user.sub, readAt: null });
-  return res.json({ unread: total });
+const RECENT_LIMIT_MAX = 20;
+
+/**
+ * GET /chat/recent?limit=5
+ *
+ * What the message icon in the header shows: the newest messages addressed to
+ * you, and the unread total, in one request — the header polls this every few
+ * seconds and a second round trip for the badge would double that for nothing.
+ *
+ * Only incoming messages: the header is a notification surface, and your own
+ * messages are not news to you.
+ */
+export const recentMessages = async (req, res) => {
+  const me = req.user.sub;
+  const limit = Math.min(Math.max(Number(req.query.limit) || 5, 1), RECENT_LIMIT_MAX);
+
+  const [messages, unread] = await Promise.all([
+    ChatMessage.find({ recipientId: me }).sort({ createdAt: -1 }).limit(limit),
+    ChatMessage.countDocuments({ recipientId: me, readAt: null }),
+  ]);
+
+  const senderIds = [...new Set(messages.map((item) => item.senderId))];
+  const senders = await User.find({ id: { $in: senderIds } }, { id: 1, fullName: 1, username: 1 });
+  const nameById = new Map(senders.map((user) => [user.id, user.fullName || user.username]));
+
+  return res.json({
+    unread,
+    messages: messages.map((item) => ({
+      id: item.id,
+      threadId: item.threadId,
+      senderId: item.senderId,
+      // A sender whose account has since been deleted still has a message.
+      senderName: nameById.get(item.senderId) || 'Unknown',
+      preview: previewOf(item.body, item.attachment),
+      createdAt: item.createdAt,
+      unread: !item.readAt,
+    })),
+  });
 };

@@ -87,6 +87,25 @@ export const listUsers = async (req, res) => {
   return res.json({ users: users.map((user) => sanitizeUser(user.toObject ? user.toObject() : user)) });
 };
 
+/**
+ * GET /users/directory
+ *
+ * Just enough to address someone: id, name and username, for every account.
+ *
+ * Signed in is the only requirement, because every user needs it — it is what
+ * fills the "share this record with" picker, and sharing is not an
+ * administrative act. It is deliberately narrower than GET /users, which
+ * carries email, role and permissions and stays behind `users:view`.
+ */
+export const listDirectory = async (req, res) => {
+  const users = await getUsers();
+  return res.json({
+    users: users
+      .map((user) => ({ id: user.id, fullName: user.fullName, username: user.username }))
+      .sort((a, b) => String(a.fullName).localeCompare(String(b.fullName))),
+  });
+};
+
 export const getProfile = async (req, res) => {
   const me = await getUserById(req.user.sub);
   if (!me) {

@@ -1,4 +1,4 @@
-import { Button, Checkbox, Input, Modal, Select, TreeSelect } from 'antd';
+import { Button, Checkbox, Input, Modal, Select, TreeSelect, message } from 'antd';
 import * as XLSX from 'xlsx';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -88,6 +88,12 @@ export default function RecordsPage({
     children: categoryTreeData(item.children || []),
   }));
 
+  // Records shared with you are yours to read, not to change. An older record
+  // carries no ownerId at all, and is left editable rather than locked.
+  const canManage = (record) => user?.role === 'admin'
+    || !record.ownerId
+    || record.ownerId === user?.id;
+
   const normalizedRecords = useMemo(() => records.map((record, index) => ({
     ...record,
     ...deriveMetaFromRecord(record, index),
@@ -137,14 +143,25 @@ export default function RecordsPage({
   // The toolbar Delete button was previously inert; it now acts on the checked
   // rows, behind a confirmation because this cannot be undone.
   const deleteSelected = () => {
-    if (!selectedIds.length) return;
+    // A selection can include records shared with you, which the API will
+    // refuse; they are dropped here so the run does not stop on the first one.
+    const deletableIds = selectedIds.filter((id) => {
+      const record = normalizedRecords.find((item) => item.id === id);
+      return !record || canManage(record);
+    });
+
+    if (!deletableIds.length) {
+      if (selectedIds.length) message.error(t('cannotDeleteOthersRecords'));
+      return;
+    }
+
     Modal.confirm({
-      title: t('deleteRecordsQuestion', { count: selectedIds.length }),
+      title: t('deleteRecordsQuestion', { count: deletableIds.length }),
       content: t('actionCannotBeUndone'),
       okText: t('delete'),
       okButtonProps: { danger: true },
       onOk: async () => {
-        for (const id of selectedIds) {
+        for (const id of deletableIds) {
           // Sequential so a failure stops the run instead of firing every request.
           await handleDeleteRecord?.(id);
         }
@@ -392,7 +409,11 @@ export default function RecordsPage({
                           setSelectedId(record.id);
                         }}
                       />
-                      {can(user, 'records', 'edit') && (
+                      {/* Now that a record can be shared, the list holds other
+                          people's work as well as your own. Editing and
+                          deleting stay with the owner, so the buttons are
+                          absent rather than present and answered with a 403. */}
+                      {can(user, 'records', 'edit') && canManage(record) && (
                         <Button
                           type="text"
                           icon={<EditOutlined />}
@@ -403,7 +424,7 @@ export default function RecordsPage({
                           }}
                         />
                       )}
-                      {can(user, 'records', 'delete') && (
+                      {can(user, 'records', 'delete') && canManage(record) && (
                         <Button
                           type="text"
                           danger

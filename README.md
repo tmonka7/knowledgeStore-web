@@ -25,6 +25,36 @@ A full-stack starter app with:
 - Username: `admin`
 - Password: `admin123`
 
+## Record sharing
+
+A record carries `visibility` (`everyone` or `selected`) and `sharedWith`. The
+author picks one when adding or editing it; `everyone` is the default, and a
+record written before this existed has no field at all — which is why the
+access clause tests `visibility != 'selected'` rather than `== 'everyone'`, so
+a missing value reads as the default rather than as "nobody". **Existing
+records therefore become readable by everyone**, where before they were
+visible only to their owner.
+
+Two things in `recordModel.js` are load-bearing:
+
+- `allOf` composes every condition under `$and`. The access clause and a text
+  search are both `$or` expressions, and spreading one over the other at the
+  top level of a query would drop the access check — a search would return
+  records the caller cannot read.
+- `recordAccessFilter` is the only place the rule lives; `getRecords` and
+  `searchRecords` both go through it.
+
+The administrator bypass now comes from `req.currentUser.role`, loaded by the
+permission middleware, rather than `req.user.role` from the token — with
+records shared selectively, a demoted administrator keeping the bypass for the
+rest of their eight-hour session would be a leak.
+
+Sharing grants reading. `updateData` and `deleteData` still demand ownership
+or administrator, and the Data table hides those buttons on a record you do
+not own instead of offering one that answers 403. The picker is filled by
+`GET /users/directory` — id, name and username, behind `requireAuth` only,
+because addressing a share is not an administrative act.
+
 ## Documentation
 
 Written against this build, in `docs/`:
@@ -111,6 +141,18 @@ a file so it can be read and cleared without shell access.
 
 **Chat** is direct messages between accounts on this app: search for someone,
 pick them, and write to them.
+
+### The message icon in the header
+
+`GET /chat/recent?limit=5` returns the newest messages addressed to you and
+the unread total in one response, because the header polls it every 15 seconds
+and a second round trip for the badge would double that for nothing. It
+replaced `GET /chat/unread`, which only ever served the badge.
+
+Choosing a message hands its `threadId` up to DashboardPage, which switches to
+Chat and passes it down as `initialThreadId`; ChatPage opens that conversation
+once the thread list has arrived, then clears the request so returning later
+does not reopen it.
 
 ### File transfer
 

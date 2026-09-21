@@ -3,6 +3,7 @@ import {
   BellOutlined,
   DownOutlined,
   MenuOutlined,
+  MessageOutlined,
   SearchOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -12,6 +13,15 @@ import { languageOptions, useLanguage } from '../i18n';
 const { Header } = Layout;
 
 const formatClock = (date) => `${date.toLocaleDateString('sv-SE')} ${date.toLocaleTimeString('en-GB')}`;
+
+/** Clock time for something sent today, a date for anything older. */
+const shortTime = (value) => {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return date.toDateString() === new Date().toDateString()
+    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+};
 
 export default function TopHeader({
   user,
@@ -23,6 +33,10 @@ export default function TopHeader({
   notificationCount = 0,
   notificationItems = [],
   onNotificationSelect,
+  showMessages = false,
+  messageCount = 0,
+  messageItems = [],
+  onMessageSelect,
 }) {
   const { language, setLanguage, t } = useLanguage();
   const [clock, setClock] = useState(() => formatClock(new Date()));
@@ -42,6 +56,38 @@ export default function TopHeader({
       })),
     ]
     : [{ key: 'empty', disabled: true, label: t('nothingDueTomorrow') }];
+
+  /*
+   * The five newest messages addressed to you. Each row carries who wrote it,
+   * what it said and when; choosing one opens that conversation rather than
+   * only the Chat page, so the message you clicked is the one you land on.
+   */
+  const messageMenuItems = messageItems.length
+    ? [
+      { key: 'heading', type: 'group', label: t('recentMessages') },
+      ...messageItems.slice(0, 5).map((item) => ({
+        key: item.id,
+        label: (
+          <span className={`vision-message-item${item.unread ? ' is-unread' : ''}`}>
+            <span className="vision-message-head">
+              <strong>{item.senderName}</strong>
+              <span className="vision-message-time">{shortTime(item.createdAt)}</span>
+            </span>
+            <span className="vision-message-preview">{item.preview || t('noPreview')}</span>
+          </span>
+        ),
+      })),
+      { type: 'divider' },
+      { key: 'all', label: t('openChat') },
+    ]
+    : [{ key: 'empty', disabled: true, label: t('noMessagesYet') }];
+
+  const onMessageMenuClick = ({ key }) => {
+    if (key === 'empty' || key === 'heading') return;
+    // 'all' carries no conversation, so Chat opens wherever it left off.
+    const picked = messageItems.find((item) => item.id === key);
+    onMessageSelect?.(picked?.threadId || '');
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setClock(formatClock(new Date())), 1000);
@@ -84,6 +130,24 @@ export default function TopHeader({
           aria-label={t('language')}
           popupMatchSelectWidth={false}
         />
+
+        {showMessages && (
+          <Dropdown
+            menu={{ items: messageMenuItems, onClick: onMessageMenuClick }}
+            trigger={['click']}
+            placement="bottomRight"
+            overlayClassName="vision-message-menu"
+          >
+            <Badge count={messageCount} size="small" offset={[-4, 4]}>
+              <Button
+                type="text"
+                className="vision-icon-btn"
+                icon={<MessageOutlined />}
+                aria-label={`${t('messages')}${messageCount ? ` (${messageCount})` : ''}`}
+              />
+            </Badge>
+          </Dropdown>
+        )}
 
         <Dropdown
           menu={{ items: bellMenuItems, onClick: ({ key }) => key !== 'empty' && onNotificationSelect?.() }}

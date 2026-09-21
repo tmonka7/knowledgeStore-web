@@ -29,6 +29,18 @@ person rather than to the organisation.
 
 **Chat** carries an unread count as a blue badge on its own label.
 
+**Header icons**, right of the clock and language selector: a **message**
+icon, then the notification bell, then the user menu. The message icon carries
+the unread total as a badge and opens a menu of the five newest messages
+addressed to you — sender in bold, a one-line preview, the time on the right,
+and a dot marking an unread one. Choosing one opens Chat **on that
+conversation**; the last entry, "Open Chat", goes to the page without picking
+one. Accounts that cannot use Chat do not see the icon at all.
+
+The browser tab carries `frontend/public/favicon.svg` — the same rounded
+square, gradient and shield as the sidebar's brand mark, so the tab and the
+application agree.
+
 ## 2. Shared page grammar
 
 | Region | Component | Rule |
@@ -137,6 +149,31 @@ code, separated from the next by a rule. A currency with no entries shows
   (USD / REM, preselected from the last entry, with the note "Kept per entry;
   totals are never converted") · Date · Category · Method · Note.
 
+### 3.5a Data — sharing a record
+
+The last control in both the add and edit dialogs, directly under the
+attachment picker:
+
+```
+ Share with   [ Everyone ]  [ Selected people ]
+
+ People       [ ⌄ Ada Lovelace (ada) × ] [ ⌄ … ]
+              Nobody selected — only you can see this record.
+```
+
+Two questions rather than one list with an "everyone" entry in it: sharing
+with everyone and sharing with a named set are different answers, and a list
+that mixes them lets a record claim both at once. The people picker appears
+only when **Selected people** is chosen, searches by name and username, and
+leaves the owner out — they always have access, so an empty selection means
+"only me" and the hint says so.
+
+The record detail dialog states the result beside the category tag: *Shared
+with everyone*, *Shared with Ada Lovelace, Grace Hopper*, or *Private to you*.
+
+In the record table, the edit and delete buttons are absent on a record you do
+not own; the preview button is always there.
+
 ### 3.6 Chat
 
 Two columns: conversation list and the open thread.
@@ -186,7 +223,7 @@ of the measured series. Nothing on this page is simulated.
 
 | Screen | Shape |
 |---|---|
-| Data | Filter bar (text, category, mode, date range), table, record detail drawer with Word export, add/edit modal with a rich-text editor and attachments. |
+| Data | Filter bar (text, category, mode, date range), table, record detail drawer with Word export, add/edit modal with a rich-text editor, attachments and the sharing control below them. |
 | Category | Tree with add and delete. |
 | Camera Management / Camera Wall | Table of cameras; wall of live tiles. |
 | Schedule | Month view with an entry dialog and an upcoming list. |

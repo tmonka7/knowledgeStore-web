@@ -59,6 +59,8 @@ polled), mobile applications, and single sign-on.
 | FR-USR-07 | An administrator cannot remove their own administrator role. |
 | FR-USR-08 | Permissions are read from the database on every request, so a change takes effect on the user's next request rather than their next sign-in. |
 | FR-USR-09 | Each page permission is one of view, create, edit, delete (or manage, for Database Management). A page the user cannot view is absent from the sidebar. |
+| FR-USR-10 | Every signed-in user can read a directory of accounts — id, name and username only — because addressing a share is not an administrative act. The full user list stays behind `users:view`. |
+| FR-USR-11 | An administrator's bypass is read from their account on each request, not from their token, so a demotion takes effect immediately rather than when the token expires. |
 
 ### 3.3 Knowledge records and categories (FR-REC)
 
@@ -68,6 +70,12 @@ polled), mobile applications, and single sign-on.
 | FR-REC-02 | Records can be searched by text, by category, and by a date range. |
 | FR-REC-03 | A record can be exported as a Word document. |
 | FR-REC-04 | Categories form a tree. A category can be created and deleted; deleting one must not orphan its records silently. |
+| FR-REC-05 | When creating or editing a record, its owner chooses who it is shared with: **everyone**, or one or more named accounts. |
+| FR-REC-06 | The default is everyone. A record saved without a choice, and a record saved before this feature existed, is readable by everyone. |
+| FR-REC-07 | Choosing named accounts and selecting nobody means the record is readable by its owner alone. |
+| FR-REC-08 | Sharing grants reading only. Editing and deleting a record stay with its owner and with administrators, and the controls for them are not offered on someone else's record. |
+| FR-REC-09 | A record's sharing is stated on the record itself, not only in the form that created it. |
+| FR-REC-10 | The record list and every search must return exactly the records the caller may read — a text search must never widen that set. |
 
 ### 3.4 Project and bug tracking (FR-PRJ)
 
@@ -96,6 +104,8 @@ polled), mobile applications, and single sign-on.
 | FR-CHT-07 | An uploaded file is deleted one week after it was sent. |
 | FR-CHT-08 | When a file is deleted, its message stays and a deletion tag is appended to the stored file name. The conversation still shows that a file was sent; the file is simply no longer available. |
 | FR-CHT-09 | A file still in retention shows how long it has left. |
+| FR-CHT-10 | A message icon in the header carries the unread total and opens a menu of the five most recent messages addressed to the user, each showing who sent it, a preview and when. |
+| FR-CHT-11 | Choosing one of those messages opens the Chat page **on that conversation**. The menu is shown only to accounts that can use Chat. |
 
 ### 3.6 Mail and schedule (FR-MSG)
 
@@ -179,6 +189,12 @@ polled), mobile applications, and single sign-on.
 - REM is not an ISO 4217 currency code, so it is formatted as a plain number
   followed by the code rather than with a currency symbol.
 - There is no exchange rate anywhere in the system, by decision.
+- Records created before sharing existed carry no visibility field, and are
+  read as shared with everyone — the same answer a new record gets by default.
+  This widens what a non-owner can see compared with the previous build, where
+  records were visible only to their owner and to administrators. It is the
+  consequence of making "everyone" the default, and is stated here because it
+  changes existing data's meaning rather than only new data's.
 - The seeded administrator is `admin` / `admin123` and must be changed before
   any real use.
 

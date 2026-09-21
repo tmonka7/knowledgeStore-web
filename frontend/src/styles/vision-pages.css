@@ -2503,3 +2503,54 @@
 .chat-file-input {
   display: none;
 }
+
+/* ------------------------------------------------- header: message menu */
+
+/* The five newest messages, under the message icon. Wider than the bell menu
+   because a preview needs the room, and capped so a long message truncates
+   rather than stretching the dropdown across the header. */
+.vision-message-menu .ant-dropdown-menu {
+  min-width: 300px;
+}
+
+.vision-message-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 280px;
+}
+
+.vision-message-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--v-space-3);
+}
+
+.vision-message-time {
+  color: var(--v-text-soft);
+  font-size: 11.5px;
+  flex: none;
+}
+
+.vision-message-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--v-text-soft);
+  font-size: 12.5px;
+}
+
+/* Unread is carried by weight and a marker, not by colour alone. */
+.vision-message-item.is-unread .vision-message-preview {
+  color: var(--v-text);
+  font-weight: 600;
+}
+
+.vision-message-item.is-unread .vision-message-head strong::before {
+  content: '●';
+  margin-right: 6px;
+  color: var(--v-primary);
+  font-size: 9px;
+  vertical-align: middle;
+}

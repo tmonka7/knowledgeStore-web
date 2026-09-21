@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getProfile,
+  listDirectory,
   listPermissionCatalog,
   listUsers,
   updatePassword,
@@ -12,6 +13,9 @@ import { requireAdmin, requireAuth, requirePermission } from '../helpers/auth.js
 const router = express.Router();
 
 router.get('/users', requireAuth, requirePermission('users:view'), listUsers);
+// Declared before '/users/:id' would be, and ungated beyond sign-in: every
+// user needs names to share a record with. See listDirectory.
+router.get('/users/directory', requireAuth, listDirectory);
 router.put('/users/:id', requireAuth, requireAdmin, updateUser);
 router.get('/permissions/catalog', requireAuth, requireAdmin, listPermissionCatalog);
 

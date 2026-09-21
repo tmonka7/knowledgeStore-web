@@ -3,6 +3,8 @@ import { randomUUID } from 'crypto';
 import { getCategoryById } from './categoryModel.js';
 import { escapeRegex, rankAiSearchRecords } from '../helpers/searchHelpers.js';
 
+export const RECORD_VISIBILITIES = ['everyone', 'selected'];
+
 const recordSchema = new mongoose.Schema({
   id: { type: String, unique: true, required: true, default: () => randomUUID() },
   title: { type: String, required: true, trim: true },
@@ -13,10 +15,53 @@ const recordSchema = new mongoose.Schema({
   attachment: { type: String, default: '' },
   attachments: { type: [String], default: [] },
   ownerId: { type: String, required: true, index: true },
+  /*
+   * Who may read this record besides its owner.
+   *
+   * 'everyone' is the default, and is what an author gets without choosing
+   * anything. 'selected' narrows it to the accounts listed in `sharedWith` —
+   * an empty list therefore means "only me", which is a real answer rather
+   * than an accident.
+   *
+   * Sharing grants reading only. Editing and deleting stay with the owner and
+   * with administrators, exactly as before.
+   */
+  visibility: { type: String, enum: RECORD_VISIBILITIES, default: 'everyone' },
+  sharedWith: { type: [String], default: [], index: true },
   createdAt: { type: Date, default: Date.now },
 }, { collection: 'records' });
 
 export const Record = mongoose.models.Record || mongoose.model('Record', recordSchema);
+
+/**
+ * The records this account may read.
+ *
+ * `visibility: { $ne: 'selected' }` rather than an equality test on
+ * 'everyone': a record written before sharing existed carries no `visibility`
+ * field at all, and a missing value has to read the same way as the default a
+ * new record would get. Anything explicitly narrowed is the only thing this
+ * excludes.
+ */
+export const recordAccessFilter = (userId, isAdmin) => (isAdmin ? null : {
+  $or: [
+    { ownerId: userId },
+    { visibility: { $ne: 'selected' } },
+    { sharedWith: userId },
+  ],
+});
+
+/**
+ * Combines independent conditions under `$and`.
+ *
+ * Both the access filter and a text search are `$or` clauses, so they cannot
+ * both sit at the top level of one query — the second would replace the first
+ * and quietly widen what a search returns. Everything is a clause here.
+ */
+const allOf = (...clauses) => {
+  const list = clauses.filter(Boolean);
+  if (!list.length) return {};
+  return list.length === 1 ? list[0] : { $and: list };
+};
 
 const buildCategoryMatch = async (categoryId = '') => {
   if (!categoryId) {
@@ -41,14 +86,10 @@ const buildCategoryMatch = async (categoryId = '') => {
 };
 
 export const getRecords = async (ownerId, isAdmin, categoryId = '') => {
-  const query = isAdmin ? {} : { ownerId };
+  const access = recordAccessFilter(ownerId, isAdmin);
   const categoryMatch = await buildCategoryMatch(categoryId);
 
-  if (!categoryMatch) {
-    return Record.find(query).sort({ createdAt: -1 });
-  }
-
-  return Record.find({ ...query, $and: [categoryMatch] }).sort({ createdAt: -1 });
+  return Record.find(allOf(access, categoryMatch)).sort({ createdAt: -1 });
 };
 
 export const createRecord = async (data) => Record.create({
@@ -60,7 +101,7 @@ export const createRecord = async (data) => Record.create({
 export const getRecordById = (id) => Record.findOne({ id });
 
 export const searchRecords = async (ownerId, isAdmin, searchText = '', categoryId = '', mode = 'text', searchDateFrom = '', searchDateTo = '') => {
-  const query = isAdmin ? {} : { ownerId };
+  const access = recordAccessFilter(ownerId, isAdmin);
   const trimmed = String(searchText || '').trim();
   const categoryMatch = await buildCategoryMatch(categoryId);
   const validDateFrom = /^\d{4}-\d{2}-\d{2}$/.test(searchDateFrom) ? searchDateFrom : '';
@@ -82,17 +123,14 @@ export const searchRecords = async (ownerId, isAdmin, searchText = '', categoryI
     return getRecords(ownerId, isAdmin);
   }
 
-  const searchQuery = {
-    ...query,
-    ...((categoryMatch || dateMatch) ? { $and: [categoryMatch, dateMatch].filter(Boolean) } : {}),
-  };
+  const searchQuery = allOf(access, categoryMatch, dateMatch);
 
   if (!trimmed) {
     return Record.find(searchQuery).sort({ createdAt: -1 });
   }
 
   if (mode === 'ai') {
-    const allRecords = await Record.find({ ...searchQuery }).sort({ createdAt: -1 });
+    const allRecords = await Record.find(searchQuery).sort({ createdAt: -1 });
     const rankedRecords = rankAiSearchRecords(
       allRecords.map((record) => (record.toObject ? record.toObject() : record)),
       trimmed,
@@ -105,25 +143,23 @@ export const searchRecords = async (ownerId, isAdmin, searchText = '', categoryI
     const aiTerms = String(trimmed).split(/\s+/).filter(Boolean);
     const patterns = aiTerms.map((term) => new RegExp(escapeRegex(term), 'i'));
 
-    return Record.find({
-      ...searchQuery,
+    return Record.find(allOf(searchQuery, {
       $or: [
         { title: { $in: patterns } },
         { category: { $in: patterns } },
         { attempt: { $in: patterns } },
         { content: { $in: patterns } },
       ],
-    }).sort({ createdAt: -1 });
+    })).sort({ createdAt: -1 });
   }
 
   const pattern = new RegExp(escapeRegex(trimmed), 'i');
-  return Record.find({
-    ...searchQuery,
+  return Record.find(allOf(searchQuery, {
     $or: [
       { title: pattern },
       { category: pattern },
       { attempt: pattern },
       { content: pattern },
     ],
-  }).sort({ createdAt: -1 });
+  })).sort({ createdAt: -1 });
 };

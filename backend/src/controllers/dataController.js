@@ -1,8 +1,74 @@
-import { createRecord, getCategoryById, getRecordById, getRecords, searchRecords } from '../models/store.js';
+import { RECORD_VISIBILITIES, createRecord, getCategoryById, getRecordById, getRecords, searchRecords } from '../models/store.js';
+
+const MAX_SHARE_TARGETS = 200;
+
+/**
+ * Who a record is shared with, as the form sends it.
+ *
+ * The record forms are multipart, because they carry files, so everything
+ * arrives as a string: `sharedWith` is sent as JSON. A comma-separated list
+ * and a repeated field are both accepted too, since that is what a plain
+ * client would send.
+ *
+ * Returns { values, error }. An absent `visibility` means "leave it alone",
+ * so an update that does not mention sharing cannot silently widen a record.
+ */
+const readSharing = (body = {}) => {
+  if (body.visibility === undefined && body.sharedWith === undefined) {
+    return { values: {}, error: '' };
+  }
+
+  const visibility = String(body.visibility || 'everyone').toLowerCase();
+  if (!RECORD_VISIBILITIES.includes(visibility)) {
+    return { values: {}, error: `Visibility must be one of ${RECORD_VISIBILITIES.join(', ')}.` };
+  }
+
+  // Shared with everyone means the list is meaningless; it is cleared rather
+  // than kept, so a record can never claim both answers at once.
+  if (visibility === 'everyone') {
+    return { values: { visibility, sharedWith: [] }, error: '' };
+  }
+
+  let raw = body.sharedWith;
+  if (typeof raw === 'string') {
+    const text = raw.trim();
+    if (!text) raw = [];
+    else if (text.startsWith('[')) {
+      try {
+        raw = JSON.parse(text);
+      } catch (error) {
+        return { values: {}, error: 'sharedWith is not a valid list of users.' };
+      }
+    } else raw = text.split(',');
+  }
+
+  if (!Array.isArray(raw)) {
+    return { values: {}, error: 'sharedWith must be a list of user ids.' };
+  }
+
+  const sharedWith = [...new Set(raw.map((value) => String(value).trim()).filter(Boolean))];
+  if (sharedWith.length > MAX_SHARE_TARGETS) {
+    return { values: {}, error: `A record can be shared with at most ${MAX_SHARE_TARGETS} people.` };
+  }
+
+  return { values: { visibility, sharedWith }, error: '' };
+};
+
+/**
+ * Whether this caller is an administrator, read from the account rather than
+ * from the token.
+ *
+ * `requirePermission` has already loaded the current record onto the request,
+ * so this costs nothing — and unlike `req.user.role` it is not a snapshot
+ * taken when the token was issued. With records now shared selectively, a
+ * demoted administrator keeping the bypass until their token expired would be
+ * a real leak, and a promoted user not getting it would look like a bug.
+ */
+const isAdminRequest = (req) => req.currentUser?.role === 'admin';
 
 export const listData = async (req, res) => {
   const categoryId = String(req.query.categoryId || '');
-  const userRecords = await getRecords(req.user.sub, req.user.role === 'admin', categoryId);
+  const userRecords = await getRecords(req.user.sub, isAdminRequest(req), categoryId);
   return res.json({ data: userRecords.map((record) => record.toObject ? record.toObject() : record) });
 };
 
@@ -22,7 +88,7 @@ export const searchData = async (req, res) => {
     return res.status(400).json({ message: 'dateFrom cannot be later than dateTo.' });
   }
 
-  const userRecords = await searchRecords(req.user.sub, req.user.role === 'admin', searchText, categoryId, mode, searchDateFrom, searchDateTo);
+  const userRecords = await searchRecords(req.user.sub, isAdminRequest(req), searchText, categoryId, mode, searchDateFrom, searchDateTo);
   return res.json({ data: userRecords.map((record) => record.toObject ? record.toObject() : record) });
 };
 
@@ -44,10 +110,21 @@ export const createData = async (req, res) => {
     categoryName = selectedCategory.path || selectedCategory.name;
   }
 
+  const { values: sharing, error: sharingError } = readSharing(req.body);
+  if (sharingError) {
+    return res.status(400).json({ message: sharingError });
+  }
+
   const uploadedFiles = Array.isArray(req.files) ? req.files : [];
   const attachments = uploadedFiles.map((file) => `/uploads/${file.filename}`);
 
   const newRecord = await createRecord({
+    // Defaulted here as well as in the schema, so a record created by a client
+    // that knows nothing about sharing is readable by everyone rather than
+    // arriving without the field.
+    visibility: 'everyone',
+    sharedWith: [],
+    ...sharing,
     title,
     category: categoryName,
     categoryId: selectedCategoryId,
@@ -69,7 +146,9 @@ export const updateData = async (req, res) => {
     return res.status(404).json({ message: 'Record not found.' });
   }
 
-  if (record.ownerId !== req.user.sub && req.user.role !== 'admin') {
+  // Sharing grants reading, never writing: editing stays with the owner and
+  // with administrators, whoever the record has been shared with.
+  if (record.ownerId !== req.user.sub && !isAdminRequest(req)) {
     return res.status(403).json({ message: 'You cannot edit this record.' });
   }
 
@@ -99,6 +178,15 @@ export const updateData = async (req, res) => {
   record.categoryId = nextCategoryId;
   record.content = content || record.content;
   record.attempt = typeof attempt === 'string' ? attempt : record.attempt;
+
+  // Only the owner and administrators reach this handler at all, so deciding
+  // who may change the sharing has already happened above.
+  const { values: sharing, error: sharingError } = readSharing(req.body);
+  if (sharingError) {
+    return res.status(400).json({ message: sharingError });
+  }
+  Object.assign(record, sharing);
+
   await record.save();
 
   return res.json({ record: record.toObject ? record.toObject() : record });
@@ -112,7 +200,7 @@ export const deleteData = async (req, res) => {
     return res.status(404).json({ message: 'Record not found.' });
   }
 
-  if (record.ownerId !== req.user.sub && req.user.role !== 'admin') {
+  if (record.ownerId !== req.user.sub && !isAdminRequest(req)) {
     return res.status(403).json({ message: 'You cannot delete this record.' });
   }
 

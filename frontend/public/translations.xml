@@ -458,4 +458,19 @@
   <text id="phoneTooLong" en="Phone number is too long." es="El numero de telefono es demasiado largo." zh="电话号码过长。" jp="電話番号が長すぎます。" />
   <text id="addressTooLong" en="Address is too long." es="La direccion es demasiado larga." zh="地址过长。" jp="住所が長すぎます。" />
   <text id="jobTooLong" en="Job title is too long." es="El puesto es demasiado largo." zh="职位名称过长。" jp="職業名が長すぎます。" />
+  <text id="shareWith" en="Share with" es="Compartir con" zh="共享给" jp="共有先" />
+  <text id="shareEveryone" en="Everyone" es="Todos" zh="所有人" jp="全員" />
+  <text id="shareSelected" en="Selected people" es="Personas seleccionadas" zh="指定人员" jp="指定したユーザー" />
+  <text id="sharePeople" en="People" es="Personas" zh="人员" jp="ユーザー" />
+  <text id="sharePeoplePlaceholder" en="Choose who can see this" es="Elige quien puede verlo" zh="选择可以查看的人" jp="閲覧できる人を選択" />
+  <text id="shareOnlyYou" en="Nobody selected — only you can see this record." es="Nadie seleccionado: solo tu puedes ver este registro." zh="未选择任何人，只有你可以查看此记录。" jp="誰も選択されていません。あなただけが閲覧できます。" />
+  <text id="sharedWithEveryone" en="Shared with everyone" es="Compartido con todos" zh="已共享给所有人" jp="全員に共有" />
+  <text id="sharedWithNobody" en="Private to you" es="Privado para ti" zh="仅自己可见" jp="自分のみ" />
+  <text id="sharedWithPeople" en="Shared with {names}" es="Compartido con {names}" zh="已共享给 {names}" jp="{names} に共有" />
+  <text id="unknownPerson" en="a removed account" es="una cuenta eliminada" zh="已删除的账户" jp="削除されたアカウント" />
+  <text id="recentMessages" en="Recent messages" es="Mensajes recientes" zh="最近的消息" jp="最近のメッセージ" />
+  <text id="noMessagesYet" en="No messages yet" es="Aun no hay mensajes" zh="暂无消息" jp="メッセージはありません" />
+  <text id="noPreview" en="(no text)" es="(sin texto)" zh="（无文本）" jp="（本文なし）" />
+  <text id="openChat" en="Open Chat" es="Abrir chat" zh="打开聊天" jp="チャットを開く" />
+  <text id="cannotDeleteOthersRecords" en="Those records belong to someone else." es="Esos registros pertenecen a otra persona." zh="这些记录属于其他人。" jp="これらのレコードは他のユーザーのものです。" />
 </translations>

@@ -22,6 +22,10 @@ export default function AppLayout({
   notificationCount,
   notificationItems,
   onNotificationSelect,
+  showMessages,
+  messageCount,
+  messageItems,
+  onMessageSelect,
   children,
 }) {
   const { t } = useLanguage();
@@ -50,6 +54,10 @@ export default function AppLayout({
           notificationCount={notificationCount}
           notificationItems={notificationItems}
           onNotificationSelect={onNotificationSelect}
+          showMessages={showMessages}
+          messageCount={messageCount}
+          messageItems={messageItems}
+          onMessageSelect={onMessageSelect}
         />
         <Content className="vision-content">{children}</Content>
         <Footer className="vision-footer">{t('footerBrand')}</Footer>

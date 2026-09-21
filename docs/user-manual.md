@@ -101,6 +101,31 @@ at the bottom.
 Use the pencil on its row to edit it, including its currency, or the red bin
 to delete it. Deleting asks for confirmation first.
 
+## 6a. Sharing what you save in Data
+
+When you add or edit a record, the last thing in the dialog asks who it is
+for:
+
+- **Everyone** — anyone who can open the Data page can read it. This is the
+  default, and what you get if you never touch the control.
+- **Selected people** — only the people you choose. Start typing a name and
+  pick from the list; choose as many as you like.
+
+Choosing **Selected people** and picking nobody keeps the record to yourself.
+The dialog says so underneath, so you are never left guessing.
+
+Sharing lets people **read** your record. Only you (and an administrator) can
+change or delete it — on someone else's record you will see the preview
+button and nothing else.
+
+To check who can see something, open it: the tag beside the category says
+*Shared with everyone*, *Shared with…* and the names, or *Private to you*. To
+change it, edit the record and pick again.
+
+> Records that already existed before sharing was added are readable by
+> everyone, because that is the default. If one of your older records should
+> not be, edit it and choose **Selected people**.
+
 ## 7. Chat
 
 Chat is for direct messages between two people on this installation. A
@@ -124,6 +149,16 @@ other person has read it.
 
 The number beside **Chat** in the sidebar is how many unread messages you
 have. Opening a conversation clears its share of it.
+
+### The message icon in the header
+
+The speech-bubble icon at the top right carries the same unread count from
+wherever you are in the application. Click it for your five newest messages —
+who wrote it, the first line, and when — with a dot beside the ones you have
+not read yet.
+
+Click any of them to go straight to Chat with **that** conversation open.
+"Open Chat" at the bottom takes you to the page without choosing one.
 
 ### Sending a file
 
@@ -215,6 +250,8 @@ enrol their own face photo, and then set their role and permissions here.
 | Someone who just registered is not in the Users list | Press **Refresh** on the Users page. |
 | Someone is missing from a project member or assignee list | Close the dialog and open it again; the list is re-read each time it opens. |
 | A chat file will not download | If its name ends in **(deleted)** it is past its week and has been removed. |
+| A record you expected is not in the Data list | Its owner shared it with named people and you are not one of them. Ask them to add you. |
+| You cannot edit a record you can see | It belongs to someone else. Sharing lets you read it, not change it. |
 | "Invalid or expired token" | Your 8-hour session ended. Sign in again. |
 | A wallet total looks wrong | Check which currency block you are reading. USD and REM are reported separately and are never added together. |
 | Registration says the username or email is taken | That account already exists. Sign in instead, or use a different one. |

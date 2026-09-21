@@ -44,6 +44,9 @@ function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [attachmentName, setAttachmentName] = useState('');
   const [permissionCatalog, setPermissionCatalog] = useState([]);
+  // Names to address a share to. Everyone needs it, so it is not the
+  // permission-gated user list.
+  const [directory, setDirectory] = useState([]);
 
   const isLoggedIn = Boolean(token && user);
 
@@ -65,6 +68,17 @@ function App() {
       setUsers(data.users || []);
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const fetchDirectory = async () => {
+    if (!token) return;
+    try {
+      const { data } = await api.get('/users/directory');
+      setDirectory(data.users || []);
+    } catch (error) {
+      // The share picker degrades to an empty list; the rest of the form works.
+      console.error('Unable to load the user directory:', error.message);
     }
   };
 
@@ -136,6 +150,7 @@ function App() {
   // account doesn't fire a wall of 403s on login.
   useEffect(() => {
     if (!user) return;
+    fetchDirectory();
     if (can(user, 'users', 'view')) fetchUsers();
     if (can(user, 'records', 'view')) fetchData(searchText, categoryFilter, searchMode);
     if (can(user, 'categories', 'view')) fetchCategories();
@@ -264,6 +279,10 @@ function App() {
       formData.append('categoryId', values.categoryId || '');
       formData.append('attempt', values.attempt || '');
       formData.append('content', values.content || '');
+      // The request is multipart because of the files, so the list of people
+      // travels as JSON rather than as repeated fields.
+      formData.append('visibility', values.visibility || 'everyone');
+      formData.append('sharedWith', JSON.stringify(values.sharedWith || []));
 
       const selectedFiles = Array.isArray(values.attachment)
         ? values.attachment
@@ -311,6 +330,10 @@ function App() {
       attempt: record.attempt || '',
       content: record.content || '',
       attachment: existingFiles,
+      // A record saved before sharing existed has neither field, and reads as
+      // shared with everyone — the same as the default for a new one.
+      visibility: record.visibility || 'everyone',
+      sharedWith: record.sharedWith || [],
     });
     setAttachmentName(attachmentLabel);
   };
@@ -327,6 +350,8 @@ function App() {
       formData.append('categoryId', values.categoryId || '');
       formData.append('attempt', values.attempt || '');
       formData.append('content', values.content || '');
+      formData.append('visibility', values.visibility || 'everyone');
+      formData.append('sharedWith', JSON.stringify(values.sharedWith || []));
 
       const selectedFiles = Array.isArray(values.attachment)
         ? values.attachment
@@ -578,6 +603,7 @@ function App() {
       // afterwards is missing from it until this is called again.
       onRefreshUsers={fetchUsers}
       permissionCatalog={permissionCatalog}
+      directory={directory}
       attachmentName={attachmentName}
       setAttachmentName={setAttachmentName}
       searchText={searchText}
