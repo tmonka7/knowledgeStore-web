@@ -387,6 +387,7 @@
   <text id="lastSixMonths" en="Last 6 months" es="Últimos 6 meses" zh="最近 6 个月" jp="過去6か月" />
   <text id="recordsByCategory" en="Records by category" es="Registros por categoría" zh="按分类的记录" jp="カテゴリー別レコード" />
   <text id="manage" en="Manage" es="Administrar" zh="管理" jp="管理" />
+  <text id="noRecordsYet" en="No records yet" es="Aún no hay registros" zh="暂无记录" jp="レコードはまだありません" />
   <text id="recentRecords" en="Recent records" es="Registros recientes" zh="最近记录" jp="最近のレコード" />
   <text id="viewAll" en="View All" es="Ver todo" zh="查看全部" jp="すべて表示" />
   <text id="systemMonitoringSubtitle" en="Live performance, database totals and runtime health." es="Rendimiento en vivo, totales de la base de datos y salud del tiempo de ejecución." zh="实时性能、数据库总数和运行时健康状况。" jp="ライブ性能、データベース合計、実行時の状態。" />
