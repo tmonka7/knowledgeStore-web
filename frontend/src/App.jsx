@@ -8,6 +8,19 @@ import { can } from './permissions';
 
 const defaultUser = { username: 'admin', password: 'admin123' };
 
+/** Depth-first search of the category tree, which is nested arbitrarily deep. */
+const findCategory = (nodes = [], id) => {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const found = findCategory(node.children, id);
+    if (found) return found;
+  }
+  return null;
+};
+
+const countDescendants = (node) => (node?.children || [])
+  .reduce((total, child) => total + 1 + countDescendants(child), 0);
+
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [user, setUser] = useState(null);
@@ -237,17 +250,80 @@ function App() {
     setCameras([]);
   };
 
+  /*
+   * An account can be denied, or deleted, while its owner is sitting in the
+   * application. The API starts refusing every request at that moment, so
+   * without this the person is left on a dashboard where nothing works and
+   * nothing says why. One interceptor covers every page rather than each
+   * page having to recognise it.
+   */
+  useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const status = error.response?.status;
+        const body = error.response?.data;
+        const gone = status === 403 && body?.accountStatus;
+        const missing = status === 401 && /no longer exists/i.test(body?.message || '');
+
+        if (gone || missing) {
+          message.warning(body?.message || 'Your account is no longer available.', 8);
+          logout();
+        }
+        return Promise.reject(error);
+      },
+    );
+
+    // Ejected on cleanup, or a remount would stack a second copy and the
+    // message would appear twice.
+    return () => api.interceptors.response.eject(interceptor);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const startSession = (data) => {
+    localStorage.setItem('token', data.token);
+    setToken(data.token);
+    setUser(data.user);
+    message.success(`Welcome back, ${data.user.fullName}!`);
+    loginForm.resetFields();
+  };
+
+  /*
+   * An account that is pending or denied answers 403 rather than 401, and the
+   * message says which. Shown for longer than the default, because "waiting
+   * for an administrator" is something to read rather than glance at.
+   */
+  const reportSignInFailure = (error, fallback) => {
+    const body = error.response?.data;
+    if (body?.accountStatus) {
+      message.warning(body.message, 6);
+      return;
+    }
+    message.error(body?.message || fallback);
+  };
+
   const handleLogin = async (values) => {
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', values);
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-      message.success(`Welcome back, ${data.user.fullName}!`);
-      loginForm.resetFields();
+      const { data } = await api.post('/auth/login', {
+        username: values.username,
+        password: values.password,
+      });
+      startSession(data);
     } catch (error) {
-      message.error(error.response?.data?.message || 'Login failed.');
+      reportSignInFailure(error, 'Login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** The second way in: a face and nothing else — no username, no password. */
+  const handleFaceLogin = async (faceDescriptor) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/auth/login/face', { faceDescriptor });
+      startSession(data);
+    } catch (error) {
+      reportSignInFailure(error, 'Face sign-in failed.');
     } finally {
       setLoading(false);
     }
@@ -257,13 +333,14 @@ function App() {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/register', values);
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-      message.success(`Account created for ${data.user.fullName}.`);
+      // No session: the account is created but still pending, so signing in
+      // would only produce a screen where every request is refused.
+      message.success(data.message || 'Account created. An administrator must approve it.', 8);
       loginForm.resetFields();
+      return true;
     } catch (error) {
       message.error(error.response?.data?.message || 'Registration failed.');
+      return false;
     } finally {
       setLoading(false);
     }
@@ -393,14 +470,29 @@ function App() {
   };
 
   const handleDeleteCategory = async (id) => {
-    try {
-      await api.delete(`/categories/${id}`);
-      fetchCategories();
-      fetchData(searchText);
-      message.success('Category deleted.');
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Unable to delete category.');
-    }
+    const category = findCategory(categories, id);
+
+    // This was the one delete in the application that happened on the click,
+    // with nothing in between. Deleting a branch takes its children with it,
+    // so the confirmation says which one and how many.
+    Modal.confirm({
+      title: category ? `Delete "${category.name}"?` : 'Delete this category?',
+      content: countDescendants(category)
+        ? `Its ${countDescendants(category)} sub-categor${countDescendants(category) === 1 ? 'y' : 'ies'} are deleted too. This cannot be undone.`
+        : 'This cannot be undone.',
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await api.delete(`/categories/${id}`);
+          fetchCategories();
+          fetchData(searchText);
+          message.success('Category deleted.');
+        } catch (error) {
+          message.error(error.response?.data?.message || 'Unable to delete category.');
+        }
+      },
+    });
   };
 
   const handleSearchInputChange = (value) => {
@@ -427,17 +519,50 @@ function App() {
     fetchData(searchText, nextValue, searchMode);
   };
 
+  const deleteRecordById = async (id) => {
+    try {
+      await api.delete(`/data/${id}`);
+      return true;
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Delete failed.');
+      return false;
+    }
+  };
+
+  /**
+   * The toolbar's multi-delete.
+   *
+   * Its own function because the caller has already confirmed the whole
+   * selection: routing it through handleDeleteRecord opened a second dialog
+   * per record, so confirming "delete 8 records" produced eight more
+   * questions. It also reloads once at the end rather than once per record.
+   */
+  const handleDeleteRecords = async (ids = []) => {
+    let deleted = 0;
+    for (const id of ids) {
+      // Sequential, so a failure stops the run rather than firing every
+      // request at a server that has just refused one.
+      if (!await deleteRecordById(id)) break;
+      deleted += 1;
+    }
+
+    if (deleted) {
+      message.success(`${deleted} record${deleted === 1 ? '' : 's'} deleted.`);
+      await fetchData(searchText);
+    }
+    return deleted;
+  };
+
   const handleDeleteRecord = async (id) => {
     Modal.confirm({
       title: 'Delete record?',
       content: 'This action cannot be undone.',
+      okText: 'Delete',
+      okButtonProps: { danger: true },
       onOk: async () => {
-        try {
-          await api.delete(`/data/${id}`);
+        if (await deleteRecordById(id)) {
           message.success('Record deleted.');
           fetchData(searchText);
-        } catch (error) {
-          message.error(error.response?.data?.message || 'Delete failed.');
         }
       },
     });
@@ -455,6 +580,32 @@ function App() {
       return true;
     } catch (error) {
       message.error(error.response?.data?.message || 'Unable to update user.');
+      return false;
+    }
+  };
+
+  /** Allow, Deny, or back to Pending. The API refuses the cases that would lock everyone out. */
+  const handleSetUserStatus = async (id, status) => {
+    try {
+      await api.put(`/users/${id}/status`, { status });
+      const said = { allowed: 'allowed in', denied: 'denied', pending: 'set back to pending' }[status];
+      message.success(`Account ${said}.`);
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Unable to change that account.');
+      return false;
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    try {
+      const { data } = await api.delete(`/users/${id}`);
+      message.success('Account and all of its data deleted.');
+      await fetchUsers();
+      return data.removed || true;
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Unable to delete that account.');
       return false;
     }
   };
@@ -561,6 +712,7 @@ function App() {
         loading={loading}
         loginForm={loginForm}
         handleLogin={handleLogin}
+        handleFaceLogin={handleFaceLogin}
         handleRegister={handleRegister}
       />
     );
@@ -584,6 +736,7 @@ function App() {
       overviewChartData={overviewChartData}
       systemStatus={systemStatus}
       handleDeleteRecord={handleDeleteRecord}
+      handleDeleteRecords={handleDeleteRecords}
       recordForm={recordForm}
       addForm={addForm}
       categoryForm={categoryForm}
@@ -599,6 +752,8 @@ function App() {
       handleUpdatePassword={handleUpdatePassword}
       handleUpdateProfile={handleUpdateProfile}
       handleUpdateUser={handleUpdateUser}
+      handleSetUserStatus={handleSetUserStatus}
+      handleDeleteUser={handleDeleteUser}
       // The user list is loaded once at sign-in, so an account that registers
       // afterwards is missing from it until this is called again.
       onRefreshUsers={fetchUsers}

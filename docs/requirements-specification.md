@@ -41,10 +41,15 @@ polled), mobile applications, and single sign-on.
 | FR-AUTH-02 | Registration must reject a username or email already in use, a password under 6 characters, and a malformed email address. |
 | FR-AUTH-03 | Registration must capture a 128-value face descriptor from the photo. An account cannot be created without one. |
 | FR-AUTH-04 | Registration may also record gender, birthday, phone number, address and job. Each is optional and an account is complete without them. |
-| FR-AUTH-05 | A user signs in with username and password. An account that has a face descriptor must also pass face verification. |
+| FR-AUTH-05 | A user signs in by **either** of two methods. They are alternatives, not steps: (1) username and password, (2) facial recognition on its own. |
+| FR-AUTH-05a | Face sign-in supplies no username. The captured descriptor is compared against every approved account, and the closest match is accepted only if it is within the distance threshold **and** clearly closer than the next nearest account. |
+| FR-AUTH-05b | A refused face sign-in gives one message whatever the reason, so the form cannot be used to discover who is enrolled. |
 | FR-AUTH-06 | A session is a bearer token valid for 8 hours. Expiry returns the user to the sign-in screen. |
 | FR-AUTH-07 | Self-registration always creates a plain user. A role can only be granted by an administrator afterwards. |
 | FR-AUTH-08 | Every user can change their own password, whatever their permissions. |
+| FR-AUTH-09 | Registration creates the account with status **Pending** and does not start a session. The person is told the account is waiting for approval. |
+| FR-AUTH-10 | Sign-in is refused while an account is Pending or Denied, by either method, with a message that tells the two apart. |
+| FR-AUTH-11 | The account behind a session is re-read on every request. An account denied or deleted mid-session stops working immediately rather than when its token expires. |
 
 ### 3.2 Users and permissions (FR-USR)
 
@@ -62,6 +67,15 @@ polled), mobile applications, and single sign-on.
 | FR-USR-10 | Every signed-in user can read a directory of accounts — id, name and username only — because addressing a share is not an administrative act. The full user list stays behind `users:view`. |
 | FR-USR-11 | An administrator's bypass is read from their account on each request, not from their token, so a demotion takes effect immediately rather than when the token expires. |
 | FR-USR-12 | A permission added to the defaults after accounts already exist must be granted to those accounts once, at startup, and not re-granted afterwards — a permission an administrator revokes has to stay revoked. |
+| FR-USR-13 | Every account has a status of **Pending**, **Allowed** or **Denied**. An administrator sets it from the Users page, and the list can be filtered by it. |
+| FR-USR-14 | Pending and Denied are distinct states. Pending means nobody has decided yet; Denied means somebody decided no. |
+| FR-USR-15 | An administrator cannot deny their own account, and cannot deny or delete the last administrator who is able to sign in. |
+| FR-USR-16 | Accounts that existed before the status field must be treated as already approved, once, at startup — an upgrade must not lock everybody out. |
+| FR-USR-17 | An administrator can delete an account. Everything belonging to it is removed: records and their files, wallet, contacts, schedule, posts, chat conversations and their files, mail, hosted meetings and their recordings, in-call messages, activity log entries, and the face photo. |
+| FR-USR-18 | Shared project work is not destroyed with the account. Projects they owned pass to the administrator performing the deletion, membership is removed, their tasks are unassigned, their comments are deleted, and their entries in a task's history are anonymised so the trail stays whole. |
+| FR-USR-19 | Before an account is deleted, the administrator is shown a count of exactly what will be destroyed and what will be kept and unlinked. |
+| FR-USR-20 | An administrator cannot delete their own account. |
+| FR-USR-21 | **Every** destructive action in the application asks for confirmation before it runs, and a confirmation names what is about to be destroyed rather than asking only "are you sure?". |
 
 ### 3.3 Knowledge records and categories (FR-REC)
 
@@ -143,6 +157,24 @@ polled), mobile applications, and single sign-on.
 | FR-PST-06 | The post list shows how many people have read each post. |
 | FR-PST-07 | The reader can see exactly **who** has read a post, with the time each of them opened it. |
 
+### 3.6c Video meetings (FR-MTG)
+
+| ID | Requirement |
+|---|---|
+| FR-MTG-01 | An account holding `meetings:create` can create a meeting with a title, an optional description and an optional start time. A meeting with no start time is a room that can be opened whenever it is needed. |
+| FR-MTG-02 | A meeting is open to everyone by default. The host can instead name one or more people, and only they and the host may join. |
+| FR-MTG-03 | Joining a meeting connects the participant's camera and microphone to every other participant. Audio and video travel directly between browsers; the server carries only the handshake. |
+| FR-MTG-04 | A participant can mute their microphone and turn their camera off, and everyone else sees that state on their tile. |
+| FR-MTG-05 | A participant can share their screen in place of their camera, and stop sharing to return to it. |
+| FR-MTG-06 | Participants can send text messages to everyone in the call. The messages are kept with the meeting, so somebody joining late sees what has been said. |
+| FR-MTG-07 | A participant can record the meeting. The recording captures every tile and everybody's audio, and is saved to the meeting when it stops. |
+| FR-MTG-08 | While a recording is running, every participant is told so. The indicator is not under the control of the person recording. |
+| FR-MTG-09 | The meeting list shows which meetings are in progress and who is in each one. This reflects live connections, so it cannot show somebody who has gone. |
+| FR-MTG-10 | Each meeting keeps an attendance record: who joined, when, and when they left. Leaving and rejoining is two visits, not one. |
+| FR-MTG-11 | The host, or an administrator, can end a meeting. Ending it disconnects anyone still in the call and keeps the recordings, the messages and the attendance record. |
+| FR-MTG-12 | The host, an administrator, or the person who made a recording can delete it. Deleting a meeting deletes its recordings and messages with it. |
+| FR-MTG-13 | The number of people in one meeting is capped, because every participant sends their camera to every other one. The cap is configurable. |
+
 ### 3.7 Wallet (FR-WAL)
 
 | ID | Requirement |
@@ -212,12 +244,11 @@ polled), mobile applications, and single sign-on.
 
 ## 5. Constraints and assumptions
 
-- MongoDB is reachable at `MONGODB_URI`; the API listens on `127.0.0.1` only.
 - Uploaded files live on the API server's filesystem under `uploads/`, and are
   served from the static `/uploads` path. Anyone holding a file's URL can
   fetch it without signing in; the generated file name is the only obscurity.
-  This applies to chat attachments as it does to records, mail and tasks, and
-  is a known limitation rather than a design goal.
+  This applies to chat attachments and meeting recordings as it does to
+  records, mail and tasks, and is a known limitation rather than a design goal.
 - REM is not an ISO 4217 currency code, so it is formatted as a plain number
   followed by the code rather than with a currency symbol.
 - There is no exchange rate anywhere in the system, by decision.
@@ -227,6 +258,33 @@ polled), mobile applications, and single sign-on.
   records were visible only to their owner and to administrators. It is the
   consequence of making "everyone" the default, and is stated here because it
   changes existing data's meaning rather than only new data's.
+- MongoDB is reachable at `MONGODB_URI`; the API listens on `127.0.0.1` unless
+  `HOST` says otherwise. Meetings are the first feature for which that default
+  matters: bound to loopback, the only browsers that can reach the server are
+  the ones on the same machine, so a call cannot have a second participant.
+- Browsers only grant camera, microphone and screen access in a **secure
+  context** — HTTPS, or `localhost`. A plain `http://` page on a LAN address
+  does not qualify, and the API is not merely refused there but absent, so
+  meetings on such an address can be joined only to watch and listen.
+- Meeting media is a full mesh: every participant sends their camera to every
+  other participant. This needs no media server, which is what makes the
+  feature possible in a plain Express app, but the cost grows quadratically and
+  the room is capped (`MEETING_MAX_PEERS`, default 8, comfortable at 4–6).
+- Connecting across the internet relies on STUN. A symmetric NAT or a firewall
+  that blocks peer-to-peer UDP needs a TURN server, which relays the media and
+  therefore has to be one the operator runs or pays for; without one, a
+  minority of participants will fail to connect and cannot be made to.
+- Who is in a meeting right now is held in the API process's memory, not in
+  the database. This is what makes occupancy self-correcting, and it means the
+  backend must run as a single process.
+- Facial recognition is now **sufficient on its own** to sign in, where before
+  it was a second factor on top of a password. A face descriptor is not a
+  secret the way a password is: it can be produced from a photograph, and
+  nothing here tests for liveness, so method 2 establishes what somebody looks
+  like rather than what they know. The 1:N thresholds are tightened and a
+  margin over the runner-up is required, which reduces false matches but does
+  not make a photograph fail. An installation that needs a stronger guarantee
+  should disable face sign-in rather than rely on it.
 - The seeded administrator is `admin` / `admin123` and must be changed before
   any real use.
 

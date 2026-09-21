@@ -5,6 +5,7 @@ import { Record } from '../models/recordModel.js';
 import { Mail } from '../models/mailModel.js';
 import { Task } from '../models/taskModel.js';
 import { ChatMessage } from '../models/chatModel.js';
+import { Meeting } from '../models/meetingModel.js';
 
 // mongoose re-exports the driver, and the driver re-exports BSON, so extended
 // JSON is available without adding a dependency of our own. Canonical (rather
@@ -89,13 +90,14 @@ const toRelativeUpload = (value) => String(value || '')
  * by the optimisation task.
  */
 export const getReferencedUploads = async () => {
-  const [records, mails, tasks, messages] = await Promise.all([
+  const [records, mails, tasks, messages, meetings] = await Promise.all([
     Record.find({}, { attachment: 1, attachments: 1 }).lean(),
     Mail.find({}, { attachment: 1 }).lean(),
     Task.find({}, { attachments: 1 }).lean(),
     // Only the ones whose file is still on disk: once the retention sweep has
     // deleted it, the row is a name and nothing else.
     ChatMessage.find({ 'attachment.deletedAt': null }, { attachment: 1 }).lean(),
+    Meeting.find({}, { recordings: 1 }).lean(),
   ]);
 
   const referenced = new Set();
@@ -112,6 +114,9 @@ export const getReferencedUploads = async () => {
   // Task attachments are objects, not strings: the url is on .path.
   tasks.forEach((task) => (task.attachments || []).forEach((file) => add(file.path)));
   messages.forEach((item) => add(item.attachment?.path));
+  // Meeting recordings are the largest files this app stores, so they are also
+  // the ones it would be most expensive to sweep away by forgetting them here.
+  meetings.forEach((meeting) => (meeting.recordings || []).forEach((file) => add(file.path)));
 
   return referenced;
 };

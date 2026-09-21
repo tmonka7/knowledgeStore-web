@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Checkbox, DatePicker, Form, Input, Modal, Select, Table, Typography } from 'antd';
+import { Alert, Button, Checkbox, DatePicker, Form, Input, Modal, Select, Table, Tooltip, Typography, message } from 'antd';
 import dayjs from 'dayjs';
 import {
   AppstoreFilled,
@@ -38,6 +38,7 @@ import {
   UserOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
+import api from '../api';
 import { FaceScanArt } from '../components/FaceArt';
 import FilterBar from '../components/ui/FilterBar';
 import PageHeader from '../components/ui/PageHeader';
@@ -74,6 +75,28 @@ const PAGE_META = {
   'system-monitor': { icon: <LineChartOutlined />, color: '#0ea5e9', tint: '#e3f4fd' },
 };
 
+const STATUS_LABEL = { pending: 'Pending', allowed: 'Allowed', denied: 'Denied' };
+// Amber for pending because it is a question waiting for an answer, not a
+// failure; red is reserved for the decision to refuse.
+const STATUS_TONE = { pending: 'amber', allowed: 'green', denied: 'red' };
+
+// What the deletion preview's counts are called, in the order they are shown.
+// Phrased as plurals because they always follow a number.
+const DELETION_LABELS = {
+  records: 'data records (with their files)',
+  walletEntries: 'wallet entries',
+  contacts: 'contacts',
+  schedules: 'schedule entries',
+  posts: 'posts they wrote',
+  chatThreads: 'chat conversations (deleted for the other person too)',
+  chatMessages: 'chat messages (with their files)',
+  mailSent: 'mail they sent (withdrawn from every recipient)',
+  mailReceived: 'mail they received',
+  hostedMeetings: 'meetings they host (with their recordings)',
+  meetingMessages: 'in-call messages',
+  activityLogs: 'activity log entries',
+};
+
 const EDITOR_TABS = [
   { key: 'basic', label: 'Basic Info', icon: <UserOutlined /> },
   { key: 'permissions', label: 'Permissions', icon: <SafetyCertificateOutlined /> },
@@ -105,6 +128,8 @@ export default function UsersPage({
   user,
   userTableColumns,
   handleUpdateUser,
+  handleSetUserStatus,
+  handleDeleteUser,
   onRefreshUsers,
   permissionCatalog = [],
 }) {
@@ -128,7 +153,10 @@ export default function UsersPage({
   const [queryDraft, setQueryDraft] = useState('');
   const [roleDraft, setRoleDraft] = useState('all');
   const [faceDraft, setFaceDraft] = useState('all');
-  const [filters, setFilters] = useState({ query: '', role: 'all', face: 'all' });
+  const [statusDraft, setStatusDraft] = useState('all');
+  const [filters, setFilters] = useState({ query: '', role: 'all', face: 'all', status: 'all' });
+  // Which row is mid-request, so its own buttons spin rather than the page.
+  const [busyId, setBusyId] = useState('');
 
   /**
    * The list App loaded at sign-in can be minutes or hours old, and anyone who
@@ -147,13 +175,19 @@ export default function UsersPage({
     setRefreshing(false);
   };
 
-  const applyFilters = () => setFilters({ query: queryDraft.trim(), role: roleDraft, face: faceDraft });
+  const applyFilters = () => setFilters({
+    query: queryDraft.trim(),
+    role: roleDraft,
+    face: faceDraft,
+    status: statusDraft,
+  });
 
   const resetFilters = () => {
     setQueryDraft('');
     setRoleDraft('all');
     setFaceDraft('all');
-    setFilters({ query: '', role: 'all', face: 'all' });
+    setStatusDraft('all');
+    setFilters({ query: '', role: 'all', face: 'all', status: 'all' });
   };
 
   const filteredUsers = useMemo(() => {
@@ -162,12 +196,15 @@ export default function UsersPage({
       if (filters.role !== 'all' && record.role !== filters.role) return false;
       if (filters.face === 'enrolled' && !record.faceImage) return false;
       if (filters.face === 'missing' && record.faceImage) return false;
+      if (filters.status !== 'all' && (record.status || 'pending') !== filters.status) return false;
       if (!needle) return true;
       return [record.fullName, record.username, record.email, record.role]
         .some((field) => String(field || '').toLowerCase().includes(needle));
     });
   }, [users, filters]);
 
+  const pendingCount = users.filter((record) => (record.status || 'pending') === 'pending').length;
+  const deniedCount = users.filter((record) => record.status === 'denied').length;
   const adminCount = users.filter((record) => record.role === 'admin').length;
   const regularCount = users.length - adminCount;
   const faceEnrolled = users.filter((record) => record.faceImage).length;
@@ -288,9 +325,95 @@ export default function UsersPage({
     }
   };
 
+  const changeStatus = async (record, status) => {
+    setBusyId(record.id);
+    await handleSetUserStatus?.(record.id, status);
+    setBusyId('');
+  };
+
+  /*
+   * Deleting an account destroys far more than the account, so the dialog is
+   * built from a server-side count of exactly what will go rather than from a
+   * generic "this cannot be undone". The same queries produce this list and
+   * perform the deletion, so the two cannot describe different things.
+   */
+  const confirmDelete = async (record) => {
+    setBusyId(record.id);
+    let preview;
+    try {
+      const { data } = await api.get(`/users/${record.id}/deletion-preview`);
+      preview = data;
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Unable to check what that account holds.');
+      return;
+    } finally {
+      setBusyId('');
+    }
+
+    if (preview.blocked) {
+      Modal.warning({ title: 'This account cannot be deleted', content: preview.blocked });
+      return;
+    }
+
+    const destroyed = Object.entries(DELETION_LABELS)
+      .map(([key, label]) => [label, preview.destroyed?.[key] || 0])
+      .filter(([, count]) => count > 0);
+    const { ownedProjects = 0, memberProjects = 0, assignedTasks = 0 } = preview.unlinked || {};
+
+    Modal.confirm({
+      title: `Delete ${record.fullName} (${record.username})?`,
+      width: 520,
+      okText: 'Delete everything',
+      okButtonProps: { danger: true },
+      content: (
+        <div className="user-delete-preview">
+          <p><strong>Permanently deleted, including files:</strong></p>
+          {destroyed.length ? (
+            <ul className="vision-plain-list">
+              {destroyed.map(([label, count]) => <li key={label}>{count} {label}</li>)}
+            </ul>
+          ) : (
+            <p className="vision-cell-muted">Nothing but the account itself and its face photo.</p>
+          )}
+
+          {(ownedProjects || memberProjects || assignedTasks) > 0 && (
+            <>
+              <p><strong>Kept, with this person removed from it:</strong></p>
+              <ul className="vision-plain-list">
+                {ownedProjects > 0 && <li>{ownedProjects} project(s) they own — ownership passes to you</li>}
+                {memberProjects > 0 && <li>{memberProjects} project(s) they are a member of</li>}
+                {assignedTasks > 0 && <li>{assignedTasks} task(s) — unassigned, history kept but anonymised</li>}
+              </ul>
+            </>
+          )}
+
+          <p className="user-delete-warning">This cannot be undone.</p>
+        </div>
+      ),
+      onOk: async () => {
+        setBusyId(record.id);
+        await handleDeleteUser?.(record.id);
+        setBusyId('');
+      },
+    });
+  };
+
   const columns = isAdmin
     ? [
       ...userTableColumns,
+      {
+        title: 'Status',
+        key: 'status',
+        width: 120,
+        render: (_, record) => {
+          const status = record.status || 'pending';
+          return (
+            <StatusBadge tone={STATUS_TONE[status]} dot={status === 'pending'}>
+              {STATUS_LABEL[status]}
+            </StatusBadge>
+          );
+        },
+      },
       {
         title: 'Access',
         key: 'access',
@@ -301,17 +424,67 @@ export default function UsersPage({
       {
         title: 'Actions',
         key: 'actions',
-        width: 90,
-        render: (_, record) => (
-          <div className="vision-row-actions">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => openEditor(record)}
-              aria-label={`Edit ${record.fullName}`}
-            />
-          </div>
-        ),
+        width: 210,
+        render: (_, record) => {
+          const status = record.status || 'pending';
+          const self = record.id === user?.id;
+          return (
+            <div className="vision-row-actions">
+              {status !== 'allowed' && (
+                <Tooltip title={status === 'pending' ? 'Approve this account' : 'Allow this account again'}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    className="vision-btn-primary"
+                    loading={busyId === record.id}
+                    onClick={() => changeStatus(record, 'allowed')}
+                    aria-label={`Allow ${record.fullName}`}
+                  >
+                    Allow
+                  </Button>
+                </Tooltip>
+              )}
+              {status !== 'denied' && (
+                /* Hidden on your own row rather than shown and refused: the
+                   API blocks it either way, and offering a button that can
+                   only fail is not a choice. */
+                !self && (
+                  <Tooltip title="Refuse this account access">
+                    <Button
+                      size="small"
+                      danger
+                      loading={busyId === record.id}
+                      onClick={() => changeStatus(record, 'denied')}
+                      aria-label={`Deny ${record.fullName}`}
+                    >
+                      Deny
+                    </Button>
+                  </Tooltip>
+                )
+              )}
+              <Tooltip title="Edit">
+                <Button
+                  type="text"
+                  icon={<EditOutlined />}
+                  onClick={() => openEditor(record)}
+                  aria-label={`Edit ${record.fullName}`}
+                />
+              </Tooltip>
+              {!self && (
+                <Tooltip title="Delete this account and all of its data">
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    loading={busyId === record.id}
+                    onClick={() => confirmDelete(record)}
+                    aria-label={`Delete ${record.fullName}`}
+                  />
+                </Tooltip>
+              )}
+            </div>
+          );
+        },
       },
     ]
     : userTableColumns;
@@ -365,6 +538,16 @@ export default function UsersPage({
           value={faceEnrolled}
           meta={percentOf(faceEnrolled)}
         />
+        {/* The only card on this page that is a job rather than a number:
+            somebody registered and cannot use the system until it reaches
+            zero. Amber whenever it is not. */}
+        <StatCard
+          tone={pendingCount ? 'amber' : 'grey'}
+          icon={<ExclamationCircleFilled />}
+          label="Waiting for approval"
+          value={pendingCount}
+          meta={deniedCount ? `${deniedCount} denied` : 'Nobody denied'}
+        />
       </div>
 
       <FilterBar
@@ -406,6 +589,17 @@ export default function UsersPage({
             { value: 'all', label: t('allFaceId') },
             { value: 'enrolled', label: t('faceIdEnrolled') },
             { value: 'missing', label: t('noFacePhoto') },
+          ]}
+        />
+        <Select
+          className="vision-filter-select"
+          value={statusDraft}
+          onChange={setStatusDraft}
+          options={[
+            { value: 'all', label: 'All statuses' },
+            { value: 'pending', label: STATUS_LABEL.pending },
+            { value: 'allowed', label: STATUS_LABEL.allowed },
+            { value: 'denied', label: STATUS_LABEL.denied },
           ]}
         />
       </FilterBar>

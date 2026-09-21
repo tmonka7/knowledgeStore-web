@@ -15,6 +15,13 @@ export default defineConfig({
         target: 'http://127.0.0.1:9000',
         changeOrigin: true,
       },
+      // The meeting signalling socket. `ws: true` is what makes Vite forward
+      // the upgrade rather than answering it as an ordinary request, which is
+      // why the path needs its own entry instead of riding along with /api.
+      '/rtc': {
+        target: 'ws://127.0.0.1:9000',
+        ws: true,
+      },
     },
   },
   preview: {

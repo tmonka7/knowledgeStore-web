@@ -25,7 +25,7 @@ All three need a face photo, since registration requires one.
 
 | ID | Requirement | Steps | Expected |
 |---|---|---|---|
-| TC-AUTH-01 | FR-AUTH-01 | Register with all mandatory fields and a face photo. | Account created, signed in, name shown in the header. |
+| TC-AUTH-01 | FR-AUTH-01, FR-AUTH-09 | Register with all mandatory fields and a face photo. | Account created. **Not** signed in: the card returns to Login with a message that an administrator must approve it. |
 | TC-AUTH-02 | FR-AUTH-02 | Register reusing an existing username. | 409 and "That username is already registered." No account created. |
 | TC-AUTH-03 | FR-AUTH-02 | Register with a 5-character password. | Rejected before submission by the form; if forced via the API, 400. |
 | TC-AUTH-04 | FR-AUTH-03 | Attempt to register without capturing a face photo. | Submission refused with a message about the face photo. |
@@ -33,8 +33,20 @@ All three need a face photo, since registration requires one.
 | TC-AUTH-06 | FR-AUTH-04 | Register leaving all five personal fields empty. | Account created; My Page shows "—" for each. |
 | TC-AUTH-07 | FR-AUTH-06 | Set a birthday in the future through the API. | 400 "Birthday cannot be in the future." |
 | TC-AUTH-08 | FR-AUTH-06 | Send `birthday=2001-02-30` through the API. | 400 "That birthday is not a real date." |
-| TC-AUTH-09 | FR-AUTH-05 | Sign in with a correct password on a face-enrolled account, without a descriptor. | 401 with `faceRequired`, prompting face login. |
+| TC-AUTH-09 | FR-AUTH-09, FR-AUTH-10 | Immediately try to sign in as that new account with the correct password. | 403, "waiting for an administrator to approve it". The wording must not say access was denied. |
 | TC-AUTH-10 | FR-AUTH-07 | Register and inspect the new account. | Role is `user`. Sending `role: "admin"` in the registration body changes nothing. |
+| TC-AUTH-11 | FR-AUTH-05 | As ADMIN, approve the account. Sign in with username and password only, no face. | Signed in. **Regression guard:** the previous build demanded a face as well, which made method 1 impossible for anyone enrolled. |
+| TC-AUTH-12 | FR-AUTH-05, FR-AUTH-05a | On the login screen press **Login with Face** with both fields empty, and present the enrolled face. | The camera opens without complaining about the empty fields, and the correct account is signed in. |
+| TC-AUTH-13 | FR-AUTH-05a | Present a face belonging to nobody enrolled. | Refused with "That face was not recognised…"; no account is signed in. |
+| TC-AUTH-14 | FR-AUTH-05a | Enrol two accounts with very similar faces (or set `FACE_MATCH_MARGIN=0.5` to force it) and present one of them. | Refused rather than guessing. The server logs which two were too close; the browser is told only that it was not recognised. |
+| TC-AUTH-15 | FR-AUTH-05b | Compare the message from TC-AUTH-13 with the one from TC-AUTH-14. | Identical. Nothing distinguishes "no match" from "ambiguous match" to the person at the screen. |
+| TC-AUTH-16 | FR-AUTH-10 | Deny an account, then try both sign-in methods. | Both refused with the denied message, not the pending one. |
+| TC-AUTH-17 | FR-AUTH-05a | Deny an account that has a face enrolled, then present that face. | Not recognised — denied accounts are not candidates for identification at all. |
+| TC-AUTH-18 | FR-AUTH-11 | While USER1 is using the application, have ADMIN deny their account. Have USER1 click anything. | USER1 is signed out with the reason shown, without waiting for the token to expire. |
+| TC-AUTH-19 | FR-AUTH-11 | While USER1 is signed in, delete their account. Have USER1 click anything. | Signed out with "This account no longer exists." |
+| TC-AUTH-20 | FR-USR-16 | Start the API against a database whose accounts predate the status field. | Every account is Allowed and everyone can still sign in. **Regression guard:** without the backfill, adding the field locks out the entire installation, administrators included. |
+| TC-AUTH-21 | FR-USR-16 | Deny an account, restart the API, and check it. | Still denied. The backfill is marker-guarded and does not run twice. |
+| TC-AUTH-22 | FR-USR-16 | Run a database **reset** from Database Management with a new superuser, then sign in as that superuser. | Signed in. **Regression guard:** a superuser created as Pending would be an administrator nobody could approve. |
 
 ## 3. Users and permissions
 
@@ -52,6 +64,23 @@ All three need a face photo, since registration requires one.
 | TC-USR-10 | FR-USR-07 | As ADMIN, edit your own account and try to set the role to User. | 400 "You cannot remove your own administrator role." |
 | TC-USR-11 | FR-USR-09 | Revoke `records:view` from USER1. | Data disappears from USER1's sidebar and `GET /data` returns 403. |
 | TC-USR-12 | FR-AUTH-08 | As USER1 on My Page, change the password with the wrong current password. | 401 "Current password is incorrect."; the old password still works. |
+| TC-USR-13 | FR-USR-13 | As ADMIN open Users after a new registration. | The account's Status pill reads Pending in amber, and the "Waiting for approval" card is amber with that count. |
+| TC-USR-14 | FR-USR-13 | Press **Allow** on that row. | The pill turns green without opening a dialog, and the person can now sign in. |
+| TC-USR-15 | FR-USR-13 | Press **Deny** on an allowed account, then **Allow** again. | The pill follows each change; the account is refused in between and usable afterwards. |
+| TC-USR-16 | FR-USR-13 | Filter the list by each of Pending, Allowed and Denied. | Only accounts in that state are listed; Reset restores the whole list. |
+| TC-USR-17 | FR-USR-14 | Compare the sign-in message for a Pending account with one for a Denied account. | They differ. Pending says it is waiting for approval; Denied says access has been denied. |
+| TC-USR-18 | FR-USR-15 | As ADMIN, look at your own row. | Neither **Deny** nor the delete button is offered on it. |
+| TC-USR-19 | FR-USR-15 | Call `PUT /users/:id/status` with `denied` for your own account. | 400 "You cannot deny or suspend your own account." |
+| TC-USR-20 | FR-USR-15 | With exactly one allowed administrator, try to deny them from another administrator that has been denied. | 400 naming the last-administrator rule; the account stays allowed. |
+| TC-USR-21 | FR-USR-19 | As ADMIN, press delete on USER1, who owns records, a wallet, chats and a hosted meeting. | A dialog lists the counts of each, separately lists what is kept and unlinked, and warns it cannot be undone. Nothing is deleted yet. |
+| TC-USR-22 | FR-USR-19 | Cancel that dialog and check USER1. | The account and all of its data are intact. |
+| TC-USR-23 | FR-USR-17 | Confirm the deletion, then inspect the database and `uploads/`. | The account, its records, wallet entries, contacts, schedules, posts, chat threads and messages, mail it sent, hosted meetings and their recordings are gone, along with the files those pointed at. |
+| TC-USR-24 | FR-USR-17 | After TC-USR-23, sign in as the person USER1 had been chatting with and open Chat. | The conversation is gone for them too — there is no half of it that was not also USER1's. |
+| TC-USR-25 | FR-USR-17 | Before deleting, have USER2 send USER1 mail and keep it in Sent. Delete USER1, then check USER2's Sent folder. | The message is still there with no recipients. **Regression guard:** deleting every message left with no recipients would destroy USER2's own copy. |
+| TC-USR-26 | FR-USR-18 | Delete a user who owned a project containing other people's tasks. | The project survives, is owned by the administrator who ran the deletion, and its tasks and comments by other people are untouched. |
+| TC-USR-27 | FR-USR-18 | Open a task the deleted user had been assigned and had moved through the workflow. | Assignee is empty rather than blank-and-broken; their comments are gone; their history entries remain, attributed to "Deleted user". |
+| TC-USR-28 | FR-USR-20 | Try to delete your own account, from the UI and then from the API. | No delete button on your own row; the API answers 400. |
+| TC-USR-29 | FR-USR-17 | After deleting an account, run the orphan report on Database Management. | No new orphan files — the purge removed them rather than leaving them for the sweep. |
 
 ## 4. Wallet
 
@@ -143,6 +172,12 @@ granted by default).
 | TC-MSG-14 | FR-MSG-12 | With the Sent folder open, choose a message from the mail menu. | Mail switches to the Inbox and opens that message; the badge falls by one. |
 | TC-MSG-15 | FR-MSG-12 | Revoke `mail:view` from USER1 and reload. | The mail icon is absent from the header, and `GET /mail/recent` returns 403. |
 | TC-SCH-01 | FR-SCH-01 | Create a repeating schedule entry. | It appears on the expected days and in the upcoming list. |
+| TC-CON-01 | FR-CON-01 | Create a contact, favourite it, edit, delete. | Each succeeds; favourites sort to the top. |
+| TC-CON-02 | FR-CON-02 | As USER2, list contacts. | USER1's contacts are absent. |
+| TC-CAM-01 | FR-CAM-01 | Register a camera and open the wall. | The camera appears with its status. (More camera cases in §6b.) |
+| TC-SYS-01 | FR-SYS-01 | Watch System Monitoring for a minute. | Latency varies with real requests; no series sits at a constant zero. |
+| TC-I18N-01 | FR-I18N-01 | Switch the language to each of Spanish, Chinese and Japanese. | Interface text changes; no key appears raw on the new screens (Gender, Birthday, Phone number, Address, Job). |
+| TC-I18N-02 | FR-I18N-02 | Rename `translations.xml` and reload. | The application still renders, falling back to keys rather than showing a blank page. |
 
 ## 6a. Posts
 
@@ -171,12 +206,40 @@ granted by default).
 | TC-CAM-04 | FR-CAM-02 | Grant USER1 `cameras:view` and `cameras:edit`. | Edit appears on each card; Delete does not. |
 | TC-CAM-05 | FR-CAM-04 | Register one camera with an `http://` address marked online, and one with `rtsp://`. | The first previews in the card; the second says no preview is available and still offers its details. |
 | TC-CAM-06 | FR-CAM-01 | Open a camera, use fullscreen, and start object detection on an http stream. | The stream fills the screen; detection outlines people and vehicles. |
-| TC-CON-01 | FR-CON-01 | Create a contact, favourite it, edit, delete. | Each succeeds; favourites sort to the top. |
-| TC-CON-02 | FR-CON-02 | As USER2, list contacts. | USER1's contacts are absent. |
-| TC-CAM-01 | FR-CAM-01 | Register a camera and open the wall. | The camera appears with its status. (More camera cases in §6b.) |
-| TC-SYS-01 | FR-SYS-01 | Watch System Monitoring for a minute. | Latency varies with real requests; no series sits at a constant zero. |
-| TC-I18N-01 | FR-I18N-01 | Switch the language to each of Spanish, Chinese and Japanese. | Interface text changes; no key appears raw on the new screens (Gender, Birthday, Phone number, Address, Job). |
-| TC-I18N-02 | FR-I18N-02 | Rename `translations.xml` and reload. | The application still renders, falling back to keys rather than showing a blank page. |
+
+## 6c. Meetings
+
+These need two browsers signed in as different accounts. On one machine, use a
+normal window and a private window, both on `http://localhost` — on any other
+address the browser will not release a camera. USER1 and USER2 below are those
+two sessions.
+
+| ID | Requirement | Steps | Expected |
+|---|---|---|---|
+| TC-MTG-01 | FR-MTG-01 | As USER1, create a meeting titled "Standup" with no start time. | It appears in the list as Scheduled, hosted by USER1, described as open. |
+| TC-MTG-02 | FR-MTG-03 | USER1 joins, then USER2 joins. | Each sees two tiles and hears the other. USER2's tile appears for USER1 within a few seconds without a reload. |
+| TC-MTG-03 | FR-MTG-09 | While both are in the call, look at the list in a third session. | The card is outlined green, badged Live, and names both participants. |
+| TC-MTG-04 | FR-MTG-04 | USER1 mutes, then turns the camera off. | USER2 sees a microphone icon, then USER1's initials in place of the picture, and hears nothing. Unmuting restores both. |
+| TC-MTG-05 | FR-MTG-05 | USER1 shares a screen, then stops. | USER2 sees the screen in USER1's tile and a screen icon on it; stopping returns to the camera. Ending it from the browser's own "Stop sharing" bar behaves identically. |
+| TC-MTG-06 | FR-MTG-05, FR-MTG-04 | USER1 shares a screen while muted, and speaks. | Nothing is heard — sharing does not silently unmute. |
+| TC-MTG-07 | FR-MTG-06 | USER1 sends a message in the in-call chat; USER2 opens the panel. | The message is there with USER1's name and time. USER2's closed chat button carried an unread count. |
+| TC-MTG-08 | FR-MTG-06 | A third account joins after the messages were sent. | The history is there from the moment they join. |
+| TC-MTG-09 | FR-MTG-07, FR-MTG-08 | USER1 starts recording. | USER2 immediately sees a warning that the meeting is being recorded, and a REC badge on USER1's tile. USER1 sees a running timer. |
+| TC-MTG-10 | FR-MTG-07 | USER1 stops recording, then opens the meeting's recordings. | One entry, with the duration, size and USER1 as the recorder. Playing it shows both tiles with names and plays both voices. |
+| TC-MTG-11 | FR-MTG-07 | USER1 records while sharing a screen, and talks throughout. | USER1's voice is on the recording for the whole of it, not only before and after the share. |
+| TC-MTG-12 | FR-MTG-10 | USER2 leaves and rejoins, then USER1 opens the attendance list. | Two visits for USER2 — the first with a leaving time, the second still open. |
+| TC-MTG-13 | FR-MTG-11 | USER1 ends the meeting while USER2 is still in it. | USER2 is disconnected and told the meeting ended. The card reads Ended; the recordings and attendance list are intact. |
+| TC-MTG-14 | FR-MTG-02 | USER1 creates a meeting limited to USER3. | USER2 does not see it at all, and `GET /meetings/:id` returns 404 for them. |
+| TC-MTG-15 | FR-MTG-02, FR-MTG-11 | While USER2 is in an open meeting, USER1 edits it to admit only USER3. | USER2 is disconnected. **Regression guard:** the person just excluded must not be the one left in the call. |
+| TC-MTG-16 | FR-MTG-12 | Delete a meeting that has a recording, then look in `uploads/meetings/`. | Both the document and the file are gone, and no orphan is reported on the Database page. |
+| TC-MTG-17 | FR-MTG-12 | As USER2, who recorded it, delete that recording. Then try as an unrelated account. | USER2 succeeds; the unrelated account gets 403. |
+| TC-MTG-18 | FR-MTG-13 | Set `MEETING_MAX_PEERS=2`, restart, and have a third account try to join a call of two. | It is refused with "this meeting is full"; the two in the call are undisturbed. |
+| TC-MTG-19 | FR-MTG-13 | USER1 opens the same meeting in a second tab while `MEETING_MAX_PEERS=2`. | It is allowed — the cap counts people, not tabs — and USER1 appears once in the roster. |
+| TC-MTG-20 | FR-MTG-03 | Refuse the camera permission when the browser asks, then join. | The call is joined to watch and listen, with a notice saying so, rather than failing. |
+| TC-MTG-21 | FR-MTG-03 | Load the app over `http://` on a LAN address and open Meetings. | The warning panel appears under the page header, before any attempt to join. |
+| TC-MTG-22 | FR-MTG-09 | While USER2 is in a call, kill their browser (do not leave cleanly). Wait a minute. | USER2 disappears from the roster and the list. **Regression guard:** occupancy must not survive a socket that was never closed politely. |
+| TC-MTG-23 | FR-MTG-09 | Restart the API while a meeting shows as live, then reload the list. | No meeting claims to be in progress; nothing is left occupied by nobody. |
+| TC-MTG-24 | FR-USR-12 | On a database whose accounts predate Meetings, restart the API and sign in as a non-administrator. | Meetings is in their sidebar, and `app_migrations` has a marker for the meetings backfill. |
 
 ## 8. Database management *(destructive)*
 
@@ -202,6 +265,21 @@ granted by default).
 | TC-NFR-05 | NFR-07 | Tab through a project card's actions and a wallet row's actions with a screen reader. | Every icon button announces what it does and to what. |
 | TC-NFR-06 | NFR-05 | Leave Chat open and idle for five minutes with the network panel recording. | Polling continues at roughly 4–6 second intervals with small empty responses. |
 
+## 9a. Confirmation on destructive actions
+
+Requirement FR-USR-21 is a property of the whole application, so this section
+walks every delete rather than sampling.
+
+| ID | Requirement | Steps | Expected |
+|---|---|---|---|
+| TC-CNF-01 | FR-USR-21 | Delete a **category** that has sub-categories. | A dialog names the category and how many sub-categories go with it. **Regression guard:** this deleted on the click, with nothing in between. |
+| TC-CNF-02 | FR-USR-21 | Remove a **task attachment**. | A dialog names the file and says it is deleted from the server. **Regression guard:** this also deleted on the click. |
+| TC-CNF-03 | FR-USR-21 | Select 8 records in Data and press Delete in the toolbar. | **One** dialog naming 8 records. Confirming deletes all 8 and reloads the list once. **Regression guard:** this previously asked once for the selection and then once more per record. |
+| TC-CNF-04 | FR-USR-21 | Delete a single record from its row. | One dialog, then the record goes. |
+| TC-CNF-05 | FR-USR-21 | Walk the remaining deletes: contact, schedule entry, wallet entry, camera, post, project, task, mail, meeting, meeting recording, database backup, replication member. | Every one asks first, the dangerous button is red, and its label names the act rather than reading "OK". |
+| TC-CNF-06 | FR-USR-21 | Cancel each dialog from TC-CNF-01 … 05 instead of confirming. | Nothing is deleted in any case. |
+| TC-CNF-07 | FR-USR-21 | Run **Optimize** with orphan-file deletion selected, and a database **reset**. | Both confirm first; the reset additionally requires the word RESET to be typed. |
+
 ## 10. Regression set for this release
 
 Run at minimum: TC-USR-01 … 04 (user list), TC-AUTH-05 … 08 and TC-USR-06 …
@@ -211,5 +289,13 @@ TC-REC-05 … 15 (record sharing — TC-REC-09 and TC-REC-15 are the two that
 would let data leak if they regressed), TC-CHT-14 … 18 (header messages),
 TC-MSG-01 … 15 (mail delivery, open tracking and the header icon — TC-MSG-10
 is the privacy guard), TC-PST-01 … 13 (posts, the notification count and the
-permission backfill — TC-PST-11 is the one that failed in the field) and
-TC-CAM-02 … 05 (camera permissions and the edit dialog).
+permission backfill — TC-PST-11 is the one that failed in the field),
+TC-CAM-02 … 05 (camera permissions and the edit dialog), TC-MTG-01 … 24
+(meetings — TC-MTG-15 is the access guard, TC-MTG-22 and TC-MTG-23 are the two
+that would leave a room occupied by nobody, and TC-MTG-09 is the one that keeps
+recording visible to the people being recorded), TC-AUTH-01 … 22 (the two
+sign-in methods and account approval — **TC-AUTH-20 and TC-AUTH-22 come first**,
+because both describe ways an upgrade can lock every account out of the
+installation), TC-USR-13 … 29 (approval and account deletion — TC-USR-25 and
+TC-USR-26 are the two that would destroy somebody else's data) and
+TC-CNF-01 … 07 (every destructive action asks, and asks once).

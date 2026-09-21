@@ -8,6 +8,7 @@ export const PERMISSION_CATALOG = [
   { key: 'cameras', label: 'Camera Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'chat', label: 'Chat', actions: ['view', 'create'] },
   { key: 'mail', label: 'Mail', actions: ['view', 'create', 'delete'] },
+  { key: 'meetings', label: 'Meetings', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'schedule', label: 'Schedule', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'lvgl-tool', label: 'Tools / LVGL image/font converter', actions: ['view'] },
   { key: 'convert-tool', label: 'Tools / Converting', actions: ['view'] },
@@ -35,6 +36,13 @@ export const DEFAULT_USER_PERMISSIONS = [
   'chat:create',
   'mail:view',
   'mail:create',
+  // Everyone can be in a meeting and book one. Editing and deleting are in the
+  // defaults too, because they are scoped to your own meetings in the
+  // controller — holding them does not let you touch anybody else's room.
+  'meetings:view',
+  'meetings:create',
+  'meetings:edit',
+  'meetings:delete',
   'schedule:view',
   'schedule:create',
   'schedule:edit',

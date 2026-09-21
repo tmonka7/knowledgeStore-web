@@ -2,7 +2,10 @@ import bcrypt from 'bcryptjs';
 import { sanitizeUser } from '../helpers/auth.js';
 import { PERMISSION_CATALOG, sanitizePermissions } from '../helpers/permissionCatalog.js';
 import { readProfileFields } from '../helpers/userProfile.js';
+import { ACCOUNT_STATUSES } from '../helpers/accountStatus.js';
+import { describeUserFootprint, purgeUser } from '../helpers/userPurge.js';
 import { User, getUsers, getUserById } from '../models/store.js';
+import { writeLog } from '../models/activityLogModel.js';
 
 export const listPermissionCatalog = (req, res) => res.json({ catalog: PERMISSION_CATALOG });
 
@@ -168,4 +171,125 @@ export const updatePassword = async (req, res) => {
   await me.save();
 
   return res.json({ ok: true, message: 'Password updated successfully.' });
+};
+
+/*
+ * Guards shared by "deny this account" and "delete this account".
+ *
+ * Both can lock everybody out of user management, which is the one door with
+ * no way back in: only an administrator can approve or promote, so an
+ * installation with no usable administrator cannot be repaired from the
+ * application at all.
+ */
+const wouldRemoveLastAdmin = async (target) => {
+  if (target.role !== 'admin') return false;
+  const remaining = await User.countDocuments({
+    role: 'admin',
+    status: 'allowed',
+    id: { $ne: target.id },
+  });
+  return remaining === 0;
+};
+
+/**
+ * PUT /users/:id/status — Allow, Deny, or back to Pending.
+ *
+ * Its own endpoint rather than a field on the general update, because it is
+ * the one change an administrator makes from a list without opening anything,
+ * and because it carries guards the other fields do not need.
+ */
+export const setUserStatus = async (req, res) => {
+  const status = String(req.body?.status || '');
+  if (!ACCOUNT_STATUSES.includes(status)) {
+    return res.status(400).json({ message: `Status must be one of: ${ACCOUNT_STATUSES.join(', ')}.` });
+  }
+
+  const target = await getUserById(req.params.id);
+  if (!target) {
+    return res.status(404).json({ message: 'User not found.' });
+  }
+
+  // You cannot lock yourself out. An administrator who denies their own
+  // account loses the page they would need to undo it on.
+  if (target.id === req.currentUser.id && status !== 'allowed') {
+    return res.status(400).json({ message: 'You cannot deny or suspend your own account.' });
+  }
+
+  if (status !== 'allowed' && await wouldRemoveLastAdmin(target)) {
+    return res.status(400).json({ message: 'This is the last administrator who can sign in. Approve another one first.' });
+  }
+
+  const previous = target.status;
+  target.status = status;
+  await target.save();
+
+  await writeLog({
+    source: 'users',
+    action: `user:${status}`,
+    message: `${target.username}: ${previous} → ${status}`,
+    actor: { id: req.currentUser.id, username: req.currentUser.username },
+  });
+
+  return res.json({ ok: true, user: sanitizeUser(target.toObject ? target.toObject() : target) });
+};
+
+/**
+ * GET /users/:id/deletion-preview
+ *
+ * What deleting this account would destroy, so the confirmation can say so
+ * instead of asking "are you sure?" about an unknown quantity.
+ */
+export const previewUserDeletion = async (req, res) => {
+  const target = await getUserById(req.params.id);
+  if (!target) {
+    return res.status(404).json({ message: 'User not found.' });
+  }
+
+  const footprint = await describeUserFootprint(target.id);
+
+  return res.json({
+    user: { id: target.id, username: target.username, fullName: target.fullName, role: target.role },
+    ...footprint,
+    blocked: await deletionBlocker(target, req.currentUser),
+  });
+};
+
+const deletionBlocker = async (target, me) => {
+  if (target.id === me.id) return 'You cannot delete your own account.';
+  if (await wouldRemoveLastAdmin(target)) {
+    return 'This is the last administrator who can sign in. Promote another one first.';
+  }
+  return '';
+};
+
+/**
+ * DELETE /users/:id
+ *
+ * Removes the account and everything behind it. See helpers/userPurge.js for
+ * exactly what that covers and what is unlinked rather than destroyed.
+ */
+export const deleteUser = async (req, res) => {
+  const target = await getUserById(req.params.id);
+  if (!target) {
+    return res.status(404).json({ message: 'User not found.' });
+  }
+
+  const blocked = await deletionBlocker(target, req.currentUser);
+  if (blocked) {
+    return res.status(400).json({ message: blocked });
+  }
+
+  const removed = await purgeUser(target.id, { newOwnerId: req.currentUser.id });
+
+  // Written after the purge, and by the administrator rather than the deleted
+  // account, so it is not one of the log entries the purge just removed.
+  await writeLog({
+    source: 'users',
+    action: 'user:delete',
+    message: `Deleted ${target.username} (${target.fullName}) and everything belonging to the account`,
+    actor: { id: req.currentUser.id, username: req.currentUser.username },
+    meta: removed,
+  });
+
+  return res.json({ ok: true, removed });
 };

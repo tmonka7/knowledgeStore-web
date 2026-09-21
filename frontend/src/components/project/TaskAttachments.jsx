@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Button, Empty, Tooltip, message } from 'antd';
+import { Button, Empty, Modal, Tooltip, message } from 'antd';
 import {
   DeleteOutlined,
   DownloadOutlined,
@@ -103,19 +103,30 @@ export default function TaskAttachments({
     }
   };
 
-  const remove = async (attachment) => {
-    setBusy(attachment.id);
-    try {
-      const { data } = await api.delete(
-        `/projects/${projectId}/tasks/${task.id}/attachments/${attachment.id}`,
-      );
-      onChange?.(data.task);
-      message.success('Attachment removed.');
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Unable to remove that attachment.');
-    } finally {
-      setBusy('');
-    }
+  const remove = (attachment) => {
+    // Deleting the file happened on the click, with nothing in between — the
+    // one place left in the application where a destructive action had no
+    // question attached to it.
+    Modal.confirm({
+      title: `Remove "${attachment.name}"?`,
+      content: 'The file is deleted from the server. This cannot be undone.',
+      okText: 'Remove',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setBusy(attachment.id);
+        try {
+          const { data } = await api.delete(
+            `/projects/${projectId}/tasks/${task.id}/attachments/${attachment.id}`,
+          );
+          onChange?.(data.task);
+          message.success('Attachment removed.');
+        } catch (error) {
+          message.error(error.response?.data?.message || 'Unable to remove that attachment.');
+        } finally {
+          setBusy('');
+        }
+      },
+    });
   };
 
   return (

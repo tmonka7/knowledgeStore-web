@@ -4,4 +4,5 @@ export * from './recordModel.js';
 export * from './cameraModel.js';
 export * from './postModel.js';
 export * from './migrationModel.js';
+export * from './meetingModel.js';
 

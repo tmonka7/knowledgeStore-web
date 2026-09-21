@@ -9,16 +9,23 @@ Two deployables and one database.
 ```
 Browser ── React 18 / Vite 5 / Ant Design 5 (frontend)
    │  HTTP + JWT (Authorization: Bearer …)
+   │  WebSocket /rtc — meeting signalling only
    ▼
 Express 4 API (backend)  ──  filesystem: uploads/, backups/
    │  Mongoose 8
    ▼
 MongoDB
+
+Browser ⇄ Browser — meeting audio and video, peer to peer, never via the API
 ```
 
-There is no message broker, no cache and no background worker process. The one
-piece of scheduled work — the chat retention sweep — runs on an interval inside
-the API process.
+There is no message broker, no cache and no background worker process. The
+scheduled work — the chat retention sweep, and the ping that reaps dead meeting
+sockets — runs on intervals inside the API process.
+
+Everything is request/response except meeting signalling, which shares the
+API's port over a WebSocket. Section 4.9 explains why that one case cannot be
+polled like the rest.
 
 | Layer | Location | Responsibility |
 |---|---|---|
@@ -35,9 +42,20 @@ pages (users, records, categories, cameras) and passes them down;
 
 ## 2. Authentication and authorisation
 
-**Token.** `POST /auth/login` returns a JWT signed with `JWT_SECRET`, carrying
-`{ sub, username, role }` and expiring in 8 hours. `requireAuth` verifies it
-and puts the payload on `req.user`.
+**Two ways in, and they are alternatives.** `POST /auth/login` takes a username
+and password; `POST /auth/login/face` takes a descriptor and nothing else.
+Either returns a JWT signed with `JWT_SECRET`, carrying `{ sub, username, role }`
+and expiring in 8 hours.
+
+**Token, and why it is not trusted.** `requireAuth` verifies the signature and
+then reads the account from the database, refusing one that no longer exists or
+whose status is not `allowed`. A token is a signed snapshot of who somebody was
+up to eight hours ago; without that read, denying or deleting an account would
+take effect some time before tomorrow, which is not a revocation. The cost is
+one indexed lookup per request, deliberately without the face photo — a base64
+image of up to 2MB would otherwise be the most expensive part of most requests.
+`req.currentUser` carries the account onward, so the permission middleware that
+already did this read now reuses it.
 
 **Permissions.** `requirePermission('page:action')` loads the *current*
 database record for `req.user.sub` and calls `hasPermission`. The role and
@@ -52,12 +70,47 @@ kept seeing only themselves, and a non-administrator holding `users:view` saw
 only themselves for ever. The route's permission gate is the whole decision;
 there is no second check inside the handler.
 
-**Face verification.** The browser computes a 128-float descriptor with
-`frontend/src/lib/faceRecognition`. It is stored on the account (`select:
-false`, so it is never returned by an ordinary read). At sign-in the server
-compares the submitted descriptor with the stored one by Euclidean distance
-and rejects anything over 0.6. The photo itself is kept as a data URL for
-display only.
+**Account status.** `pending` → `allowed` / `denied`, held on the account and
+checked in front of roles and permissions. A denied account is not an account
+with nothing granted to it; it is one that cannot be used at all. Registration
+produces `pending` and returns **no token** — a session whose every request is
+refused is worse than being told plainly to wait. `pending` and `denied` are
+kept apart because an administrator reviewing a list needs to see the
+difference between "nobody has looked" and "somebody said no", and because
+telling a waiting applicant they have been rejected sends them to ask about a
+decision that was never made.
+
+Adding the field was itself a hazard: Mongoose applies a schema default to a
+path missing from a document it loads, so every pre-existing account began
+reading as `pending` the moment the field existed — an upgrade that locks out
+everybody, administrators included. `helpers/accountStatusBackfill.js` sets
+them to `allowed` once, marker-guarded like the permission backfill, before the
+port opens. `ensureSeedAdmin` and `ensureSuperuser` both write `allowed`
+explicitly, because an administrator who needs approving by an administrator is
+a locked door with the key inside.
+
+**Face recognition as a way in.** The browser computes a 128-float descriptor
+with `frontend/src/lib/faceRecognition`, stored on the account with
+`select: false` so an ordinary read never returns it. The photo is kept as a
+data URL for display only.
+
+What changed is what the descriptor now buys. Previously it was a *second*
+factor: the password was required and, for any account with a face on file, so
+was the face. It is now a *first* factor on its own, and no username is
+supplied with it — so this identifies rather than verifies, searching every
+approved account for the closest match. That is a different and harder problem:
+the risk that grows with the number of accounts is not "is this close enough"
+but "is this closer to the right person than to someone else". Two rules
+answer it. The distance must be under `FACE_MATCH_MAX` (0.5, tightened from the
+0.6 used for verification), and the best match must beat the runner-up by at
+least `FACE_MATCH_MARGIN` (0.05); if two accounts are near-equally close, the
+honest answer is that the system does not know which, and it refuses rather
+than taking the smaller number. Every refusal returns the same message, so the
+form cannot be used to enumerate who is enrolled.
+
+The security trade is real and is recorded in the constraints: a descriptor can
+be produced from a photograph and nothing here checks liveness, so this
+establishes what somebody looks like, not what they know.
 
 ## 3. Data model
 
@@ -66,13 +119,15 @@ All collections use a UUID string `id` as the public identifier; Mongo's
 
 | Collection | Key fields | Ownership |
 |---|---|---|
-| `users` | username, email, fullName, role, permissions[], passwordHash, faceDescriptor, faceImage, **gender, birthday, phone, address, job** | — |
+| `users` | username, email, fullName, role, **status (pending/allowed/denied)**, permissions[], passwordHash, faceDescriptor, faceImage, gender, birthday, phone, address, job | — |
 | `records` | title, categoryId, content (HTML), attachment(s), ownerId, **visibility, sharedWith[]** | owner + whoever it is shared with |
 | `categories` | name, parentId, path, level | shared |
 | `cameras` | name, location, address, status, notes | shared |
 | `schedules` | title, notes, date, time, repeat, repeatUntil, ownerId | per owner |
 | `mail_messages` | senderId, subject, body, **recipients[{userId, name, readAt, deletedAt}]**, recipientIds[], attachment, replyToId, sentAt | sender + recipients |
 | `posts` | title, body, authorId, pinned, **views[{userId, userName, viewedAt}]**, viewerIds[] | shared |
+| `meetings` | title, description, hostId, openToAll, inviteeIds[], scheduledAt, status, startedAt, endedAt, **participants[{userId, name, joinedAt, leftAt}]**, recordings[] | host + invitees, or everyone |
+| `meeting_messages` | meetingId, senderId, senderName, body | everyone in that meeting |
 | `contacts` | fullName, email, phone, company, jobTitle, group, tags[], favourite, ownerId | per owner |
 | `wallet_entries` | type, amount, **currency**, category, note, method, date, ownerId | per owner |
 | `projects` | key, name, status, colour, dates, memberIds[], progressOverride, taskCounter | shared |
@@ -281,12 +336,150 @@ yet been swept**. Anything not in that set and older than one hour is an
 orphan. Missing a source here means deleting live files, which is why the set
 is built from every model that stores a path.
 
+### 4.9 Video meetings
+
+Media never passes through this server. Two browsers exchange an offer, an
+answer and a set of ICE candidates, and from then on the audio and video go
+directly between them. What the backend provides is the exchange, over a
+WebSocket at `/rtc` sharing the API's port.
+
+**Why a socket here and polling everywhere else.** Chat, mail and posts can
+afford to be a few seconds stale. A handshake cannot: an offer that arrives a
+poll interval late is a call that takes that much longer to connect, and an ICE
+candidate that arrives after its peer has given up is a call that never
+connects at all. This is the one part of the app where latency is correctness,
+so it is the one part with a socket. `server.js` therefore builds an explicit
+`http.Server` — `app.listen()` never exposes the object `ws` needs.
+
+**Topology: full mesh.** Every participant holds an `RTCPeerConnection` to
+every other one. No media server is required, which is what makes the feature
+possible in a plain Express app; the cost is that each person uploads their
+camera once per other participant, so the room is capped by
+`MEETING_MAX_PEERS` (default 8, comfortable at 4–6).
+
+**Who offers.** Whoever is already in the room offers to whoever arrives. The
+newcomer never offers. Exactly one side of each pair initiates, so two peers
+can never be offering each other at the same moment — "glare", the classic way
+a WebRTC call ends up connected in one direction only. It is prevented by the
+protocol rather than detected and recovered from.
+
+**Both m-lines are reserved at connection time**, with or without a track to
+put in them. Starting a screen share is then `RTCRtpSender.replaceTrack`, which
+does not change the shape of the session and so needs no renegotiation — and a
+renegotiation mid-call is exactly where glare would otherwise reappear. It also
+means someone who joined without a camera can still share their screen.
+
+**ICE candidates are queued** until the description they belong to has been
+applied. They routinely arrive first, and adding one early throws.
+
+**Occupancy is not stored.** Who is in a room lives in the signalling process's
+memory and is read from there by the REST layer. Writing it to the database
+looks tidier until a crash or a dropped socket leaves a room permanently
+occupied by nobody, with nothing to correct it. Derived from live sockets, it
+cannot go stale. The price is that the backend must be a single process. A
+30-second ping/pong reaps sockets whose browser was suspended rather than
+closed, which TCP alone would take minutes to notice.
+
+**Identity is per connection, not per person.** Two tabs are two peers, so a
+second tab cannot tear down the first one's call. The roster, the room cap and
+the attendance log all de-duplicate by account, so opening a second tab is
+never what makes a room full, and closing one is not leaving the meeting.
+
+**Authentication is the socket's first message**, not a query parameter.
+A browser cannot set headers on a WebSocket, and the usual alternative —
+`?token=…` — puts a bearer credential for the whole API into proxy and access
+logs. A socket that says nothing within ten seconds is closed. As everywhere
+else, the role is then re-read from the database rather than trusted from the
+token.
+
+**Recording happens in the browser.** Every tile is painted onto a canvas and
+everybody's audio is mixed through a `MediaStreamAudioDestinationNode`; the
+result is what `MediaRecorder` captures, and it uploads as one file when it
+stops. The server has no stream to record, which is also why it cannot produce
+a recording nobody in the room knew about. The recorder's state is published to
+the room like mute and camera are, and the indicator is not separately
+controllable: a recording light the recorder can switch off is not consent.
+Audio is taken from the camera stream rather than the displayed one, so a
+presenter's voice is not dropped for the duration of their screen share.
+
+**Ending a meeting closes the room.** Narrowing an open meeting to a named list
+does too, if somebody in the call is no longer on it — otherwise the one person
+just excluded is the one person still connected.
+
+### 4.10 Deleting an account
+
+"Everything of theirs" splits in two, and `helpers/userPurge.js` treats the
+halves differently.
+
+**Theirs alone — destroyed, files included.** Records and their attachments,
+wallet entries, contacts, schedule, posts they wrote, direct message threads
+and their attachments, mail they sent, their copy of mail they received,
+meetings they host and those meetings' recordings, in-call messages, activity
+log entries, and the account document that carries the face photo and
+descriptor.
+
+**Shared work others are still doing — unlinked, not destroyed.** A project is
+not one person's information, and deleting it would take other people's tasks,
+comments and history with it. So ownership passes to the administrator doing
+the deletion — an `ownerId` nobody holds would leave a project that nobody can
+edit or remove — membership is dropped, tasks they held are unassigned rather
+than left pointing at a missing account, their comments are deleted, and their
+entries in a task's history are anonymised. That last one is deliberate: the
+history is the record of how a bug reached "verified", and deleting the steps
+they performed would leave a trail with holes in it.
+
+Two cases needed a decision rather than a rule:
+
+- A **direct message thread** is destroyed outright, taking the other
+  participant's copy with it. There is no half of a conversation that is not
+  also theirs.
+- **Mail they received** loses only their recipient row. A message is deleted
+  outright only when the sender has also deleted it — exactly the condition
+  `deleteMail` already uses. Dropping every message left with no recipients
+  would destroy the *sender's* copy in Sent: someone else's data, deleted
+  because the person they wrote to was removed.
+
+**The confirmation is built from the same queries as the deletion.**
+`GET /users/:id/deletion-preview` runs `describeUserFootprint`, the function
+`purgeUser` calls first, so the dialog cannot describe one thing while the
+deletion does another. An administrator sees "12 data records (with their
+files), 4 chat conversations (deleted for the other person too), 2 meetings
+they host (with their recordings)" and, separately, what is being kept and
+unlinked.
+
+This is not a transaction — the normal deployment is a standalone `mongod`,
+where multi-document transactions are unavailable. The order is chosen so an
+interrupted run leaves data incomplete rather than inconsistent, and can simply
+be repeated: shared structures are unlinked first, personal data next, the
+activity log after that (it is the only trail of what is being done until the
+end), and the account document last.
+
+Two guards, because this and Deny are the only doors with no way back: nobody
+can delete their own account, and neither Deny nor Delete may take the last
+administrator who is able to sign in. Only an administrator can approve or
+promote, so an installation with none cannot be repaired from inside the
+application at all.
+
+### 4.11 Confirming destructive actions
+
+Every delete in the application asks first, and the question names what is at
+stake rather than asking "are you sure?" — how many sub-categories go with a
+branch, how many records are in the selection, what a meeting's recordings are,
+what an account holds.
+
+Two places did not ask at all and now do: deleting a category, and removing a
+task attachment. A third asked too much — the records toolbar confirmed the
+whole selection and then called the single-record handler, which opened its own
+dialog per record, so confirming "delete 8 records" produced eight more
+questions. `handleDeleteRecords` exists so the bulk path has no second
+confirmation and reloads once at the end rather than once per record.
+
 ## 5. API surface
 
 | Area | Endpoints |
 |---|---|
-| Auth | `POST /auth/register`, `POST /auth/login` |
-| Users | `GET /users`, `GET /users/directory`, `PUT /users/:id`, `GET /permissions/catalog`, `GET /user/profile`, `PUT /user/password`, `PUT /user/profile` |
+| Auth | `POST /auth/register`, `POST /auth/login`, `POST /auth/login/face` |
+| Users | `GET /users`, `GET /users/directory`, `PUT /users/:id`, `PUT /users/:id/status`, `GET /users/:id/deletion-preview`, `DELETE /users/:id`, `GET /permissions/catalog`, `GET /user/profile`, `PUT /user/password`, `PUT /user/profile` |
 | Records | `GET /data`, `GET /data/search`, `POST /data`, `PUT /data/:id`, `DELETE /data/:id` |
 | Categories | `GET/POST /categories`, `DELETE /categories/:id` |
 | Cameras | `GET/POST /cameras`, `PUT/DELETE /cameras/:id` |
@@ -294,6 +487,7 @@ is built from every model that stores a path.
 | Chat | `GET /chat/users`, `GET /chat/recent`, `GET/POST /chat/threads`, `GET/POST /chat/threads/:id/messages`, `POST /chat/threads/:id/attachments`, `POST /chat/threads/:id/read` |
 | Mail | `GET /mail?folder=inbox\|sent`, `GET /mail/inbox`, `GET /mail/unread`, `GET /mail/recent`, `GET/DELETE /mail/:mailId`, `POST /mail` |
 | Posts | `GET /posts`, `GET /posts/notifications`, `POST /posts`, `GET/PUT/DELETE /posts/:id`, `POST /posts/:id/view` |
+| Meetings | `GET /meetings`, `GET /meetings/ice`, `POST /meetings`, `GET/PUT/DELETE /meetings/:id`, `POST /meetings/:id/end`, `POST /meetings/:id/recordings`, `DELETE /meetings/:id/recordings/:recordingId` — plus the `/rtc` WebSocket, which is not a REST route |
 | Schedule | `GET /schedules`, `GET /schedules/upcoming`, `POST /schedules`, `PUT/DELETE /schedules/:id` |
 | Wallet | `GET /wallet/summary`, `GET /wallet/entries`, `POST /wallet/entries`, `PUT/DELETE /wallet/entries/:id` |
 | Contacts | `GET/POST /contacts`, `PUT/DELETE /contacts/:id`, `PATCH /contacts/:id/favourite` |
@@ -301,8 +495,8 @@ is built from every model that stores a path.
 | Tools | `/tools/lvgl/*`, `/tools/convert/*` |
 
 Routes whose literal segment could be read as a parameter (`/chat/users`,
-`/projects/members`) are declared before the parameterised route that would
-otherwise swallow them.
+`/projects/members`, `/meetings/ice`) are declared before the parameterised
+route that would otherwise swallow them.
 
 Express 4 does not catch a rejected promise from an async handler, so routes
 added since that was noticed wrap theirs in `asyncRoute`, which forwards the
@@ -330,10 +524,24 @@ by `frontend/src/i18n.js`, which fetches the catalogue once, parses it with
 | `MONGODB_URI` | `mongodb://127.0.0.1:27017/knowledge-store` | Database |
 | `JWT_SECRET` | a development string | **Must** be set in any real deployment |
 | `VITE_API_URL` | `http://127.0.0.1:4000/api` | API base used by the browser |
+| `HOST` | `127.0.0.1` | Interface the API binds to. Loopback means only this machine can reach it, so a meeting cannot have a second participant. |
+| `ALLOWED_ORIGINS` | — | Extra origins the frontend is served from, comma separated. Needed alongside `HOST`. Opt-in rather than a wildcard. |
+| `MEETING_MAX_PEERS` | 8 | People per meeting. Mesh cost is quadratic; 4–6 is comfortable. |
+| `MEETING_MAX_RECORDING_MB` | 256 | Upload limit for a recording — far larger than any other upload here. |
+| `MEETING_STUN_URL` | Google public STUN | How browsers discover their own public address. |
+| `MEETING_TURN_URL` / `_USERNAME` / `_PASSWORD` | — | A relay for networks STUN cannot traverse. Must be a server you run or pay for. |
+| `MEETING_ICE_SERVERS` | — | Raw `RTCIceServer[]` JSON, replacing the three settings above. |
+| `FACE_MATCH_MAX` | 0.5 | How close a face must be to sign in. Looser lets strangers in; tighter rejects the same person in different light. |
+| `FACE_MATCH_MARGIN` | 0.05 | How much closer the best match must be than the second best, before the system will claim to know which person it is. |
 
 At boot the API creates `uploads/` and `backups/`, seeds the `admin` account
-and the default categories, and starts the retention sweep. CORS allows only
-loopback origins on any port, which suits the Vite dev server.
+and the default categories, applies any outstanding permission backfills,
+starts the retention sweep and attaches the meeting signalling socket. CORS
+allows loopback origins on any port, which suits the Vite dev server, plus
+whatever `ALLOWED_ORIGINS` lists.
+
+In development the Vite dev server must proxy `/rtc` with `ws: true` as well as
+`/api`; without the flag it answers the upgrade itself and no meeting connects.
 
 ## 8. Known limitations
 
@@ -344,6 +552,29 @@ loopback origins on any port, which suits the Vite dev server.
 - Chat delivery is polled, so a message can take up to four seconds to appear.
 - The retention sweep runs in-process; if the API is down when a file expires,
   it is deleted at the next boot instead.
-- Face matching uses a single stored descriptor and a fixed threshold, which
-  suits an internal tool and is not a security boundary on its own — the
-  password is still required.
+- Face sign-in is now sufficient on its own, so the descriptor **is** a
+  credential rather than a second check on one. It can be reproduced from a
+  photograph and there is no liveness test, so an installation that needs a
+  real guarantee of identity should not rely on it. The tightened threshold and
+  the runner-up margin reduce false matches between enrolled people; neither
+  does anything about a printed photo.
+- Face sign-in compares against every approved account in one pass. That is
+  fine for an internal tool and becomes linear work per attempt as the number
+  of accounts grows.
+- Deleting an account is not transactional (standalone `mongod`). An
+  interrupted purge leaves the remainder behind; re-running the deletion
+  finishes it.
+- Meetings are a mesh, so they do not scale past a handful of participants.
+  Going further would mean an SFU — a media server that receives each camera
+  once and forwards it — which is a separate piece of infrastructure, not a
+  change to this code.
+- Meeting occupancy lives in one process's memory, so the backend cannot be
+  run as a cluster without moving that state to Redis or similar.
+- Without a TURN server, participants behind a symmetric NAT will fail to
+  connect. Nothing in this application can compensate for that.
+- Camera, microphone and screen capture need a secure context. On a plain
+  `http://` LAN address the browser does not expose the API at all, and the
+  Meetings page says so up front rather than at the moment of joining.
+- A recording is made by a participant's browser, so it stops if that tab is
+  closed, and a minimised tab is throttled by the browser and records fewer
+  frames. It captures what that participant received, not a server-side master.

@@ -20,8 +20,8 @@ Every signed-in screen sits inside one shell:
 
 **Sidebar order:** Overview · Users · Data · Camera Management · Project
 Management · Schedule · Tools (LVGL, Converting, YOLO, Transformers, Keras) ·
-Chat · Mail · Posts · Database Management · System Monitoring · Basic Data
-(Category).
+Chat · Mail · Meetings · Posts · Database Management · System Monitoring ·
+Basic Data (Category).
 
 A menu entry is present only if the account can view that page; a parent with
 no visible children disappears with them. **My Page is not in the sidebar** —
@@ -73,12 +73,26 @@ amber, never green and red.
 Split layout: artwork and face-scan illustration on one side, the form on the
 other, with a switch between Login and Register.
 
-- **Login:** username, password, Remember me, Sign in, and a "Login with Face"
-  button that opens a camera modal.
-- **Register (top to bottom):** Full name · Username · Email · Password ·
+- **Login:** username, password, Remember me, Sign in, then a divider reading
+  "or" and a **Login with Face** button that opens a camera modal.
+
+  The divider is the point. These are two ways in, not two steps: the face
+  button no longer validates the username and password first, and sends no
+  username at all. Pressing it opens the camera straight away, and the face on
+  its own identifies the account.
+
+  A failed capture leaves the modal open to try again rather than closing and
+  making the person start over.
+- **Register (top to bottom):** an information banner saying new accounts need
+  an administrator's approval, then Full name · Username · Email · Password ·
   Confirm password · **Gender** (select: Male / Female / Other, clearable) ·
   **Birthday** (date picker, future dates disabled) · **Phone number** ·
   **Job** · **Address** · face capture panel · Register.
+
+  The banner sits above the form rather than appearing as a message after it
+  is submitted: somebody expecting to be signed in at the end should find that
+  out before filling anything in. On success the card returns to the Login
+  side, because there is nothing more to do here until an administrator acts.
 
 The five personal fields are optional and carry no asterisk; the face capture
 panel refuses to submit without a photo.
@@ -94,10 +108,38 @@ Header actions: **Refresh** and Add User (administrators only). The list is
 re-read whenever the page is opened, so an account created during the session
 is present without a reload.
 
-Filter bar: search text, role, face-enrolment state, Search and Reset.
+Stat cards: Total users · Administrators · Regular users · Face ID enrolled ·
+**Waiting for approval**. The last one is the only card on the page that is a
+job rather than a number — somebody registered and cannot use the system until
+it reaches zero — so it is amber whenever it is not zero, and its sub-line
+carries the denied count.
 
-Table columns: Name · Photo · Username · Email · Role · Access · Actions.
-Administrators get a pencil action per row.
+Filter bar: search text, role, face-enrolment state, **status**, Search and
+Reset.
+
+Table columns: Name · Photo · Username · Email · Role · **Status** · Access ·
+Actions.
+
+**Status** is a pill: Pending in amber with a dot, Allowed in green, Denied in
+red. Amber rather than red for Pending, because it is a question waiting for an
+answer and not a failure; red is kept for the decision to refuse.
+
+**Actions** per row, for administrators: **Allow** (shown unless already
+allowed), **Deny** (unless already denied), edit, and delete. Allow and Deny
+act from the list without opening anything — approving a morning's
+registrations should not mean opening five dialogs.
+
+Deny and Delete are absent from your own row rather than shown and refused. The
+API blocks both either way, and a button that can only fail is not a choice.
+
+**Deleting an account** asks with a dialog built from a server-side count of
+what will actually go: a list of what is destroyed — "12 data records (with
+their files)", "4 chat conversations (deleted for the other person too)", "2
+meetings they host (with their recordings)" — and, separately, what is kept and
+unlinked: projects whose ownership passes to you, tasks that are unassigned.
+A red line at the bottom says it cannot be undone. Where the account would be
+the last administrator able to sign in, a warning dialog explains that instead
+of offering the choice.
 
 **User editor** (modal, three tabs):
 
@@ -255,6 +297,46 @@ New post, Edit and Delete appear only with the matching permissions; the
 editor is a dialog with Title, the rich-text editor and a "Pin to the top"
 switch.
 
+### 3.7c Meetings
+
+**List.** Page header with Refresh and New meeting. Four stat cards: In
+progress, Upcoming, Recordings, Meetings. A filter row — search, and a status
+selector (All / In progress / Upcoming / Ended). Below that, a card grid.
+
+A meeting that is in progress is outlined in green and carries a dotted "Live"
+badge; it also names who is in the call, because "3 people" is not the
+information that makes somebody decide to join. Each card shows the host, when
+it is, and whether it is open to everyone or limited to named people; a footer
+carries the attendance count, the recordings count, and the actions — Edit, End
+and Delete for the host or an administrator, and Join for anyone.
+
+If the browser cannot reach a camera at this address — a plain `http://` page
+that is not `localhost` — a warning panel sits directly under the page header.
+It is deliberately there and not on the Join button: discovering the camera is
+unavailable in front of everyone already in the call is the wrong moment.
+
+**Room.** Joining replaces the page rather than routing away, the same way
+opening a camera or a project does, so leaving returns to the list as it was.
+
+A header line carries the title and a count of who is in the call, plus a
+recording pill while one is running. Under it, any of: a warning that somebody
+is recording, a notice that you joined without a camera, an error. Then the
+tile grid — one tile fills the frame, two sit side by side, more flow into a
+responsive grid. Each tile shows the name, a microphone icon when that person
+is muted, a camera icon in amber when their camera is off, a screen icon when
+they are presenting, and a red REC badge when they are recording. A tile with
+no picture shows the person's initials, not an empty black rectangle.
+
+The in-call chat is a panel on the right, toggled from the control bar and
+stacking underneath the video on narrow screens. Its button carries an unread
+count while the panel is closed.
+
+The control bar is a row of circular buttons: microphone, camera, screen
+share, record, chat, leave. Off is the state that gets the colour — a muted
+microphone is amber, an active share or open chat is blue, a running recording
+is red — because the state worth noticing should not look like every other
+button on the bar. Leaving while recording asks first, and saves the recording.
+
 ### 3.8 Database Management
 
 Four panels: Initialization (safe or reset, the latter requiring the word
@@ -280,8 +362,15 @@ of the measured series. Nothing on this page is simulated.
 
 ## 4. Interaction rules
 
-- A destructive action always confirms, and the confirmation states what else
-  it takes with it ("its 12 tasks, with every comment and the whole history").
+- A destructive action **always** confirms — there is no exception anywhere in
+  the application — and the confirmation states what else it takes with it
+  ("its 12 tasks, with every comment and the whole history"), not merely "are
+  you sure?". Where the scope can only be known by asking the server, it is
+  asked before the dialog opens; that is what deleting an account does.
+- A confirmation is asked **once** per action. A bulk operation confirms the
+  whole selection and then runs without asking again per item.
+- The destructive button in a confirmation is `danger`, and its label names the
+  act ("Delete", "Remove", "End meeting") rather than saying "OK".
 - A failed request raises a toast carrying the server's message, never a
   generic one, and the page keeps the data it already had.
 - Pickers that list people — project members, task assignee — re-read the

@@ -13,6 +13,7 @@
   <text id="toolsLvgl" en="Tools / LVGL image/font converter" es="Herramientas / convertidor de imagen/fuente LVGL" zh="工具 / LVGL 图像/字体转换器" jp="ツール / LVGL 画像・フォント変換" />
   <text id="chat" en="Chat" es="Chat" zh="聊天" jp="チャット" />
   <text id="mail" en="Mail" es="Correo" zh="邮件" jp="メール" />
+  <text id="meetings" en="Meetings" es="Reuniones" zh="会议" jp="会議" />
   <text id="systemMonitoring" en="System Monitoring" es="Monitoreo del sistema" zh="系统监控" jp="システム監視" />
   <text id="basicData" en="Basic Data" es="Datos basicos" zh="基础数据" jp="基本データ" />
   <text id="category" en="Category" es="Categoria" zh="分类" jp="カテゴリ" />
@@ -478,4 +479,5 @@
   <text id="recentMail" en="Recent mail" es="Correo reciente" zh="最近的邮件" jp="最近のメール" />
   <text id="noMailYet" en="No mail yet" es="Aun no hay correo" zh="暂无邮件" jp="メールはありません" />
   <text id="openMail" en="Open Mail" es="Abrir correo" zh="打开邮件" jp="メールを開く" />
+  <text id="registrationNeedsApproval" en="New accounts need an administrator to approve them. You will be able to sign in once yours is approved." es="Las cuentas nuevas necesitan la aprobacion de un administrador. Podra iniciar sesion cuando la suya sea aprobada." zh="新账户需要管理员批准。获批后即可登录。" jp="新しいアカウントは管理者の承認が必要です。承認されるとログインできます。" />
 </translations>

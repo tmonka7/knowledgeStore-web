@@ -3,9 +3,11 @@
 A full-stack starter app with:
 - React + Vite + Ant Design frontend
 - Node.js 20 + Express backend
-- Login / registration
+- Login by password or by face, as alternatives
+- Account approval (pending / allowed / denied) and full account deletion
 - User management
 - Data manager API and UI
+- Video meetings (WebRTC, peer-to-peer) with screen sharing and recording
 
 ## Quick start
 
@@ -24,6 +26,112 @@ A full-stack starter app with:
 
 - Username: `admin`
 - Password: `admin123`
+
+## Signing in, and account approval
+
+**Two ways in, and they are alternatives** — not two steps:
+
+1. `POST /auth/login` — username and password.
+2. `POST /auth/login/face` — a descriptor, and nothing else.
+
+The previous build required the password *and*, for any account with a face on
+file, the face as well. Since registration always enrols a face, that meant
+everybody answered two challenges and "Login with Face" was unusable by anyone
+who did not already know their password. The face button no longer validates
+the login form first and sends no username at all.
+
+### What face sign-in now costs
+
+It identifies rather than verifies: with no username to start from, the server
+searches every approved account for the closest descriptor. The risk that grows
+with the number of accounts is not "is this close enough" but "is this closer
+to the right person than to somebody else", so two rules apply — the distance
+must be under `FACE_MATCH_MAX` (0.5, down from the 0.6 used for verification),
+**and** the best match must beat the runner-up by `FACE_MATCH_MARGIN` (0.05).
+If two accounts are near-equally close the server refuses rather than taking
+the smaller number. Every refusal returns one message, so the form cannot be
+used to enumerate who is enrolled.
+
+Be clear-eyed about the trade: a descriptor is now a credential on its own, it
+can be produced from a photograph, and nothing here tests liveness. This
+establishes what someone looks like, not what they know. If that is not good
+enough for your installation, do not use method 2.
+
+### Pending / Allowed / Denied
+
+Registration creates the account as **pending** and returns **no token** — a
+session whose every request is refused is worse than being told plainly to
+wait. An administrator sets Allowed or Denied from the Users page.
+
+`pending` and `denied` are deliberately distinct. One means nobody has looked;
+the other means somebody looked and said no. Telling a waiting applicant they
+have been rejected sends them to ask an administrator about a decision nobody
+made.
+
+`requireAuth` now reads the account from the database on every request rather
+than trusting the token, so denying or deleting an account takes effect on that
+person's next click instead of whenever their eight-hour token happens to
+expire. The lookup deliberately excludes the face photo, which is a base64 data
+URL of up to 2MB and would otherwise be the most expensive part of most
+requests.
+
+### The upgrade hazard
+
+Mongoose applies a schema default to a path missing from a document it loads.
+The moment `status` existed, every account already in the database began
+reading as `pending` — an upgrade that locks out the entire installation,
+administrators included. `helpers/accountStatusBackfill.js` sets them all to
+`allowed` once, marker-guarded, before the port opens. `ensureSeedAdmin` and
+`ensureSuperuser` write `allowed` explicitly, because an administrator who
+needs approving by an administrator is a locked door with the key inside.
+
+## Deleting an account
+
+`DELETE /users/:id` removes the account and everything behind it — see
+`backend/src/helpers/userPurge.js`. Records and their files, wallet, contacts,
+schedule, posts, chat threads and their files, mail, hosted meetings and their
+recordings, in-call messages, activity log entries, the face photo.
+
+**Shared project work is unlinked rather than destroyed.** A project is not one
+person's information, and deleting it would take other people's tasks and
+history with it. Ownership passes to the administrator running the deletion —
+an `ownerId` nobody holds leaves a project nobody can manage — membership is
+dropped, tasks are unassigned, their comments go, and their entries in a task's
+history are anonymised so the trail of how a bug reached "verified" keeps all
+its steps.
+
+Two cases needed a judgement rather than a rule:
+
+- A **chat thread** is destroyed outright, taking the other participant's copy.
+  There is no half of a conversation that is not also theirs.
+- **Mail they received** loses only their recipient row. A message is destroyed
+  only when the sender has also deleted it — the same condition `deleteMail`
+  uses. Dropping every message left with no recipients would destroy the
+  *sender's* copy in Sent: someone else's data, deleted because the person they
+  wrote to was removed.
+
+`GET /users/:id/deletion-preview` runs the same counting function `purgeUser`
+calls first, so the confirmation dialog cannot describe one thing while the
+deletion does another.
+
+Not a transaction — standalone `mongod` has none. The order is chosen so an
+interrupted run leaves data incomplete rather than inconsistent and can simply
+be repeated.
+
+Guards: nobody can delete their own account, and neither Deny nor Delete may
+take the last administrator able to sign in.
+
+## Confirming destructive actions
+
+Every delete in the application asks first, and the question names what is at
+stake rather than asking "are you sure?".
+
+Two places did not ask at all and now do — deleting a **category** and removing
+a **task attachment**, both of which deleted on the click. One asked too much:
+the records toolbar confirmed the selection and then called the single-record
+handler, which opened its own dialog per record, so confirming "delete 8
+records" produced eight more questions. `handleDeleteRecords` gives the bulk
+path one confirmation and one reload.
 
 ## Mail
 
@@ -51,6 +159,83 @@ Inbox is `recipients` matching `{ userId, deletedAt: null }`, Sent is
 is stamped and the document goes only when nobody holds it — which also keeps
 its attachment alive while someone can still open it. `getMailFor` is the one
 privacy gate and, like chat's, has no administrator bypass.
+
+## Meetings
+
+Video calls between people in this workspace, on the `Meetings` page. Create a
+room, invite everyone or a named few, and join. **`npm install --prefix
+backend` is required** — this is the first feature with a new dependency (`ws`).
+
+**The media never touches this server.** Two browsers exchange an offer, an
+answer and some ICE candidates and then talk directly. All the backend does is
+carry that handshake, over a WebSocket at `/rtc` sharing the API's port.
+
+### Why a socket here when everything else polls
+
+Chat, mail and posts can afford to be a few seconds stale. A handshake cannot:
+an offer that arrives a poll interval late is a call that connects that much
+later, and a candidate that arrives after its peer has given up is a call that
+never connects. This is the one place where latency is correctness. `server.js`
+therefore builds an explicit `http.Server`, because `app.listen()` never hands
+back the object `ws` needs.
+
+### Full mesh, and what that costs
+
+Everyone holds a connection to everyone else. No media server is needed — which
+is the only reason this fits in a plain Express app — but each person uploads
+their camera once per other participant. `MEETING_MAX_PEERS` (default 8) caps
+it; 4–6 is comfortable. Going beyond that means an SFU, which is separate
+infrastructure rather than a change to this code.
+
+Whoever is already in the room offers to whoever arrives, and the newcomer
+never offers. One initiator per pair means two peers can never offer each other
+at once — "glare", the classic cause of a call that connects one way only. Both
+audio and video m-lines are reserved when a connection opens, so starting a
+screen share is a `replaceTrack` with no renegotiation at all.
+
+### Occupancy is not stored
+
+Who is in a room lives in the signalling process's memory, not in MongoDB.
+Storing it looks tidier right up until a crash leaves a room permanently
+occupied by nobody, with nothing to correct it. Derived from live sockets, it
+cannot go stale — a 30-second ping reaps browsers that were suspended rather
+than closed. The price: the backend must run as a single process.
+
+Identity is per connection, not per person, so a second tab cannot tear down
+the first one's call. The roster, the room cap and the attendance log all
+de-duplicate by account.
+
+### Recording
+
+Done by the browser: every tile is painted onto a canvas, everyone's audio is
+mixed through a `MediaStreamAudioDestinationNode`, and `MediaRecorder` captures
+the result. It uploads to the meeting when it stops.
+
+Everyone in the call is told for as long as it runs, and the indicator is not
+separately controllable — a recording light the recorder can switch off is not
+consent. Audio comes from the camera stream rather than the displayed one, so a
+presenter's voice is not dropped for the length of their screen share.
+
+### Two things that will bite you
+
+**Camera access needs a secure context.** Browsers only expose
+`navigator.mediaDevices` over HTTPS or on `localhost`; on a plain `http://` LAN
+address it is not merely refused but *undefined*. The Meetings page detects
+this and says so under the page header rather than letting it surface as a
+crash at the moment of joining.
+
+**The API binds to `127.0.0.1` by default,** which means nobody else can reach
+it and a call cannot have a second participant. Set `HOST=0.0.0.0` and list the
+origins you serve the frontend from in `ALLOWED_ORIGINS`. In development, Vite
+must also proxy `/rtc` with `ws: true` — without the flag it answers the
+upgrade itself and nothing connects.
+
+Across the internet, STUN handles most routers; symmetric NAT needs a TURN
+server (`MEETING_TURN_URL` and friends), which relays media and so has to be
+one you run or pay for. Without it a minority of participants simply cannot
+connect, and nothing in this app can compensate.
+
+See `backend/.env.example` for every meeting setting.
 
 ## Posts
 
@@ -127,7 +312,7 @@ Written against this build, in `docs/`:
 | Document | What it answers |
 | --- | --- |
 | [Requirements Specification](docs/requirements-specification.md) | What the system must do, as numbered requirements with actors and constraints |
-| [System Design Document](docs/system-design.md) | Architecture, data model, authorisation, the workflow/currency/retention mechanisms, API surface |
+| [System Design Document](docs/system-design.md) | Architecture, data model, authorisation, the workflow/currency/retention/meeting mechanisms, API surface |
 | [Screen Design Document](docs/screen-design.md) | Navigation map, the grammar every page follows, and each screen's regions and controls |
 | [Test Case Specification](docs/test-case-specification.md) | Cases traced to requirement IDs, with a regression set for the current release |
 | [User Manual](docs/user-manual.md) | How to use the application, written for the people using it |

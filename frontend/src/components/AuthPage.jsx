@@ -1,4 +1,4 @@
-import { Button, Checkbox, DatePicker, Form, Input, Layout, Modal, Select, Typography, message } from 'antd';
+import { Alert, Button, Checkbox, DatePicker, Form, Input, Layout, Modal, Select, Typography, message } from 'antd';
 import {
   CameraOutlined,
   CheckCircleFilled,
@@ -296,7 +296,14 @@ function RegisterForm({ loading, faceError, onFaceDescriptor, onSubmit }) {
   );
 }
 
-export default function AuthPage({ defaultUser, loading, loginForm, handleLogin, handleRegister }) {
+export default function AuthPage({
+  defaultUser,
+  loading,
+  loginForm,
+  handleLogin,
+  handleFaceLogin,
+  handleRegister,
+}) {
   const { t } = useLanguage();
   const [rememberedUsername] = useState(() => localStorage.getItem(REMEMBER_KEY) || '');
   const [remember, setRemember] = useState(Boolean(rememberedUsername));
@@ -312,28 +319,30 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
     setMode(nextMode);
   };
 
-  const submitLogin = (values, faceDescriptor) => {
+  const submitLogin = (values) => {
     if (remember) {
       localStorage.setItem(REMEMBER_KEY, values.username);
     } else {
       localStorage.removeItem(REMEMBER_KEY);
     }
-    handleLogin({ ...values, faceDescriptor });
+    handleLogin(values);
   };
 
-  const startFaceLogin = async () => {
-    try {
-      await loginForm.validateFields();
-      setFaceLoginOpen(true);
-    } catch {
-      // The form shows which field is missing.
-    }
-  };
+  /*
+   * The two methods are alternatives, so this no longer asks the login form to
+   * validate first. It used to: the face was a second factor on top of a
+   * username and password, which meant "Login with Face" could not be used by
+   * anyone who did not already know their password — not a second way in at
+   * all. The camera opens straight away, and the face alone identifies you.
+   */
+  const startFaceLogin = () => setFaceLoginOpen(true);
 
   const handleLoginFace = (data) => {
     if (!data) return;
     setFaceLoginOpen(false);
-    submitLogin(loginForm.getFieldsValue(['username', 'password']), data.descriptor);
+    // No username is sent. The server searches every approved account for the
+    // closest match; see loginWithFace.
+    handleFaceLogin(data.descriptor);
   };
 
   const handleRegisterFace = (data) => {
@@ -341,12 +350,12 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
     setFaceError(data ? '' : t('faceRequiredForRegistration'));
   };
 
-  const submitRegistration = ({ confirmPassword, ...values }) => {
+  const submitRegistration = async ({ confirmPassword, ...values }) => {
     if (!registerFaceData) {
       setFaceError(t('faceRequiredForRegistration'));
       return;
     }
-    handleRegister({
+    const created = await handleRegister({
       ...values,
       // The picker hands back a dayjs; the API stores a calendar day.
       birthday: values.birthday ? values.birthday.format('YYYY-MM-DD') : '',
@@ -354,6 +363,11 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
       faceDescriptor: registerFaceData.descriptor,
       faceImage: registerFaceData.faceImage,
     });
+
+    // Registering no longer signs you in — the account is created and waits
+    // for an administrator — so the card goes back to the login side rather
+    // than sitting on a filled-in form that has already been submitted.
+    if (created) switchMode('login');
   };
 
   return (
@@ -421,6 +435,15 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
               </Form>
             ) : (
               <>
+                {/* Said before the form is filled in rather than after it is
+                    sent: someone expecting to be signed in at the end should
+                    find that out now, not from a message that flashes past. */}
+                <Alert
+                  type="info"
+                  showIcon
+                  className="auth-pending-note"
+                  message={t('registrationNeedsApproval')}
+                />
                 <RegisterForm loading={loading} faceError={faceError} onFaceDescriptor={handleRegisterFace} onSubmit={submitRegistration} />
                 <div className="auth-switch">{t('alreadyHaveAccount')} <button type="button" onClick={() => switchMode('login')}>{t('login')}</button></div>
               </>

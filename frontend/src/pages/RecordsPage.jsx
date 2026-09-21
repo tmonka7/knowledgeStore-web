@@ -73,6 +73,7 @@ export default function RecordsPage({
   setSelectedRecord,
   handleEditRecord,
   handleDeleteRecord,
+  handleDeleteRecords,
   setIsAddModalOpen,
 }) {
   const [pageSize, setPageSize] = useState(10);
@@ -161,10 +162,10 @@ export default function RecordsPage({
       okText: t('delete'),
       okButtonProps: { danger: true },
       onOk: async () => {
-        for (const id of deletableIds) {
-          // Sequential so a failure stops the run instead of firing every request.
-          await handleDeleteRecord?.(id);
-        }
+        // The multi-delete handler, not the single one: that one opens its own
+        // confirmation, so routing the loop through it asked the same question
+        // again once per selected record.
+        await handleDeleteRecords?.(deletableIds);
         setSelectedIds([]);
       },
     });

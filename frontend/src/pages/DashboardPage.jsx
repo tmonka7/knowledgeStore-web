@@ -29,6 +29,7 @@ import {
   ShareAltOutlined,
   TeamOutlined,
   ToolOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -57,6 +58,7 @@ import TransformersToolPage from './TransformersToolPage';
 import KerasToolPage from './KerasToolPage';
 import MyPage from './MyPage';
 import PostsPage from './PostsPage';
+import MeetingsPage from './MeetingsPage';
 import DatabasePage from './DatabasePage';
 import ProjectsPage from './ProjectsPage';
 
@@ -115,6 +117,7 @@ export default function DashboardPage({
   overviewChartData,
   systemStatus,
   handleDeleteRecord,
+  handleDeleteRecords,
   recordForm,
   addForm,
   categoryForm,
@@ -126,6 +129,8 @@ export default function DashboardPage({
   handleUpdatePassword,
   handleUpdateProfile,
   handleUpdateUser,
+  handleSetUserStatus,
+  handleDeleteUser,
   onRefreshUsers,
   permissionCatalog,
   directory = [],
@@ -403,6 +408,7 @@ export default function DashboardPage({
         : t('chat'),
     },
     { key: 'mail', icon: <MailOutlined />, label: t('mail') },
+    { key: 'meetings', icon: <VideoCameraOutlined />, label: t('meetings') },
     {
       key: 'posts',
       icon: <NotificationOutlined />,
@@ -718,6 +724,7 @@ export default function DashboardPage({
               setSelectedRecord={setSelectedRecord}
               handleEditRecord={handleEditRecord}
               handleDeleteRecord={handleDeleteRecord}
+              handleDeleteRecords={handleDeleteRecords}
               setIsAddModalOpen={setIsAddModalOpen}
             />
           )}
@@ -754,6 +761,8 @@ export default function DashboardPage({
               user={user}
               userTableColumns={userTableColumns}
               handleUpdateUser={handleUpdateUser}
+              handleSetUserStatus={handleSetUserStatus}
+              handleDeleteUser={handleDeleteUser}
               onRefreshUsers={onRefreshUsers}
               permissionCatalog={permissionCatalog}
             />
@@ -784,6 +793,8 @@ export default function DashboardPage({
               onViewed={refreshPostNotifications}
             />
           )}
+
+          {effectiveKey === 'meetings' && <MeetingsPage user={user} directory={directory} />}
 
           {effectiveKey === 'projects' && <ProjectsPage user={user} />}
 

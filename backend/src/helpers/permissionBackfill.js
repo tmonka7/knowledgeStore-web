@@ -12,13 +12,19 @@ import { ALL_PERMISSIONS } from './permissionCatalog.js';
  * poll answered 403 — the post was published, and nobody was told.
  *
  * Each entry is applied once, against a marker, and never again: a grant an
- * administrator revokes afterwards has to stay revoked.
+ * administrator revokes afterwards has to stay revoked. Adding a page later
+ * means adding an entry here with a new id, never editing an old one.
  */
 const BACKFILLS = [
   {
     id: 'grant-posts-view-2026-09',
-    permission: 'posts:view',
+    permissions: ['posts:view'],
     note: 'Posts are announcements for everyone; reading them was added to the defaults after these accounts were created.',
+  },
+  {
+    id: 'grant-meetings-2026-09',
+    permissions: ['meetings:view', 'meetings:create', 'meetings:edit', 'meetings:delete'],
+    note: 'Meetings shipped after these accounts were created. Edit and delete are scoped to your own meetings by the controller.',
   },
 ];
 
@@ -26,22 +32,30 @@ export const backfillDefaultPermissions = async () => {
   const applied = [];
 
   for (const entry of BACKFILLS) {
-    // A typo here would write a permission no route ever checks, so the key is
-    // validated against the catalog rather than trusted.
-    if (!ALL_PERMISSIONS.includes(entry.permission)) {
-      console.warn(`Skipping backfill ${entry.id}: ${entry.permission} is not in the catalog.`);
+    // A typo here would write a permission no route ever checks, so every key
+    // is validated against the catalog rather than trusted.
+    const unknown = entry.permissions.filter((key) => !ALL_PERMISSIONS.includes(key));
+    if (unknown.length) {
+      console.warn(`Skipping backfill ${entry.id}: ${unknown.join(', ')} not in the catalog.`);
       continue;
     }
 
     const outcome = await runOnce(entry.id, entry.note, () => User.updateMany(
-      // Administrators bypass the list, so there is nothing to grant them.
-      { role: { $ne: 'admin' }, permissions: { $ne: entry.permission } },
-      { $addToSet: { permissions: entry.permission } },
+      {
+        // Administrators bypass the list, so there is nothing to grant them.
+        role: { $ne: 'admin' },
+        // Matches an account missing even one of the keys. An $or of $ne
+        // rather than a negated $all: $not takes an operator expression, and
+        // wrapping $all in it is not something to rely on. $addToSet then
+        // leaves the keys they already have alone.
+        $or: entry.permissions.map((key) => ({ permissions: { $ne: key } })),
+      },
+      { $addToSet: { permissions: { $each: entry.permissions } } },
     ));
 
     if (outcome.applied) {
       const changed = outcome.result?.modifiedCount || 0;
-      applied.push(`${entry.permission} → ${changed} account(s)`);
+      applied.push(`${entry.permissions.join(', ')} → ${changed} account(s)`);
     }
   }
 

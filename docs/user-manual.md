@@ -18,18 +18,32 @@ to verify you at sign-in.
    phone number, job and address**. All of it is optional, and you can add or
    change it later on My Page.
 4. Capture or upload your face photo.
-5. Choose **Register**. You are signed in straight away.
+5. Choose **Register**.
+
+**You are not signed in yet.** A new account is created with the status
+*Pending* and waits for an administrator to approve it. Until then, signing in
+is refused with a message saying so. Once an administrator allows it, you can
+sign in with no further steps — nothing is sent to you, so if you are waiting a
+while, ask them.
 
 New accounts are ordinary user accounts. Only an administrator can make an
 account an administrator.
 
 ## 3. Signing in
 
-Enter your username and password. If your account has a face photo you will
-also be asked to verify with your camera — choose **Login with Face** and look
-at the camera.
+There are two ways in, and you only need **one** of them.
+
+**Username and password.** Type them and choose **Sign in**.
+
+**Your face.** Choose **Login with Face** and look at the camera. You do not
+need to type a username first — the system works out who you are from your
+face. If it cannot tell for certain, it refuses rather than guessing, and you
+can always fall back to your password.
 
 Sessions last 8 hours. After that you are asked to sign in again.
+
+If an administrator denies or deletes your account while you are using the
+application, you are signed out at once and told which it was.
 
 ## 4. Finding your way around
 
@@ -264,6 +278,95 @@ opened it. The same button is at the bottom of an open post.
 the others for everyone. Posts can be edited and deleted later; deleting one
 also deletes its record of who read it.
 
+## 8c. Meetings
+
+Video calls with other people in this workspace. The picture and sound travel
+straight between the browsers taking part — they do not pass through the
+server — which keeps them quick, and means a call works best with a handful of
+people rather than a crowd.
+
+### Before your first call
+
+Your browser will only hand over a camera and a microphone on a page served
+over **HTTPS**, or on **localhost**. If you reach this application by typing an
+address like `http://192.168.1.20:6173`, the browser blocks camera access
+entirely, and there is nothing the application can do about it. The Meetings
+page tells you so at the top when that is the case; you can still join to watch
+and listen.
+
+The first time you join, the browser asks for permission. If you refuse, or you
+have no camera, you join anyway — you will see and hear everyone, and they will
+see your initials in place of your picture.
+
+### Setting one up
+
+Press **New meeting** and give it a title. Everything else is optional:
+
+- **Starts** — the time it is meant to begin. Leave it empty and you get a room
+  that anyone can open whenever it is needed.
+- **Open to everyone** — on by default. Turn it off and choose the people who
+  may join; nobody else will even see the meeting in their list. You can always
+  join your own.
+
+### Joining
+
+Press **Join** on any meeting that has not ended. Meetings with somebody in
+them are outlined in green, badged **Live**, and list who is already in the
+call — so you can see whether the person you are waiting for has arrived.
+
+### While you are in the call
+
+Along the bottom:
+
+| Button | What it does |
+|---|---|
+| Microphone | Mutes and unmutes you. Everyone else sees a microphone icon on your tile while you are muted. |
+| Camera | Turns your picture off and on. Your tile shows your initials instead. |
+| Screen | Shares a window or a screen in place of your camera. Press it again, or use your browser's own "Stop sharing" bar, to go back to the camera. |
+| Record | Starts and stops recording. |
+| Messages | Opens the side panel for typing to everyone in the call. |
+| Leave | Leaves. |
+
+A button turns amber when that thing is **off**, blue when it is active, and
+red while a recording is running, so a glance at the bar tells you the state.
+
+Messages sent in the panel stay with the meeting, so somebody who joins late
+can read what has already been said. While the panel is closed, the button
+carries a count of what you have not seen.
+
+### Recording
+
+Press **Record**. What is captured is the meeting as you are seeing and hearing
+it — every tile, with names, and everyone's voice — and it saves to the meeting
+when you stop. A timer runs in the header while it records.
+
+**Everyone in the call is told.** A warning appears across the top of their
+screen and a red REC badge appears on your tile, for as long as you are
+recording. This is not something you can turn off separately.
+
+A few things worth knowing:
+
+- The recording is made by your browser, so it stops if you close the tab, and
+  leaving the call asks you first and saves what you have.
+- Minimising the window makes your browser slow the recording down and drop
+  frames. Leave it visible.
+- Recordings can be large. A long call can run to hundreds of megabytes.
+
+Afterwards, the meeting's card shows how many recordings it has; click that to
+open, download or delete them. You can delete a recording you made; the host
+and administrators can delete any of them.
+
+### Ending and deleting
+
+The host — and any administrator — can **End** a meeting. Anyone still in the
+call is disconnected and told it has ended. The recordings, the messages and
+the record of who attended are all kept.
+
+**Delete** removes the meeting and its recordings for good.
+
+Clicking the attendance count on a card shows everyone who joined, when they
+arrived and when they left. Leaving and coming back shows as two visits.
+
 ## 9. Other pages
 
 | Page | What it does |
@@ -275,6 +378,7 @@ also deletes its record of who read it.
 | Schedule | Your own calendar entries, including repeating ones. |
 | Mail | Internal mail with one attachment, and the open status of everything you send. It does not leave this installation. |
 | Posts | Announcements, and who has read them. |
+| Meetings | Video calls with other people here, with screen sharing, in-call messages and recording. See §8c. |
 | Contacts | Your own address book, on My Page. |
 | Tools | LVGL, Converting, YOLO, Transformers and Keras helpers. |
 | Users | For administrators: accounts, roles and permissions. |
@@ -302,6 +406,58 @@ Click the pencil on a row to edit that account:
 A permission change takes effect on that user's next request; they do not need
 to sign out and in again.
 
+### Approving, denying and deleting accounts
+
+Every account is in one of three states, shown as a pill in the **Status**
+column and filterable from the bar above the table:
+
+| Status | Meaning |
+|---|---|
+| **Pending** | Somebody registered and nobody has decided yet. They cannot sign in. |
+| **Allowed** | The account works normally. |
+| **Denied** | Somebody decided no. They cannot sign in, and an open session stops working immediately. |
+
+The **Waiting for approval** card at the top of the page counts the Pending
+accounts. It is amber whenever it is not zero, because it is the one number on
+this page that is a job rather than a statistic.
+
+**Allow** and **Deny** are buttons on the row — no dialog, because approving a
+morning's registrations should not mean opening five of them. Denying is not
+permanent: press **Allow** to let the account back in.
+
+Two things you cannot do, because they would leave the installation with no way
+back in: deny your own account, and deny or delete the last administrator who
+can still sign in. Only an administrator can approve or promote anybody, so an
+installation without one cannot be repaired from inside the application.
+
+**Deleting an account removes everything behind it.** Before it happens you are
+shown exactly what that means for this particular person — how many data
+records and files, how many chat conversations, how many meetings and
+recordings, and so on — so read it rather than clicking through.
+
+Destroyed outright:
+
+- their data records and the files attached to them
+- their wallet entries, contacts and schedule
+- posts they wrote
+- their chat conversations — **including the other person's copy**, because
+  there is no half of a conversation that is not also theirs
+- mail they sent, which is withdrawn from everyone who received it, and their
+  own copy of mail they received
+- meetings they host, together with those meetings' recordings
+- their face photo
+
+Kept, with the person removed from it:
+
+- **projects they owned** pass to you, so the work and other people's tasks
+  survive and somebody can still manage the project
+- projects they were a member of simply lose them
+- tasks they held become unassigned, their comments are deleted, and their
+  steps in a task's history stay but are attributed to "Deleted user" — so the
+  record of how a bug reached "verified" keeps all its steps
+
+You cannot delete your own account.
+
 ### Accounts are created by registration
 
 There is no "create user" form. Ask the person to register themselves, so they
@@ -321,7 +477,18 @@ enrol their own face photo, and then set their role and permissions here.
 | Posts is missing from your sidebar, and new posts never reach you | Your account does not have permission to read posts. Accounts created before Posts existed are granted it automatically the first time the server restarts; if it is still missing, ask an administrator to grant "Posts — view". |
 | A new post takes a moment to appear | The bell rechecks about once a minute, and whenever you change page. |
 | No Add or Edit button on the Cameras page | Your account can watch cameras but not change them. Ask an administrator. |
+| The Meetings page warns that the camera is unavailable | The browser only releases a camera on an HTTPS page or on `localhost`. On a plain `http://` network address it refuses, and no setting in this application changes that. You can still join to watch and listen. |
+| You joined a meeting but nobody can see or hear you | Check the microphone and camera buttons — amber means off. If the browser asked for permission and you refused, reload the page and allow it. |
+| Someone's tile stays blank and says "Connecting…" | Their camera may be off, or the two browsers could not open a direct connection. Networks that block peer-to-peer traffic need a TURN server, which an administrator has to configure. |
+| A meeting shows as full | Every person sends their camera to every other person, so meetings are capped. An administrator can raise the limit, but large calls are heavy on everyone's connection. |
+| Your recording is jerky or too short | A minimised or background tab is slowed down by the browser. Keep the window visible while recording, and do not close the tab — closing it stops the recording. |
+| You cannot delete a recording | You can delete recordings you made. Any other one belongs to the host or an administrator. |
 | You cannot edit a record you can see | It belongs to someone else. Sharing lets you read it, not change it. |
 | "Invalid or expired token" | Your 8-hour session ended. Sign in again. |
+| "Your account is waiting for an administrator to approve it" | Nobody has reviewed your registration yet. Nothing is sent to you when it happens, so ask an administrator. |
+| "Access to this account has been denied" | An administrator refused the account. That is a decision, not a delay — ask them why. |
+| You were signed out in the middle of working | Your account was denied or deleted. The message that appeared says which. |
+| **Login with Face** does not recognise you | Try better, even light and face the camera squarely. If two enrolled people look very alike the system refuses rather than guessing which — use your username and password instead. |
+| Face sign-in used to ask for your password as well | It no longer does. The two methods are now alternatives: either your password **or** your face. |
 | A wallet total looks wrong | Check which currency block you are reading. USD and REM are reported separately and are never added together. |
 | Registration says the username or email is taken | That account already exists. Sign in instead, or use a different one. |
