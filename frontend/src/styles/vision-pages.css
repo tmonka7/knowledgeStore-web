@@ -1346,3 +1346,134 @@
     min-height: 0;
   }
 }
+
+/* -------------------------------------------------------------- overview */
+
+/*
+ * Bars for "Records added". One series, one hue: this is magnitude over time,
+ * so there is nothing to tell apart by colour and no legend to carry.
+ */
+.vision-bar {
+  fill: var(--v-primary);
+}
+
+.vision-bar-value {
+  fill: var(--v-text-soft);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ranked magnitude — same single hue, values labelled directly. */
+.vision-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vision-rank-row {
+  display: grid;
+  align-items: center;
+  gap: var(--v-space-3);
+  grid-template-columns: minmax(0, 8rem) 1fr auto;
+}
+
+.vision-rank-label {
+  overflow: hidden;
+  color: var(--v-text);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vision-rank-track {
+  overflow: hidden;
+  height: 10px;
+  border-radius: var(--v-radius-pill);
+  background: var(--v-surface-muted);
+}
+
+.vision-rank-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--v-radius-pill);
+  background: var(--v-primary);
+}
+
+.vision-rank-value {
+  min-width: 2ch;
+  color: var(--v-text-soft);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Upcoming schedule list */
+.vision-upcoming-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vision-upcoming-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--v-space-3);
+  padding: var(--v-space-2) var(--v-space-3);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface-muted);
+}
+
+.vision-upcoming-date {
+  display: flex;
+  min-width: 8.5rem;
+  flex-direction: column;
+  color: var(--v-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.vision-upcoming-date small {
+  color: var(--v-text-soft);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.vision-upcoming-title {
+  overflow: hidden;
+  flex: 1;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * The component cards navigate, so they are <button>s now. Reset the control
+ * styling the browser applies and keep the card's own look.
+ */
+.vision-basic-card.is-clickable {
+  width: 100%;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.vision-basic-card.is-clickable:hover {
+  border-color: var(--v-primary);
+  box-shadow: var(--v-shadow-sm);
+  transform: translateY(-2px);
+}
+
+.vision-basic-card.is-clickable:focus-visible {
+  outline: 2px solid var(--v-primary);
+  outline-offset: 2px;
+}

@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  Alert, Button, Card, Checkbox, Col, Input, InputNumber, Row, Select, Space, Tabs, Tooltip, Typography, message,
+  Alert, Button, Card, Checkbox, Col, ColorPicker, Input, InputNumber, Row, Select, Space, Tabs, Tooltip, Typography, message,
 } from 'antd';
 import {
   CopyOutlined, DownloadOutlined, FontSizeOutlined, PictureOutlined,
 } from '@ant-design/icons';
 import api from '../api';
-import { COLOR_FORMATS, buildImageC, safeCName } from '../lib/lvglImage';
+import {
+  COLOR_FORMATS, FLATTENS_ALPHA, SUPPORTS_DITHER, buildImageC, safeCName,
+} from '../lib/lvglImage';
+
+// antd renders one <optgroup> per entry, keeping the long v9 format list
+// readable: true colour, greyscale, alpha only, indexed.
+const FORMAT_GROUPS = [...new Set(COLOR_FORMATS.map((option) => option.group))].map((group) => ({
+  label: group,
+  options: COLOR_FORMATS
+    .filter((option) => option.group === group)
+    .map(({ value, label }) => ({ value, label })),
+}));
 
 const { Paragraph, Text } = Typography;
 
@@ -63,7 +74,9 @@ function OutputCard({ title, result, emptyText }) {
       bordered={false}
       extra={(
         <Space>
-          <Text type="secondary">{result.filename} · {formatBytes(result.bytes)}</Text>
+          <Text type="secondary">
+            {result.detail || `${result.filename} · ${formatBytes(result.bytes)}`}
+          </Text>
           <Button icon={<CopyOutlined />} onClick={() => copyText(result.code)}>Copy</Button>
           <Button
             type="primary"
@@ -237,11 +250,12 @@ function FontConverter() {
 function ImageConverter() {
   const [source, setSource] = useState(null); // { url, width, height, data }
   const [name, setName] = useState('img_asset');
-  const [cf, setCf] = useState('CF_TRUE_COLOR_ALPHA');
-  const [dith, setDith] = useState(false);
-  const [swapEndian, setSwapEndian] = useState(false);
+  const [cf, setCf] = useState('ARGB8888');
+  const [dither, setDither] = useState(false);
+  const [background, setBackground] = useState('#000000');
   const [width, setWidth] = useState(null);
   const [height, setHeight] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
   const objectUrl = useRef(null);
@@ -274,7 +288,7 @@ function ImageConverter() {
     image.src = url;
   };
 
-  const run = () => {
+  const run = async () => {
     if (!source) {
       setError('Choose a PNG, JPG or WebP first.');
       return;
@@ -284,6 +298,7 @@ function ImageConverter() {
     const outHeight = Math.max(1, Number(height) || source.height);
 
     setError('');
+    setBusy(true);
     try {
       // Re-rasterise at the requested size; this is also what gives us the
       // RGBA bytes the converter packs.
@@ -296,25 +311,29 @@ function ImageConverter() {
       const { data } = context.getImageData(0, 0, outWidth, outHeight);
 
       const outName = safeCName(name, 'img_asset');
-      const code = buildImageC({
+      const { code, stride, dataSize } = await buildImageC({
         imageData: data,
         width: outWidth,
         height: outHeight,
-        cf,
-        dith,
-        swapEndian,
+        format: cf,
         outName,
+        // ColorPicker gives '#rrggbb'; the packer wants a 24-bit integer.
+        background: parseInt(background.replace('#', ''), 16) || 0,
+        dither,
       });
 
       setResult({
         filename: `${outName}.c`,
         code,
         bytes: new Blob([code]).size,
+        detail: `${outWidth}×${outHeight} · ${cf} · stride ${stride} B · ${dataSize} B of data`,
       });
       message.success(`${outName}.c generated.`);
     } catch (caught) {
       setError(caught?.message || 'That image could not be converted.');
       setResult(null);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -343,7 +362,7 @@ function ImageConverter() {
               value={cf}
               onChange={setCf}
               style={{ width: '100%' }}
-              options={COLOR_FORMATS.map(({ value, label }) => ({ value, label }))}
+              options={FORMAT_GROUPS}
             />
             {selectedFormat && <Text type="secondary">{selectedFormat.hint}</Text>}
 
@@ -366,16 +385,28 @@ function ImageConverter() {
               />
             </Space>
 
-            <Space direction="vertical">
-              <Checkbox checked={dith} onChange={(event) => setDith(event.target.checked)}>
-                Floyd-Steinberg dithering
+            {SUPPORTS_DITHER.has(cf) && (
+              <Checkbox checked={dither} onChange={(event) => setDither(event.target.checked)}>
+                Ordered dithering (RGB565)
               </Checkbox>
-              <Checkbox checked={swapEndian} onChange={(event) => setSwapEndian(event.target.checked)}>
-                Swap byte order
-              </Checkbox>
-            </Space>
+            )}
 
-            <Button type="primary" className="vision-btn-primary" onClick={run} block disabled={!source}>
+            {FLATTENS_ALPHA.has(cf) && (
+              <Space>
+                <Text type="secondary">Background</Text>
+                <ColorPicker value={background} onChange={(value) => setBackground(value.toHexString())} showText />
+                <Text type="secondary">— this format has no alpha</Text>
+              </Space>
+            )}
+
+            <Button
+              type="primary"
+              className="vision-btn-primary"
+              onClick={run}
+              loading={busy}
+              block
+              disabled={!source}
+            >
               Convert image
             </Button>
 

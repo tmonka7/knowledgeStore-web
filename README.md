@@ -95,31 +95,61 @@ as upstream requires.
 
 ### Image converter (client side)
 
-`frontend/src/lib/lvglImage.js` is a direct port of the converter in
-[lv_img_conv](https://github.com/lvgl/lv_img_conv), kept close enough to the
-original that output should be byte-identical to
-[lvgl.io/tools/imageconverter](https://lvgl.io/tools/imageconverter): the same
-pixel packing, the same Floyd-Steinberg dithering, the same PHP-style rounding
-and the same emitted C text.
+Targets **LVGL v9 only**.
 
-It is ported rather than imported because the published package ships
-TypeScript sources and depends on the native `canvas` module — awkward to
-install, and redundant when a browser already has a canvas to decode with.
+`frontend/src/lib/lvglImage.js` is a port of `scripts/LVGLImage.py` from the
+lvgl repository, which is the official converter for v9 and what
+[lvgl.io/tools/imageconverter](https://lvgl.io/tools/imageconverter) runs. The
+pixel packing, the ordered RGB565 dither, the background pre-multiply and the
+emitted C text all follow it.
+
+It is ported rather than imported because LVGLImage.py is Python, and because
+a browser already has a canvas to decode with.
+
+> The older [lv_img_conv](https://github.com/lvgl/lv_img_conv) project is **v8**
+> and is deliberately not used. It emits `lv_img_dsc_t` with `LV_IMG_CF_*`
+> constants, a `header.always_zero` field, and the pixel data repeated four
+> times behind `#if LV_COLOR_DEPTH` guards. None of that compiles against v9.
+
+v9 output declares `lv_image_dsc_t` with an explicit `LV_COLOR_FORMAT_*`, a
+stride, and a single copy of the data:
+
+```c
+const lv_image_dsc_t my_image = {
+  .header = {
+    .magic = LV_IMAGE_HEADER_MAGIC,
+    .cf = LV_COLOR_FORMAT_RGB565A8,
+    ...
+```
 
 Supported colour formats:
 
-| Format | Notes |
+| Group | Formats |
 | --- | --- |
-| `CF_TRUE_COLOR` | Emits all four `LV_COLOR_DEPTH` variants behind `#if` guards |
-| `CF_TRUE_COLOR_ALPHA` | As above, plus a per-pixel alpha byte |
-| `CF_TRUE_COLOR_CHROMA` | As above, chroma keyed |
-| `CF_ALPHA_1/2/4/8_BIT` | Mask only |
+| True colour | `ARGB8888`, `XRGB8888`, `RGB888`, `RGB565`, `RGB565_SWAPPED`, `RGB565A8`, `ARGB8565` |
+| Greyscale | `L8`, `AL88` |
+| Alpha only | `A1`, `A2`, `A4`, `A8` |
+| Indexed | `I1`, `I2`, `I4`, `I8` |
 
-**Not supported:** the `CF_INDEXED_*` formats, which need the `image-q` palette
-quantiser, and the `CF_RAW_*` passthroughs. `buildImageC()` throws for these
-rather than emitting a plausible-looking but wrong palette.
+Formats with no alpha channel (`XRGB8888`, `RGB888`, `RGB565`,
+`RGB565_SWAPPED`, `L8`) blend onto a chosen background colour, using upstream's
+`(c * a + (255 - a) * bg) >> 8` rather than a divide by 255, so output matches
+byte for byte. Ordered dithering is offered for the RGB565 family, using the
+same 8×8 threshold tables.
 
-One upstream quirk is reproduced deliberately: the converter appends a sentinel
-byte to the pixel array and counts it in `.data_size`, so the alpha formats
-report one byte more than they use. Keeping it means output matches the official
-tool exactly; the over-report is harmless to LVGL.
+One deliberate difference: LVGLImage.py only accepts an already-palettised PNG
+for `I1`/`I2`/`I4`/`I8`. A browser tool gets handed arbitrary images, so the
+palette is built here with gifenc (MIT, vendored at `public/gifenc`, imported
+lazily). The emitted bytes still follow the v9 layout — a padded palette of
+little-endian `(a<<24)|(r<<16)|(g<<8)|b` entries, then row-aligned indices.
+
+Not implemented: `RAW`/`RAW_ALPHA` passthrough, RLE and LZ4 compression
+(`LV_IMAGE_FLAGS_COMPRESSED`), premultiplied alpha, and custom stride
+alignment. `.flags` is always `0`.
+
+### Font converter and LVGL v9
+
+`lv_font_conv` output is version-guarded rather than v8-only: the generated C
+carries `#if LVGL_VERSION_MAJOR >= 9` around the fields that moved, emits
+`.fallback` for v8.2+/v9, and confines the `.cache` member to v8. The same file
+compiles on both, so no v9-specific handling is needed on the font side.

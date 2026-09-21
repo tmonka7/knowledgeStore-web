@@ -479,45 +479,6 @@ function App() {
     [],
   );
 
-  const summaryCards = [
-    {
-      title: 'Total Data',
-      value: `${records.length}`,
-      color: '#1e90ff',
-      accent: '#dfeeff',
-      change: '↑ 12%',
-      meta: 'vs last month',
-      icon: 'database',
-    },
-    {
-      title: 'Total Users',
-      value: `${users.length}`,
-      color: '#2ec27d',
-      accent: '#dffaf0',
-      change: '↑ 6%',
-      meta: 'vs last month',
-      icon: 'users',
-    },
-    {
-      title: 'Storage Used',
-      value: '2.4 TB / 10 TB',
-      color: '#8c7ef5',
-      accent: '#efeaff',
-      change: '24%',
-      meta: 'of total',
-      icon: 'storage',
-    },
-    {
-      title: 'System Status',
-      value: 'Healthy',
-      color: '#28b56d',
-      accent: '#e8fff2',
-      change: 'Online',
-      meta: 'All systems running normally',
-      icon: 'status',
-    },
-  ];
-
   const overviewChartData = useMemo(() => {
     const now = new Date();
     const monthMap = new Map();
@@ -568,7 +529,6 @@ function App() {
       setSelectedRecord={setSelectedRecord}
       editingRecord={editingRecord}
       setEditingRecord={setEditingRecord}
-      summaryCards={summaryCards}
       overviewChartData={overviewChartData}
       systemStatus={systemStatus}
       handleDeleteRecord={handleDeleteRecord}

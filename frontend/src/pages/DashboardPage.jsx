@@ -102,7 +102,6 @@ export default function DashboardPage({
   setSelectedRecord,
   editingRecord,
   setEditingRecord,
-  summaryCards,
   overviewChartData,
   systemStatus,
   handleDeleteRecord,
@@ -522,9 +521,14 @@ export default function DashboardPage({
 
           {effectiveKey === 'overview' && (
             <OverviewPage
-              summaryCards={summaryCards}
-              overviewChartData={overviewChartData}
               user={user}
+              users={users}
+              records={records}
+              categories={categories}
+              cameras={cameras}
+              systemStatus={systemStatus}
+              overviewChartData={overviewChartData}
+              onNavigate={setActiveKey}
             />
           )}
 
