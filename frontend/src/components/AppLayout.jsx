@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Layout } from 'antd';
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
+import { useLanguage } from '../i18n';
 
 const { Content, Footer } = Layout;
 
@@ -23,6 +24,7 @@ export default function AppLayout({
   onNotificationSelect,
   children,
 }) {
+  const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -50,7 +52,7 @@ export default function AppLayout({
           onNotificationSelect={onNotificationSelect}
         />
         <Content className="vision-content">{children}</Content>
-        <Footer className="vision-footer">VisionAI · AI Security Platform © 2026</Footer>
+        <Footer className="vision-footer">{t('footerBrand')}</Footer>
       </Layout>
     </Layout>
   );

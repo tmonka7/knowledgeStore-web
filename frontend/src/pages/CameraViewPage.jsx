@@ -22,10 +22,12 @@ import {
   colorForClass,
   streamMediaKind,
 } from '../lib/objectDetector';
+import { useLanguage } from '../i18n';
 
 const SECURITY_CLASS_IDS = classIdsFor(SECURITY_CLASSES);
 
 export default function CameraViewPage({ camera, onBack }) {
+  const { t } = useLanguage();
   const stageRef = useRef(null);
   const sourceRef = useRef(null);
 
@@ -82,12 +84,12 @@ export default function CameraViewPage({ camera, onBack }) {
         actions={(
           <>
             <Button className="vision-btn-ghost" icon={<ArrowLeftOutlined />} onClick={onBack}>
-              Back to Cameras
+              {t('backToCameras')}
             </Button>
             <Tooltip
               title={preview
-                ? 'Outline people and vehicles in this view'
-                : 'Detection needs an online camera with an HTTP or HTTPS stream URL.'}
+                ? t('outlinePeopleVehicles')
+                : t('detectionNeedsOnlineHttp')}
             >
               {/* A disabled Button swallows pointer events, so the tooltip needs its own target. */}
               <span>
@@ -97,12 +99,12 @@ export default function CameraViewPage({ camera, onBack }) {
                   disabled={!preview}
                   onClick={() => toggleDetection(!detecting)}
                 >
-                  {detecting ? 'Stop Detection' : 'Detect Objects'}
+                  {detecting ? t('stopDetection') : t('detectObjects')}
                 </Button>
               </span>
             </Tooltip>
             <Button className="vision-btn-ghost" icon={<FullscreenOutlined />} onClick={goFullscreen}>
-              Fullscreen
+              {t('fullscreen')}
             </Button>
             {openable && (
               <Button
@@ -111,7 +113,7 @@ export default function CameraViewPage({ camera, onBack }) {
                 icon={<ExportOutlined />}
                 onClick={() => window.open(camera.address, '_blank', 'noopener')}
               >
-                Open Stream
+                {t('openStream')}
               </Button>
             )}
           </>
@@ -133,8 +135,8 @@ export default function CameraViewPage({ camera, onBack }) {
             <VideoCameraOutlined />
             <span>
               {camera.status === 'online'
-                ? 'Browser preview needs an HTTP or HTTPS stream URL.'
-                : 'Stream unavailable — this camera is not online.'}
+                ? t('browserPreviewNeedsHttp')
+                : t('streamUnavailableOffline')}
             </span>
           </div>
         )}
@@ -144,7 +146,7 @@ export default function CameraViewPage({ camera, onBack }) {
         )}
 
         <StatusBadge tone={tone} dot={camera.status === 'online'} className={`vision-live-badge is-${tone}`}>
-          {camera.status === 'online' ? 'Online' : camera.status === 'maintenance' ? 'Maintenance' : 'Offline'}
+          {camera.status === 'online' ? t('online') : camera.status === 'maintenance' ? t('maintenance') : t('offline')}
         </StatusBadge>
 
         <div className="vision-live-overlay">
@@ -166,7 +168,7 @@ export default function CameraViewPage({ camera, onBack }) {
                   >
                     {label} × {count}
                   </span>
-                )) : <span className="vision-spec-chip is-detection">Nothing detected</span>
+                )) : <span className="vision-spec-chip is-detection">{t('nothingDetected')}</span>
               )}
               {detecting && status.code === 'LOADING' && (
                 <span className="vision-spec-chip is-detection">{DETECTION_STATUS.LOADING.title}</span>
@@ -177,7 +179,7 @@ export default function CameraViewPage({ camera, onBack }) {
           {detecting && (
             <label className="vision-detect-filter">
               <Switch size="small" checked={securityOnly} onChange={setSecurityOnly} />
-              People &amp; vehicles only
+              {t('peopleVehiclesOnly')}
             </label>
           )}
         </div>
@@ -194,27 +196,27 @@ export default function CameraViewPage({ camera, onBack }) {
       )}
 
       <div className="vision-panel">
-        <h2 className="vision-section-title">Camera details</h2>
+        <h2 className="vision-section-title">{t('cameraDetails')}</h2>
         <dl className="vision-detail-grid">
           <div>
-            <dt>Location</dt>
+            <dt>{t('location')}</dt>
             <dd>{camera.location}</dd>
           </div>
           <div>
-            <dt>Stream URL</dt>
+            <dt>{t('streamUrl')}</dt>
             <dd className="vision-camera-url" title={camera.address}>
               <LinkOutlined /> {camera.address}
             </dd>
           </div>
           <div>
-            <dt>Status</dt>
+            <dt>{t('status')}</dt>
             <dd>
               <StatusBadge tone={tone} dot={camera.status === 'online'}>{camera.status}</StatusBadge>
             </dd>
           </div>
           <div>
-            <dt>Notes</dt>
-            <dd>{camera.notes || 'No notes added.'}</dd>
+            <dt>{t('notes')}</dt>
+            <dd>{camera.notes || t('noNotesAdded')}</dd>
           </div>
         </dl>
       </div>

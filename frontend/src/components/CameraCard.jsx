@@ -7,6 +7,7 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import StatusBadge, { cameraTone } from './ui/StatusBadge';
+import { useLanguage } from '../i18n';
 
 /** A browser can only preview an http(s) source; rtsp:// needs a player. */
 export const canPreviewInBrowser = (camera) => camera?.status === 'online'
@@ -24,6 +25,7 @@ const formatAdded = (value) => {
 };
 
 export default function CameraCard({ camera, onView, onEdit, onDelete }) {
+  const { t } = useLanguage();
   const preview = canPreviewInBrowser(camera);
   const added = formatAdded(camera.createdAt);
 
@@ -35,7 +37,7 @@ export default function CameraCard({ camera, onView, onEdit, onDelete }) {
         ) : (
           <div className="vision-camera-placeholder">
             <VideoCameraOutlined />
-            <span>{camera.status === 'online' ? 'Preview unavailable' : 'Stream unavailable'}</span>
+            <span>{camera.status === 'online' ? t('previewUnavailable') : t('streamUnavailable')}</span>
           </div>
         )}
         <StatusBadge
@@ -43,7 +45,7 @@ export default function CameraCard({ camera, onView, onEdit, onDelete }) {
           dot={camera.status === 'online'}
           className={`vision-camera-status is-${cameraTone(camera.status)}`}
         >
-          {camera.status === 'online' ? 'Online' : camera.status === 'maintenance' ? 'Maintenance' : 'Offline'}
+          {camera.status === 'online' ? t('online') : camera.status === 'maintenance' ? t('maintenance') : t('offline')}
         </StatusBadge>
       </div>
 
@@ -57,18 +59,18 @@ export default function CameraCard({ camera, onView, onEdit, onDelete }) {
 
         <div className="vision-camera-specs">
           <span className="vision-spec-chip">{streamProtocol(camera.address)}</span>
-          {added && <span className="vision-spec-chip">Added {added}</span>}
-          {camera.notes && <span className="vision-spec-chip" title={camera.notes}>Has notes</span>}
+          {added && <span className="vision-spec-chip">{t('addedDate', { date: added })}</span>}
+          {camera.notes && <span className="vision-spec-chip" title={camera.notes}>{t('hasNotes')}</span>}
         </div>
       </div>
 
       <div className="vision-camera-footer">
         <div className="vision-row-actions">
-          <Button type="text" icon={<EditOutlined />} onClick={onEdit} aria-label={`Edit ${camera.name}`} />
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={onDelete} aria-label={`Delete ${camera.name}`} />
+          <Button type="text" icon={<EditOutlined />} onClick={onEdit} aria-label={t('editCamera', { name: camera.name })} />
+          <Button type="text" danger icon={<DeleteOutlined />} onClick={onDelete} aria-label={t('deleteCamera', { name: camera.name })} />
         </div>
         <Button className="vision-btn-ghost" icon={<PlayCircleOutlined />} onClick={onView}>
-          View
+          {t('view')}
         </Button>
       </div>
     </article>

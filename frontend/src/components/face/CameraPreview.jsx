@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { Button } from 'antd';
 import { CameraOutlined, LoadingOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import { useLanguage } from '../../i18n';
 
 /**
  * The dark 4:3 stage. Renders the live stream, a still image (upload flow),
@@ -15,6 +16,7 @@ const CameraPreview = forwardRef(function CameraPreview({
   onAllowCamera,
   children,
 }, videoRef) {
+  const { t } = useLanguage();
   if (cameraError) {
     return (
       <div className="face-stage is-message">
@@ -24,11 +26,11 @@ const CameraPreview = forwardRef(function CameraPreview({
           <p>{cameraError.hint}</p>
           {cameraError.code === 'PERMISSION_DENIED' && (
             <Button type="primary" className="vision-btn-primary" icon={<CameraOutlined />} onClick={onAllowCamera}>
-              Allow Camera
+              {t('allowCamera')}
             </Button>
           )}
           {cameraError.code !== 'PERMISSION_DENIED' && (
-            <Button className="vision-btn-ghost" onClick={onAllowCamera}>Try again</Button>
+            <Button className="vision-btn-ghost" onClick={onAllowCamera}>{t('tryAgain')}</Button>
           )}
         </div>
       </div>
@@ -38,7 +40,7 @@ const CameraPreview = forwardRef(function CameraPreview({
   return (
     <div className="face-stage">
       {mode === 'image' ? (
-        <img src={imageSrc} alt="Uploaded face" className="face-stage-media" />
+        <img src={imageSrc} alt={t('uploadedFace')} className="face-stage-media" />
       ) : (
         <video
           ref={videoRef}
@@ -46,14 +48,14 @@ const CameraPreview = forwardRef(function CameraPreview({
           autoPlay
           muted
           playsInline
-          aria-label="Live camera preview"
+          aria-label={t('liveCameraPreview')}
         />
       )}
 
       {starting && (
         <div className="face-stage-loading">
           <LoadingOutlined />
-          <span>Starting camera...</span>
+          <span>{t('startingCamera')}</span>
         </div>
       )}
 

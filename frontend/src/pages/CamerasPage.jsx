@@ -16,8 +16,10 @@ import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import CameraViewPage from './CameraViewPage';
 import CameraWallPage from './CameraWallPage';
+import { useLanguage } from '../i18n';
 
 export default function CamerasPage({ cameras, setCameras }) {
+  const { t } = useLanguage();
   const [form] = Form.useForm();
   const [editingCamera, setEditingCamera] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -56,7 +58,7 @@ export default function CamerasPage({ cameras, setCameras }) {
       const { data } = await api.get('/cameras');
       setCameras(data.cameras || []);
     } catch (error) {
-      message.error(error.response?.data?.message || 'Unable to load cameras.');
+      message.error(error.response?.data?.message || t('unableToLoadCameras'));
     }
   };
 
@@ -78,12 +80,12 @@ export default function CamerasPage({ cameras, setCameras }) {
       } else {
         await api.post('/cameras', values);
       }
-      message.success(editingCamera ? 'Camera updated.' : 'Camera added.');
+      message.success(editingCamera ? t('cameraUpdated') : t('cameraAdded'));
       setModalOpen(false);
       form.resetFields();
       await loadCameras();
     } catch (error) {
-      message.error(error.response?.data?.message || 'Unable to save camera.');
+      message.error(error.response?.data?.message || t('unableToSaveCamera'));
     } finally {
       setSaving(false);
     }
@@ -91,16 +93,16 @@ export default function CamerasPage({ cameras, setCameras }) {
 
   const removeCamera = (camera) => {
     Modal.confirm({
-      title: `Delete ${camera.name}?`,
-      content: 'This action cannot be undone.',
+      title: t('deleteCameraQuestion', { name: camera.name }),
+      content: t('actionCannotBeUndone'),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
           await api.delete(`/cameras/${camera.id}`);
-          message.success('Camera deleted.');
+          message.success(t('cameraDeleted'));
           await loadCameras();
         } catch (error) {
-          message.error(error.response?.data?.message || 'Unable to delete camera.');
+          message.error(error.response?.data?.message || t('unableToDeleteCamera'));
         }
       },
     });
@@ -118,15 +120,15 @@ export default function CamerasPage({ cameras, setCameras }) {
   return (
     <div className="vision-page">
       <PageHeader
-        title="Camera Management"
-        subtitle="Manage and monitor your camera devices."
+        title={t('cameraManagementTitle')}
+        subtitle={t('cameraManagementSubtitle')}
         actions={(
           <>
             <Button className="vision-btn-ghost" icon={<AppstoreOutlined />} onClick={() => setShowCameraWall(true)}>
-              Live Camera View
+              {t('liveCameraView')}
             </Button>
             <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
-              Add Camera
+              {t('addCamera')}
             </Button>
           </>
         )}
@@ -136,14 +138,14 @@ export default function CamerasPage({ cameras, setCameras }) {
         <StatCard
           tone="blue"
           icon={<VideoCameraOutlined />}
-          label="Total Cameras"
+          label={t('totalCameras')}
           value={cameras.length}
           meta={`${onlineCount} online, ${offlineCount} offline`}
         />
         <StatCard
           tone="green"
           icon={<CheckCircleOutlined />}
-          label="Online"
+          label={t('online')}
           value={onlineCount}
           meta={`${percentOfCameras(onlineCount)} of total`}
           trend={onlineCount > 0 ? 'up' : undefined}
@@ -151,16 +153,16 @@ export default function CamerasPage({ cameras, setCameras }) {
         <StatCard
           tone="red"
           icon={<CloseCircleOutlined />}
-          label="Offline"
+          label={t('offline')}
           value={offlineCount}
           meta={`${percentOfCameras(offlineCount)} of total`}
         />
         <StatCard
           tone="violet"
           icon={<HeartOutlined />}
-          label="Health Rate"
+          label={t('healthRate')}
           value={`${healthRate}%`}
-          meta={healthRate === 100 ? 'System normal' : 'Needs attention'}
+          meta={healthRate === 100 ? t('systemNormal') : t('needsAttention')}
           trend={healthRate === 100 ? 'up' : 'down'}
         />
       </div>
@@ -168,7 +170,7 @@ export default function CamerasPage({ cameras, setCameras }) {
       <FilterBar
         actions={(
           <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
-            Add Camera
+            {t('addCamera')}
           </Button>
         )}
       >
@@ -176,7 +178,7 @@ export default function CamerasPage({ cameras, setCameras }) {
           allowClear
           className="vision-filter-search"
           prefix={<SearchOutlined />}
-          placeholder="Search camera name or location..."
+          placeholder={t('searchCameraPlaceholder')}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -185,10 +187,10 @@ export default function CamerasPage({ cameras, setCameras }) {
           value={statusFilter}
           onChange={setStatusFilter}
           options={[
-            { value: 'all', label: 'All Status' },
-            { value: 'online', label: 'Online' },
-            { value: 'offline', label: 'Offline' },
-            { value: 'maintenance', label: 'Maintenance' },
+            { value: 'all', label: t('allStatus') },
+            { value: 'online', label: t('online') },
+            { value: 'offline', label: t('offline') },
+            { value: 'maintenance', label: t('maintenance') },
           ]}
         />
         <Select
@@ -196,7 +198,7 @@ export default function CamerasPage({ cameras, setCameras }) {
           value={locationFilter}
           onChange={setLocationFilter}
           options={[
-            { value: 'all', label: 'All Locations' },
+            { value: 'all', label: t('allLocations') },
             ...locations.map((location) => ({ value: location, label: location })),
           ]}
         />
@@ -218,37 +220,37 @@ export default function CamerasPage({ cameras, setCameras }) {
         <div className="vision-table-panel">
           <div className="vision-empty">
             <VideoCameraOutlined />
-            <span>{cameras.length ? 'No cameras match these filters.' : 'No cameras registered yet.'}</span>
+            <span>{cameras.length ? t('noCamerasMatchFilters') : t('noCamerasRegistered')}</span>
           </div>
         </div>
       )}
 
       <Modal
-        title={editingCamera ? 'Edit Camera' : 'Add Camera'}
+        title={editingCamera ? t('editCameraTitle') : t('addCameraTitle')}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         footer={null}
         destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={saveCamera} preserve={false}>
-          <Form.Item name="name" label="Camera name" rules={[{ required: true, message: 'Enter a camera name.' }]}>
-            <Input placeholder="Front entrance" />
+          <Form.Item name="name" label={t('cameraName')} rules={[{ required: true, message: t('enterCameraName') }]}>
+            <Input placeholder={t('frontEntrance')} />
           </Form.Item>
-          <Form.Item name="location" label="Location" rules={[{ required: true, message: 'Enter the camera location.' }]}>
-            <Input placeholder="Building A / Floor 1" />
+          <Form.Item name="location" label={t('location')} rules={[{ required: true, message: t('enterCameraLocation') }]}>
+            <Input placeholder={t('buildingFloor')} />
           </Form.Item>
-          <Form.Item name="address" label="IP address or stream URL" rules={[{ required: true, message: 'Enter an IP address or stream URL.' }]}>
+          <Form.Item name="address" label={t('ipOrStreamUrl')} rules={[{ required: true, message: t('enterIpOrStreamUrl') }]}>
             <Input placeholder="rtsp://192.168.1.20/stream" />
           </Form.Item>
-          <Form.Item name="status" label="Status" rules={[{ required: true }]}>
-            <Select options={[{ value: 'online', label: 'Online' }, { value: 'offline', label: 'Offline' }, { value: 'maintenance', label: 'Maintenance' }]} />
+          <Form.Item name="status" label={t('status')} rules={[{ required: true }]}>
+            <Select options={[{ value: 'online', label: t('online') }, { value: 'offline', label: t('offline') }, { value: 'maintenance', label: t('maintenance') }]} />
           </Form.Item>
-          <Form.Item name="notes" label="Notes">
-            <Input.TextArea rows={3} placeholder="Optional notes" />
+          <Form.Item name="notes" label={t('notes')}>
+            <Input.TextArea rows={3} placeholder={t('optionalNotes')} />
           </Form.Item>
           <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="primary" className="vision-btn-primary" htmlType="submit" loading={saving}>Save Camera</Button>
+            <Button onClick={() => setModalOpen(false)}>{t('cancel')}</Button>
+            <Button type="primary" className="vision-btn-primary" htmlType="submit" loading={saving}>{t('saveCamera')}</Button>
           </Space>
         </Form>
       </Modal>

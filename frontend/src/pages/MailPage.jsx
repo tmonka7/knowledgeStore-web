@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import PageHeader from '../components/ui/PageHeader';
 import api from '../api';
+import { useLanguage } from '../i18n';
 
 const formatAttachmentUrl = (attachment) => {
   if (!attachment) return '';
@@ -20,6 +21,7 @@ const formatAttachmentUrl = (attachment) => {
 };
 
 export default function MailPage() {
+  const { t } = useLanguage();
   const [mails, setMails] = useState([]);
   const [selectedMailId, setSelectedMailId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,7 @@ export default function MailPage() {
         setSelectedMailId(nextMails[0].id);
       }
     } catch (fetchError) {
-      setError(fetchError.response?.data?.message || 'Unable to load inbox.');
+      setError(fetchError.response?.data?.message || t('unableToLoadInbox'));
     } finally {
       setLoading(false);
     }
@@ -82,15 +84,15 @@ export default function MailPage() {
         const nextMail = mails.find((mail) => mail.id !== mailId) || null;
         setSelectedMailId(nextMail ? nextMail.id : '');
       }
-      message.success('Mail deleted.');
+      message.success(t('mailDeleted'));
     } catch (deleteError) {
-      message.error(deleteError.response?.data?.message || 'Unable to delete mail.');
+      message.error(deleteError.response?.data?.message || t('unableToDeleteMail'));
     }
   };
 
   const handleSend = async () => {
     if (!composeTo.trim() || !composeSubject.trim() || !composeBody.trim()) {
-      message.error('Please complete the recipient, subject, and message.');
+      message.error(t('completeMailFields'));
       return;
     }
 
@@ -115,9 +117,9 @@ export default function MailPage() {
       setComposeSubject('');
       setComposeBody('');
       setAttachmentFile(null);
-      message.success('Message sent');
+      message.success(t('messageSent'));
     } catch (sendError) {
-      message.error(sendError.response?.data?.message || 'Unable to send the message.');
+      message.error(sendError.response?.data?.message || t('unableToSendMessage'));
     } finally {
       setIsSending(false);
     }
@@ -126,28 +128,28 @@ export default function MailPage() {
   return (
     <div className="vision-page">
       <PageHeader
-        title="Mail"
-        subtitle="Read, reply to and send platform messages."
+        title={t('mail')}
+        subtitle={t('mailSubtitle')}
       />
 
       <div className="vision-mail-layout">
         <aside className="vision-panel vision-panel-tight vision-mail-sidebar">
           <div className="vision-panel-head">
-            <h3 className="vision-section-title">Inbox</h3>
+            <h3 className="vision-section-title">{t('inbox')}</h3>
             <Button type="primary" className="vision-btn-primary" icon={<EditOutlined />}>
-              Compose
+              {t('compose')}
             </Button>
           </div>
 
-          <Input.Search placeholder="Search mail" allowClear className="vision-mail-search" />
+          <Input.Search placeholder={t('searchMail')} allowClear className="vision-mail-search" />
 
           <div className="vision-mail-list">
             {loading && mails.length === 0 ? (
-              <div className="vision-empty">Loading inbox...</div>
+              <div className="vision-empty">{t('loadingInbox')}</div>
             ) : mails.length === 0 ? (
               <div className="vision-empty">
                 <InboxOutlined />
-                No mail found.
+                {t('noMailFound')}
               </div>
             ) : (
               mails.map((mail) => (
@@ -182,18 +184,18 @@ export default function MailPage() {
             <section className="vision-panel vision-panel-tight">
               <div className="vision-mail-detail-head">
                 <div className="vision-mail-detail-heading">
-                  <span className="vision-badge is-blue">{selectedMail.category || 'Inbox'}</span>
-                  <h3 className="vision-mail-detail-title">{selectedMail.subject || 'Untitled message'}</h3>
+                  <span className="vision-badge is-blue">{selectedMail.category || t('inbox')}</span>
+                  <h3 className="vision-mail-detail-title">{selectedMail.subject || t('untitledMessage')}</h3>
                 </div>
                 <div className="vision-mail-detail-actions">
-                  <Button className="vision-btn-ghost" icon={<RollbackOutlined />}>Reply</Button>
+                  <Button className="vision-btn-ghost" icon={<RollbackOutlined />}>{t('reply')}</Button>
                   <Button
                     danger
                     className="vision-btn-ghost"
                     icon={<DeleteOutlined />}
                     onClick={() => handleDeleteMail(selectedMail.id)}
                   >
-                    Delete
+                    {t('delete')}
                   </Button>
                 </div>
               </div>
@@ -214,19 +216,19 @@ export default function MailPage() {
                       <Avatar size={36} className="vision-chat-avatar">{avatarText}</Avatar>
                       <div>
                         <div className="vision-mail-detail-name">{senderName}</div>
-                        <div className="vision-cell-muted">To: {selectedMail.to || 'Unknown recipient'}</div>
+                        <div className="vision-cell-muted">{t('toRecipient', { recipient: selectedMail.to || t('unknownRecipient') })}</div>
                       </div>
                     </>
                   );
                 })()}
-                <span className="vision-mail-detail-time">{selectedMail.timeLabel || 'Just now'}</span>
+                <span className="vision-mail-detail-time">{selectedMail.timeLabel || t('justNow')}</span>
               </div>
 
               <div className="vision-mail-body" dangerouslySetInnerHTML={{ __html: selectedMail.body || '<p>No content.</p>' }} />
               {selectedMail.attachment && (
                 <div className="vision-mail-attachment">
                   <PaperClipOutlined />
-                  <span>Attachment:</span>
+                  <span>{t('attachment')}:</span>
                   <a href={formatAttachmentUrl(selectedMail.attachment)} target="_blank" rel="noreferrer">
                     {selectedMail.attachmentName || 'Open attachment'}
                   </a>
@@ -236,21 +238,21 @@ export default function MailPage() {
           ) : null}
 
           <section className="vision-panel vision-panel-tight">
-            <h3 className="vision-section-title">New message</h3>
+            <h3 className="vision-section-title">{t('newMessage')}</h3>
             <div className="vision-mail-compose">
               <Input
-                placeholder="To"
+                placeholder={t('recipient')}
                 value={composeTo}
                 onChange={(event) => setComposeTo(event.target.value)}
               />
               <Input
-                placeholder="Subject"
+                placeholder={t('subject')}
                 value={composeSubject}
                 onChange={(event) => setComposeSubject(event.target.value)}
               />
               <Input.TextArea
                 rows={5}
-                placeholder="Write your message..."
+                placeholder={t('writeMessage')}
                 value={composeBody}
                 onChange={(event) => setComposeBody(event.target.value)}
               />
@@ -268,7 +270,7 @@ export default function MailPage() {
                 {attachmentFile && <span className="vision-cell-muted">{attachmentFile.name}</span>}
               </div>
               <div className="vision-mail-compose-actions">
-                <Button className="vision-btn-ghost">Discard</Button>
+                <Button className="vision-btn-ghost">{t('discard')}</Button>
                 <Button
                   type="primary"
                   className="vision-btn-primary"
@@ -276,7 +278,7 @@ export default function MailPage() {
                   loading={isSending}
                   onClick={handleSend}
                 >
-                  Send
+                  {t('send')}
                 </Button>
               </div>
             </div>

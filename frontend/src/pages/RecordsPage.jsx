@@ -139,9 +139,9 @@ export default function RecordsPage({
   const deleteSelected = () => {
     if (!selectedIds.length) return;
     Modal.confirm({
-      title: `Delete ${selectedIds.length} ${selectedIds.length === 1 ? 'record' : 'records'}?`,
-      content: 'This action cannot be undone.',
-      okText: 'Delete',
+      title: t('deleteRecordsQuestion', { count: selectedIds.length }),
+      content: t('actionCannotBeUndone'),
+      okText: t('delete'),
       okButtonProps: { danger: true },
       onOk: async () => {
         for (const id of selectedIds) {
@@ -174,8 +174,8 @@ export default function RecordsPage({
   return (
     <div className="vision-page">
       <PageHeader
-        title="Data Management"
-        subtitle="Manage and search your data records and files."
+        title={t('dataManagement')}
+        subtitle={t('dataManagementSubtitle')}
         actions={can(user, 'records', 'create') && (
           <Button
             type="primary"
@@ -192,7 +192,7 @@ export default function RecordsPage({
         <StatCard
           tone="blue"
           icon={<DatabaseOutlined />}
-          label="Total Records"
+          label={t('totalRecordsLabel')}
           value={normalizedRecords.length}
           meta={`${addedThisWeek} added this week`}
           trend={addedThisWeek > 0 ? 'up' : undefined}
@@ -200,23 +200,23 @@ export default function RecordsPage({
         <StatCard
           tone="violet"
           icon={<FileTextOutlined />}
-          label="Files"
+          label={t('files')}
           value={fileCount}
           meta={`${percentOfRecords(fileCount)} of total`}
         />
         <StatCard
           tone="green"
           icon={<FolderOutlined />}
-          label="Folders"
+          label={t('folders')}
           value={folderCount}
-          meta="Distinct categories"
+          meta={t('distinctCategories')}
         />
         <StatCard
           tone="cyan"
           icon={<ClockCircleOutlined />}
-          label="Added This Week"
+          label={t('addedThisWeek')}
           value={addedThisWeek}
-          meta="Last 7 days"
+          meta={t('lastSevenDays')}
         />
       </div>
 
@@ -275,7 +275,7 @@ export default function RecordsPage({
               onChange={(event) => onSearchDateFromChange(event.target.value)}
               aria-label={t('fromDate')}
             />
-            <span>to</span>
+            <span>{t('to')}</span>
             <Input
               type="date"
               value={searchDateTo}
@@ -325,9 +325,9 @@ export default function RecordsPage({
             }}
             className="vision-page-size"
             options={[
-              { value: '10', label: 'Show 10' },
-              { value: '20', label: 'Show 20' },
-              { value: '50', label: 'Show 50' },
+              { value: '10', label: t('showCount', { count: 10 }) },
+              { value: '20', label: t('showCount', { count: 20 }) },
+              { value: '50', label: t('showCount', { count: 50 }) },
             ]}
           />
         </div>
@@ -343,14 +343,14 @@ export default function RecordsPage({
                     checked={allOnPageSelected}
                     indeterminate={someOnPageSelected}
                     onChange={(event) => togglePageSelection(event.target.checked)}
-                    aria-label="Select all rows on this page"
+                    aria-label={t('selectAllRows')}
                   />
                 </th>
-                <th className="col-no">No.</th>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Upload Time</th>
-                <th className="col-actions">Actions</th>
+                <th className="col-no">{t('number')}</th>
+                <th>{t('title')}</th>
+                <th>{t('category')}</th>
+                <th>{t('uploadTime')}</th>
+                <th className="col-actions">{t('actions')}</th>
               </tr>
             </thead>
             <tbody>

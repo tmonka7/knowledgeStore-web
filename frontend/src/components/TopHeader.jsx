@@ -30,7 +30,7 @@ export default function TopHeader({
   // Reminders for tomorrow; selecting any of them jumps to the Schedule page.
   const bellMenuItems = notificationItems.length
     ? [
-      { key: 'heading', type: 'group', label: `Due tomorrow (${notificationItems.length})` },
+      { key: 'heading', type: 'group', label: t('dueTomorrow', { count: notificationItems.length }) },
       ...notificationItems.slice(0, 8).map((item) => ({
         key: `${item.scheduleId}:${item.date}`,
         label: (
@@ -41,7 +41,7 @@ export default function TopHeader({
         ),
       })),
     ]
-    : [{ key: 'empty', disabled: true, label: 'Nothing due tomorrow' }];
+    : [{ key: 'empty', disabled: true, label: t('nothingDueTomorrow') }];
 
   useEffect(() => {
     const timer = setInterval(() => setClock(formatClock(new Date())), 1000);
@@ -55,24 +55,24 @@ export default function TopHeader({
         className="vision-icon-btn vision-header-menu-btn"
         icon={<MenuOutlined />}
         onClick={onOpenDrawer}
-        aria-label="Open navigation"
+        aria-label={t('openNavigation')}
       />
 
       <Input
         className="vision-search"
         prefix={<SearchOutlined />}
-        placeholder="Search..."
+        placeholder={t('globalSearch')}
         value={searchValue}
         allowClear
         onChange={(event) => onSearchChange?.(event.target.value)}
         onPressEnter={(event) => onSearchSubmit?.(event.target.value)}
-        aria-label="Global search"
+        aria-label={t('globalSearch')}
       />
 
       <div className="vision-header-actions">
         <span className="vision-status-chip">
           <span className="vision-live-dot" />
-          System Online
+          {t('systemOnline')}
         </span>
         <span className="vision-clock">{clock}</span>
 
@@ -95,15 +95,15 @@ export default function TopHeader({
               type="text"
               className="vision-icon-btn"
               icon={<BellOutlined />}
-              aria-label={`Notifications${notificationCount ? ` (${notificationCount})` : ''}`}
+              aria-label={`${t('notifications')}${notificationCount ? ` (${notificationCount})` : ''}`}
             />
           </Badge>
         </Dropdown>
 
         <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
-          <button type="button" className="vision-user-pill" aria-label="Open user menu">
+          <button type="button" className="vision-user-pill" aria-label={t('openUserMenu')}>
             <Avatar size={28} className="vision-user-avatar" icon={<UserOutlined />} />
-            <span className="vision-user-name">{user?.fullName || 'Administrator'}</span>
+            <span className="vision-user-name">{user?.fullName || t('administrator')}</span>
             <DownOutlined className="vision-user-caret" />
           </button>
         </Dropdown>

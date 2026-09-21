@@ -1,7 +1,9 @@
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { useLanguage } from '../../i18n';
 
 /** Compact numbered pager. Renders nothing when there is a single page. */
 export default function Pagination({ current, total, onChange }) {
+  const { t } = useLanguage();
   if (total <= 1) return null;
 
   return (
@@ -11,7 +13,7 @@ export default function Pagination({ current, total, onChange }) {
         className="vision-pager-btn"
         disabled={current === 1}
         onClick={() => onChange(current - 1)}
-        aria-label="Previous page"
+        aria-label={t('previousPage')}
       >
         <LeftOutlined />
       </button>
@@ -31,7 +33,7 @@ export default function Pagination({ current, total, onChange }) {
         className="vision-pager-btn"
         disabled={current === total}
         onClick={() => onChange(current + 1)}
-        aria-label="Next page"
+        aria-label={t('nextPage')}
       >
         <RightOutlined />
       </button>

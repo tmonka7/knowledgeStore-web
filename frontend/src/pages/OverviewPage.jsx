@@ -24,6 +24,7 @@ import { roundedTopBar } from '../components/ui/chartShapes';
 import api from '../api';
 import { can } from '../permissions';
 import { localDateKey } from '../components/schedule/useScheduleReminders';
+import { useLanguage } from '../i18n';
 
 const RECENT_LIMIT = 6;
 const TOP_CATEGORIES = 6;
@@ -138,6 +139,7 @@ export default function OverviewPage({
   overviewChartData = [],
   onNavigate,
 }) {
+  const { t } = useLanguage();
   const [schedule, setSchedule] = useState([]);
 
   const canSeeSchedule = can(user, 'schedule');
@@ -326,21 +328,21 @@ export default function OverviewPage({
   return (
     <div className="vision-page vision-stack">
       <PageHeader
-        title="Overview"
-        subtitle={`Every module in the project, with live counts${user?.fullName ? ` — signed in as ${user.fullName}` : ''}.`}
+        title={t('overview')}
+        subtitle={t('overviewSubtitle', { suffix: user?.fullName ? ` - ${user.fullName}` : '' })}
       />
 
       <section className="vision-hero">
         <div className="vision-hero-copy">
-          <h2 className="vision-hero-title">VisionAI — AI Security Platform</h2>
+          <h2 className="vision-hero-title">{t('aiSecurityPlatform')}</h2>
           <div className="vision-hero-tags">
-            <span>Efficient</span>
+            <span>{t('efficient')}</span>
             <span className="vision-hero-dot">•</span>
-            <span>Secure</span>
+            <span>{t('secure')}</span>
             <span className="vision-hero-dot">•</span>
-            <span>Reliable</span>
+            <span>{t('reliable')}</span>
           </div>
-          <p>Monitor cameras, data and system status from a single console, and keep every record secure across its entire lifecycle.</p>
+          <p>{t('overviewHeroDescription')}</p>
         </div>
         <div className="vision-hero-art" aria-hidden="true">
           <span className="vision-hero-orb" />
@@ -355,7 +357,7 @@ export default function OverviewPage({
         <StatCard
           tone="blue"
           icon={<DatabaseOutlined />}
-          label="Records"
+          label={t('records')}
           value={records.length}
           trend={stats.recentRecords > 0 ? 'up' : undefined}
           meta={`${stats.recentRecords} added in the last 30 days`}
@@ -363,22 +365,22 @@ export default function OverviewPage({
         <StatCard
           tone="violet"
           icon={<TeamOutlined />}
-          label="Users"
+          label={t('users')}
           value={users.length}
           meta={`${stats.admins} administrator${stats.admins === 1 ? '' : 's'}`}
         />
         <StatCard
           tone="cyan"
           icon={<CameraOutlined />}
-          label="Cameras"
+          label={t('cameras')}
           value={cameras.length}
           meta={`${stats.cameraStatus.online} online · ${stats.cameraStatus.offline} offline`}
         />
         <StatCard
           tone={apiOnline ? 'green' : 'red'}
           icon={<SafetyCertificateOutlined />}
-          label="System"
-          value={apiOnline ? 'Healthy' : 'Unreachable'}
+          label={t('system')}
+          value={apiOnline ? t('healthy') : t('unreachable')}
           meta={`Memory ${systemStatus.memory || 'N/A'} · updated ${systemStatus.lastUpdated || '—'}`}
         />
       </div>
@@ -386,19 +388,19 @@ export default function OverviewPage({
       <div className="vision-overview-split">
         <section className="vision-panel vision-panel-tight">
           <div className="vision-panel-head">
-            <h3 className="vision-section-title">Records added</h3>
-            <span className="vision-cell-muted">Last 6 months</span>
+            <h3 className="vision-section-title">{t('recordsAdded')}</h3>
+            <span className="vision-cell-muted">{t('lastSixMonths')}</span>
           </div>
           {records.length === 0
-            ? <Empty description="No records yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            ? <Empty description={t('noRecordsYet')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
             : <MonthlyRecordsChart data={overviewChartData} />}
         </section>
 
         <section className="vision-panel vision-panel-tight">
           <div className="vision-panel-head">
-            <h3 className="vision-section-title">Records by category</h3>
+            <h3 className="vision-section-title">{t('recordsByCategory')}</h3>
             <button type="button" className="vision-link-btn" onClick={() => onNavigate?.('categories')}>
-              Manage
+              {t('manage')}
               <ArrowRightOutlined />
             </button>
           </div>
@@ -409,9 +411,9 @@ export default function OverviewPage({
       <div className="vision-overview-split">
         <section className="vision-panel vision-panel-tight">
           <div className="vision-panel-head">
-            <h3 className="vision-section-title">Recent records</h3>
+            <h3 className="vision-section-title">{t('recentRecords')}</h3>
             <button type="button" className="vision-link-btn" onClick={() => onNavigate?.('records')}>
-              View All
+              {t('viewAll')}
               <ArrowRightOutlined />
             </button>
           </div>

@@ -9,6 +9,7 @@ import {
 import dayjs from 'dayjs';
 import api from '../api';
 import { localDateKey } from '../components/schedule/useScheduleReminders';
+import { useLanguage } from '../i18n';
 
 const { Text, Title } = Typography;
 
@@ -16,14 +17,14 @@ const DATE_FORMAT = 'YYYY-MM-DD';
 const TIME_FORMAT = 'HH:mm';
 
 const REPEAT_OPTIONS = [
-  { value: 'none', label: 'Does not repeat' },
-  { value: 'daily', label: 'Every day' },
-  { value: 'weekly', label: 'Every week' },
-  { value: 'monthly', label: 'Every month' },
+  { value: 'none', label: 'doesNotRepeat' },
+  { value: 'daily', label: 'everyDay' },
+  { value: 'weekly', label: 'everyWeek' },
+  { value: 'monthly', label: 'everyMonth' },
 ];
 
 const REPEAT_LABEL = {
-  none: '', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly',
+  none: '', daily: 'daily', weekly: 'weekly', monthly: 'monthly',
 };
 
 /** The date window a view covers. Day and week both render as lists. */
@@ -45,6 +46,7 @@ const stepFor = (mode) => (mode === 'day' ? 'day' : mode === 'week' ? 'week' : '
 
 /** One occurrence row, shared by the day and week views. */
 function OccurrenceRow({ occurrence, schedule, onEdit, onDelete }) {
+  const { t } = useLanguage();
   return (
     <div className="schedule-item">
       <span className="schedule-item-time">{occurrence.time}</span>
@@ -53,12 +55,12 @@ function OccurrenceRow({ occurrence, schedule, onEdit, onDelete }) {
         {occurrence.notes && <div className="schedule-item-notes">{occurrence.notes}</div>}
       </div>
       {REPEAT_LABEL[occurrence.repeat] && (
-        <Tag color="blue">{REPEAT_LABEL[occurrence.repeat]}</Tag>
+        <Tag color="blue">{t(REPEAT_LABEL[occurrence.repeat])}</Tag>
       )}
       <Space size={4}>
-        <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(schedule)} aria-label={`Edit ${occurrence.title}`} />
-        <Popconfirm title="Delete this schedule?" onConfirm={() => onDelete(occurrence.scheduleId)} okText="Delete" okButtonProps={{ danger: true }}>
-          <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label={`Delete ${occurrence.title}`} />
+        <Button type="text" size="small" icon={<EditOutlined />} onClick={() => onEdit(schedule)} aria-label={t('editSchedule', { title: occurrence.title })} />
+        <Popconfirm title={t('deleteScheduleQuestion')} onConfirm={() => onDelete(occurrence.scheduleId)} okText={t('delete')} okButtonProps={{ danger: true }}>
+          <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label={t('deleteSchedule', { title: occurrence.title })} />
         </Popconfirm>
       </Space>
     </div>
@@ -66,6 +68,7 @@ function OccurrenceRow({ occurrence, schedule, onEdit, onDelete }) {
 }
 
 export default function SchedulePage({ reminders = [], notificationPermission, onRequestNotifications }) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState('month');
   const [anchor, setAnchor] = useState(() => dayjs());
   const [schedules, setSchedules] = useState([]);
@@ -86,7 +89,7 @@ export default function SchedulePage({ reminders = [], notificationPermission, o
       setSchedules(data.schedules || []);
       setOccurrences(data.occurrences || []);
     } catch (caught) {
-      setError(caught?.response?.data?.message || 'Schedules could not be loaded.');
+      setError(caught?.response?.data?.message || t('schedulesCouldNotLoad'));
     } finally {
       setLoading(false);
     }
@@ -149,16 +152,16 @@ export default function SchedulePage({ reminders = [], notificationPermission, o
 
       if (editing?.id) {
         await api.put(`/schedules/${editing.id}`, payload);
-        message.success('Schedule updated.');
+        message.success(t('scheduleUpdated'));
       } else {
         await api.post('/schedules', payload);
-        message.success('Schedule created.');
+        message.success(t('scheduleCreated'));
       }
 
       setEditing(null);
       await load();
     } catch (caught) {
-      message.error(caught?.response?.data?.message || 'The schedule could not be saved.');
+      message.error(caught?.response?.data?.message || t('scheduleCouldNotBeSaved'));
     } finally {
       setSaving(false);
     }
@@ -167,10 +170,10 @@ export default function SchedulePage({ reminders = [], notificationPermission, o
   const remove = async (id) => {
     try {
       await api.delete(`/schedules/${id}`);
-      message.success('Schedule deleted.');
+      message.success(t('scheduleDeleted'));
       await load();
     } catch (caught) {
-      message.error(caught?.response?.data?.message || 'The schedule could not be deleted.');
+      message.error(caught?.response?.data?.message || t('scheduleCouldNotBeDeleted'));
     }
   };
 
@@ -187,19 +190,19 @@ export default function SchedulePage({ reminders = [], notificationPermission, o
     <div className="vision-page vision-stack">
       <div className="vision-page-header">
         <div>
-          <h1 className="vision-page-title">Schedule</h1>
+          <h1 className="vision-page-title">{t('schedule')}</h1>
           <p className="vision-page-subtitle">
-            Plan by day, week or month. Anything due tomorrow is flagged here and in the header bell.
+            {t('scheduleSubtitle')}
           </p>
         </div>
         <Space>
           {notificationPermission !== 'granted' && notificationPermission !== 'unsupported' && (
             <Button icon={<BellOutlined />} onClick={onRequestNotifications}>
-              Enable desktop reminders
+              {t('enableDesktopReminders')}
             </Button>
           )}
           <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openNew()}>
-            New schedule
+            {t('newSchedule')}
           </Button>
         </Space>
       </div>
@@ -210,7 +213,7 @@ export default function SchedulePage({ reminders = [], notificationPermission, o
           showIcon
           icon={<BellOutlined />}
           className="schedule-reminder-alert"
-          message={`${reminders.length} schedule${reminders.length === 1 ? '' : 's'} due tomorrow`}
+          message={t('schedulesDueTomorrow', { count: reminders.length })}
           description={(
             <ul className="schedule-reminder-list">
               {reminders.map((item) => (
@@ -227,24 +230,24 @@ export default function SchedulePage({ reminders = [], notificationPermission, o
         <Alert
           type="warning"
           showIcon
-          message="Desktop reminders are blocked"
-          description="This site is blocked from showing notifications, so reminders appear in the app only. Re-allow notifications in your browser's site settings to get desktop alerts."
+          message={t('desktopRemindersBlocked')}
+          description={t('desktopRemindersBlockedDescription')}
         />
       )}
 
       <Card bordered={false} className="schedule-card">
         <div className="schedule-toolbar">
           <Space>
-            <Button icon={<LeftOutlined />} onClick={() => setAnchor(anchor.subtract(1, stepFor(mode)))} aria-label="Previous" />
-            <Button onClick={() => setAnchor(dayjs())}>Today</Button>
-            <Button icon={<RightOutlined />} onClick={() => setAnchor(anchor.add(1, stepFor(mode)))} aria-label="Next" />
+            <Button icon={<LeftOutlined />} onClick={() => setAnchor(anchor.subtract(1, stepFor(mode)))} aria-label={t('previous')} />
+            <Button onClick={() => setAnchor(dayjs())}>{t('today')}</Button>
+            <Button icon={<RightOutlined />} onClick={() => setAnchor(anchor.add(1, stepFor(mode)))} aria-label={t('next')} />
             <Title level={4} className="schedule-heading">{headingFor()}</Title>
           </Space>
 
           <Radio.Group value={mode} onChange={(event) => setMode(event.target.value)} optionType="button" buttonStyle="solid">
-            <Radio.Button value="day">Day</Radio.Button>
-            <Radio.Button value="week">Week</Radio.Button>
-            <Radio.Button value="month">Month</Radio.Button>
+            <Radio.Button value="day">{t('day')}</Radio.Button>
+            <Radio.Button value="week">{t('week')}</Radio.Button>
+            <Radio.Button value="month">{t('month')}</Radio.Button>
           </Radio.Group>
         </div>
 
@@ -271,7 +274,7 @@ export default function SchedulePage({ reminders = [], notificationPermission, o
                       <Badge status="processing" text={`${item.time} ${item.title}`} />
                     </li>
                   ))}
-                  {items.length > 3 && <li className="schedule-cell-more">+{items.length - 3} more</li>}
+                  {items.length > 3 && <li className="schedule-cell-more">{t('moreSchedules', { count: items.length - 3 })}</li>}
                 </ul>
               );
             }}
@@ -313,11 +316,11 @@ export default function SchedulePage({ reminders = [], notificationPermission, o
           <div className="schedule-day">
             {(byDate.get(from) || []).length === 0 ? (
               <Empty
-                description={loading ? 'Loading...' : 'Nothing scheduled for this day'}
+                description={loading ? t('loading') : t('nothingScheduledForDay')}
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
               >
                 <Button type="primary" className="vision-btn-primary" onClick={() => openNew(from)}>
-                  Add one
+                  {t('addOne')}
                 </Button>
               </Empty>
             ) : (
@@ -337,46 +340,46 @@ export default function SchedulePage({ reminders = [], notificationPermission, o
 
       <Modal
         open={Boolean(editing)}
-        title={editing?.id ? 'Edit schedule' : 'New schedule'}
+        title={editing?.id ? t('editScheduleTitle') : t('newSchedule')}
         onCancel={() => setEditing(null)}
         onOk={() => form.submit()}
         confirmLoading={saving}
-        okText={editing?.id ? 'Save' : 'Create'}
+        okText={editing?.id ? t('save') : t('create')}
         destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={save} preserve={false}>
-          <Form.Item name="title" label="Title" rules={[{ required: true, message: 'A title is required.' }]}>
-            <Input placeholder="e.g. Site inspection" />
+          <Form.Item name="title" label={t('title')} rules={[{ required: true, message: t('titleRequired') }]}>
+            <Input placeholder={t('siteInspectionExample')} />
           </Form.Item>
 
           <Space style={{ width: '100%' }} size="middle">
-            <Form.Item name="date" label="Date" rules={[{ required: true, message: 'Pick a date.' }]}>
+            <Form.Item name="date" label={t('date')} rules={[{ required: true, message: t('pickDate') }]}>
               <DatePicker format={DATE_FORMAT} style={{ width: '100%' }} />
             </Form.Item>
-            <Form.Item name="time" label="Time" rules={[{ required: true, message: 'Pick a time.' }]}>
+            <Form.Item name="time" label={t('time')} rules={[{ required: true, message: t('pickTime') }]}>
               <TimePicker format={TIME_FORMAT} minuteStep={5} style={{ width: '100%' }} />
             </Form.Item>
           </Space>
 
-          <Form.Item name="repeat" label="Repeat">
-            <Select options={REPEAT_OPTIONS} />
+          <Form.Item name="repeat" label={t('repeat')}>
+            <Select options={REPEAT_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))} />
           </Form.Item>
 
           {repeatMode && repeatMode !== 'none' && (
             <Form.Item
               name="repeatUntil"
-              label="Repeat until"
-              extra="Leave empty to repeat indefinitely. A monthly schedule on the 31st skips months that are too short."
+              label={t('repeatUntil')}
+              extra={t('repeatUntilHelp')}
             >
               <DatePicker format={DATE_FORMAT} style={{ width: '100%' }} />
             </Form.Item>
           )}
 
-          <Form.Item name="notes" label="Notes">
-            <Input.TextArea rows={3} placeholder="Optional details" />
+          <Form.Item name="notes" label={t('notes')}>
+            <Input.TextArea rows={3} placeholder={t('optionalDetails')} />
           </Form.Item>
 
-          <Text type="secondary">A reminder appears one day before each occurrence.</Text>
+          <Text type="secondary">{t('reminderOneDayBefore')}</Text>
         </Form>
       </Modal>
     </div>

@@ -13,6 +13,7 @@ import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge, { cameraTone } from '../components/ui/StatusBadge';
 import { canPreviewInBrowser, streamProtocol } from '../components/CameraCard';
+import { useLanguage } from '../i18n';
 
 const LAYOUTS = [
   { value: 1, label: '1' },
@@ -27,6 +28,7 @@ const requestFullscreen = (element) => {
 };
 
 function LiveTile({ camera }) {
+  const { t } = useLanguage();
   const tileRef = useRef(null);
   const preview = canPreviewInBrowser(camera);
   const tone = cameraTone(camera.status);
@@ -38,12 +40,12 @@ function LiveTile({ camera }) {
       ) : (
         <div className="vision-live-unavailable">
           <VideoCameraOutlined />
-          <span>Stream unavailable</span>
+          <span>{t('streamUnavailable')}</span>
         </div>
       )}
 
       <StatusBadge tone={tone} dot={camera.status === 'online'} className={`vision-live-badge is-${tone}`}>
-        {camera.status === 'online' ? 'Online' : camera.status === 'maintenance' ? 'Maintenance' : 'Offline'}
+        {camera.status === 'online' ? t('online') : camera.status === 'maintenance' ? t('maintenance') : t('offline')}
       </StatusBadge>
 
       <div className="vision-live-overlay">
@@ -55,7 +57,7 @@ function LiveTile({ camera }) {
           </div>
           <div className="vision-live-specs">
             <span className="vision-spec-chip">{streamProtocol(camera.address)}</span>
-            <span className="vision-spec-chip">{camera.status === 'online' ? 'Streaming' : 'No signal'}</span>
+            <span className="vision-spec-chip">{camera.status === 'online' ? t('streaming') : t('noSignal')}</span>
           </div>
         </div>
 
@@ -64,7 +66,7 @@ function LiveTile({ camera }) {
             type="button"
             className="vision-live-btn"
             onClick={() => requestFullscreen(tileRef.current)}
-            aria-label={`Fullscreen ${camera.name}`}
+            aria-label={t('fullscreenCamera', { name: camera.name })}
           >
             <FullscreenOutlined />
           </button>
@@ -73,10 +75,10 @@ function LiveTile({ camera }) {
             className="vision-live-btn is-live"
             disabled={!/^https?:\/\//i.test(camera.address || '')}
             onClick={() => window.open(camera.address, '_blank', 'noopener')}
-            aria-label={`Open ${camera.name} stream in a new tab`}
+            aria-label={t('openCameraNewTab', { name: camera.name })}
           >
             <PlayCircleFilled />
-            Live
+            {t('live')}
           </button>
         </div>
       </div>
@@ -85,6 +87,7 @@ function LiveTile({ camera }) {
 }
 
 export default function CameraWallPage({ cameras, onBack }) {
+  const { t } = useLanguage();
   const [columns, setColumns] = useState(2);
   const gridRef = useRef(null);
 
@@ -94,14 +97,14 @@ export default function CameraWallPage({ cameras, onBack }) {
   return (
     <div className="vision-page">
       <PageHeader
-        title="Live Camera View"
-        subtitle="Monitor your cameras in real-time."
+        title={t('liveCameraView')}
+        subtitle={t('monitorCamerasRealtime')}
         actions={(
           <>
             <Button className="vision-btn-ghost" icon={<ArrowLeftOutlined />} onClick={onBack}>
-              Back to Cameras
+              {t('backToCameras')}
             </Button>
-            <div className="vision-layout-toggle" role="group" aria-label="Grid layout">
+            <div className="vision-layout-toggle" role="group" aria-label={t('gridLayout')}>
               <BorderOutlined style={{ alignSelf: 'center', margin: '0 6px', color: '#8aa0ba' }} />
               {LAYOUTS.map((layout) => (
                 <button
@@ -120,16 +123,16 @@ export default function CameraWallPage({ cameras, onBack }) {
               icon={<ExportOutlined />}
               onClick={() => requestFullscreen(gridRef.current)}
             >
-              Fullscreen
+              {t('fullscreen')}
             </Button>
           </>
         )}
       />
 
       <div className="vision-stat-grid cols-3">
-        <StatCard tone="blue" icon={<VideoCameraOutlined />} label="Total Cameras" value={cameras.length} meta="Registered devices" />
-        <StatCard tone="green" icon={<PlayCircleFilled />} label="Online" value={online} meta="Streaming now" trend={online > 0 ? 'up' : undefined} />
-        <StatCard tone="red" icon={<VideoCameraOutlined />} label="Offline" value={offline} meta="Not reachable" />
+        <StatCard tone="blue" icon={<VideoCameraOutlined />} label={t('totalCameras')} value={cameras.length} meta={t('registeredDevices')} />
+        <StatCard tone="green" icon={<PlayCircleFilled />} label={t('online')} value={online} meta={t('streamingNow')} trend={online > 0 ? 'up' : undefined} />
+        <StatCard tone="red" icon={<VideoCameraOutlined />} label={t('offline')} value={offline} meta={t('notReachable')} />
       </div>
 
       {cameras.length ? (
@@ -140,7 +143,7 @@ export default function CameraWallPage({ cameras, onBack }) {
         <div className="vision-table-panel">
           <div className="vision-empty">
             <VideoCameraOutlined />
-            <span>No registered cameras.</span>
+            <span>{t('noRegisteredCameras')}</span>
           </div>
         </div>
       )}

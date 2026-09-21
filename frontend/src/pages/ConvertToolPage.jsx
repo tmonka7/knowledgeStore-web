@@ -5,6 +5,7 @@ import {
 import { DownloadOutlined, FileImageOutlined, SwapOutlined, VideoCameraAddOutlined } from '@ant-design/icons';
 import api from '../api';
 import { IMAGE_FORMATS, convertImage, loadImageFile } from '../lib/imageConvert';
+import { useLanguage } from '../i18n';
 
 const { Text } = Typography;
 
@@ -29,6 +30,7 @@ const baseName = (name = '') => name.replace(/\.[^.]+$/, '') || 'converted';
 
 /** Image tab — runs in the browser, see lib/imageConvert.js. */
 function ImageConverter() {
+  const { t } = useLanguage();
   const [source, setSource] = useState(null); // { image, url, width, height, name }
   const [format, setFormat] = useState('png');
   const [width, setWidth] = useState(null);
@@ -80,7 +82,7 @@ function ImageConverter() {
 
   const run = async () => {
     if (!source) {
-      setError('Choose an image first.');
+      setError(t('chooseImageFirst'));
       return;
     }
 
@@ -99,7 +101,7 @@ function ImageConverter() {
       });
 
       setResult({ blob, filename: `${baseName(source.name)}.${chosen.extension}`, size: blob.size });
-      message.success(`Converted to ${chosen.label}.`);
+      message.success(t('convertedToFormat', { format: chosen.label }));
     } catch (caught) {
       setError(caught?.message || 'That image could not be converted.');
       setResult(null);
@@ -113,11 +115,11 @@ function ImageConverter() {
   return (
     <Row gutter={[16, 16]}>
       <Col span={24} lg={10}>
-        <Card title="Source image" bordered={false}>
+        <Card title={t('sourceImage')} bordered={false}>
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
             <label className="mail-file-picker" htmlFor="convert-image-upload" style={{ width: '100%' }}>
               <FileImageOutlined />
-              <span>{source ? source.name : 'Select PNG / JPG / WebP / GIF / BMP'}</span>
+              <span>{source ? source.name : t('selectImageFile')}</span>
             </label>
             <input
               id="convert-image-upload"
@@ -143,7 +145,7 @@ function ImageConverter() {
                   type={lockRatio ? 'primary' : 'default'}
                   icon={<SwapOutlined />}
                   onClick={() => setLockRatio(!lockRatio)}
-                  title="Lock aspect ratio"
+                  title={t('lockAspectRatio')}
                 />
               </Space>
             )}
@@ -164,11 +166,11 @@ function ImageConverter() {
             {format === 'jpg' && (
               <>
                 <div>
-                  <Text type="secondary">Quality {quality}%</Text>
+                  <Text type="secondary">{t('qualityPercent', { percent: quality })}</Text>
                   <Slider min={10} max={100} value={quality} onChange={setQuality} />
                 </div>
                 <Space>
-                  <Text type="secondary">Background</Text>
+                  <Text type="secondary">{t('background')}</Text>
                   <ColorPicker
                     value={background}
                     onChange={(value) => setBackground(value.toHexString())}
@@ -179,7 +181,7 @@ function ImageConverter() {
             )}
 
             <Button type="primary" className="vision-btn-primary" onClick={run} loading={busy} disabled={!source} block>
-              Convert image
+              {t('convertImage')}
             </Button>
 
             {error && <Alert type="error" showIcon message={error} />}
@@ -189,7 +191,7 @@ function ImageConverter() {
 
       <Col span={24} lg={14}>
         <Card
-          title="Result"
+          title={t('result')}
           bordered={false}
           extra={result && (
             <Space>
@@ -200,20 +202,20 @@ function ImageConverter() {
                 icon={<DownloadOutlined />}
                 onClick={() => downloadBlob(result.filename, result.blob)}
               >
-                Download
+                {t('download')}
               </Button>
             </Space>
           )}
         >
           {source ? (
             <>
-              <img src={source.url} alt="Source preview" className="convert-preview" />
+              <img src={source.url} alt={t('sourcePreview')} className="convert-preview" />
               <Text type="secondary">
-                Source {source.width} × {source.height} px · {source.name}
+                {t('sourceDimensions', { width: source.width, height: source.height, name: source.name })}
               </Text>
             </>
           ) : (
-            <Alert type="info" showIcon message="Upload an image to convert it to PNG, JPG, ICO or GIF." />
+            <Alert type="info" showIcon message={t('uploadImageToConvert')} />
           )}
         </Card>
       </Col>
@@ -223,6 +225,7 @@ function ImageConverter() {
 
 /** Video tab — uploads to the API, which runs ffmpeg. */
 function VideoConverter() {
+  const { t } = useLanguage();
   const [file, setFile] = useState(null);
   const [format, setFormat] = useState('mp4');
   const [capabilities, setCapabilities] = useState(null);
@@ -240,7 +243,7 @@ function VideoConverter() {
 
   const run = async () => {
     if (!file) {
-      setError('Choose a video file first.');
+      setError(t('chooseVideoFirst'));
       return;
     }
 
@@ -261,7 +264,7 @@ function VideoConverter() {
 
       const extension = format;
       downloadBlob(`${baseName(file.name)}.${extension}`, response.data);
-      message.success('Conversion finished — the file has been downloaded.');
+      message.success(t('conversionFinished'));
     } catch (caught) {
       // responseType blob means an error body arrives as a Blob, not JSON.
       let text = 'That video could not be converted.';
@@ -291,15 +294,15 @@ function VideoConverter() {
   return (
     <Row gutter={[16, 16]}>
       <Col span={24} lg={10}>
-        <Card title="Source video" bordered={false}>
+        <Card title={t('sourceVideo')} bordered={false}>
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
             {unavailable && (
-              <Alert type="warning" showIcon message="Video conversion unavailable" description={capabilities.message} />
+              <Alert type="warning" showIcon message={t('videoConversionUnavailable')} description={capabilities.message} />
             )}
 
             <label className="mail-file-picker" htmlFor="convert-video-upload" style={{ width: '100%' }}>
               <VideoCameraAddOutlined />
-              <span>{file ? `${file.name} (${formatBytes(file.size)})` : 'Select a video file'}</span>
+              <span>{file ? `${file.name} (${formatBytes(file.size)})` : t('selectVideoFile')}</span>
             </label>
             <input
               id="convert-video-upload"
@@ -322,7 +325,7 @@ function VideoConverter() {
               disabled={!file || unavailable}
               block
             >
-              Convert video
+              {t('convertVideo')}
             </Button>
 
             {busy && (
@@ -330,8 +333,8 @@ function VideoConverter() {
                 <Progress percent={uploadPercent} status={uploadPercent < 100 ? 'active' : 'normal'} />
                 <Text type="secondary">
                   {uploadPercent < 100
-                    ? 'Uploading...'
-                    : 'Transcoding on the server. This can take several minutes for a long clip.'}
+                    ? t('uploading')
+                    : t('transcodingOnServer')}
                 </Text>
               </div>
             )}
@@ -342,18 +345,16 @@ function VideoConverter() {
       </Col>
 
       <Col span={24} lg={14}>
-        <Card title="How this works" bordered={false}>
+        <Card title={t('howThisWorks')} bordered={false}>
           <Space direction="vertical" size="middle">
             <Text>
-              The file is uploaded to the API, transcoded with ffmpeg, and streamed straight back as a
-              download. Nothing is kept on the server — both the upload and the output are deleted once
-              the response finishes.
+              {t('videoConversionDescription')}
             </Text>
             <Alert
               type="info"
               showIcon
-              message="Limits"
-              description="Uploads are capped at 512 MB and conversions at 10 minutes. Long videos are better converted with ffmpeg directly on the command line."
+              message={t('limits')}
+              description={t('conversionLimits')}
             />
           </Space>
         </Card>
@@ -363,21 +364,22 @@ function VideoConverter() {
 }
 
 export default function ConvertToolPage() {
+  const { t } = useLanguage();
   return (
     <div className="vision-page vision-stack">
       <div className="vision-page-header">
         <div>
-          <h1 className="vision-page-title">Tools / Converting</h1>
+          <h1 className="vision-page-title">{t('toolsConverting')}</h1>
           <p className="vision-page-subtitle">
-            Convert images between PNG, JPG, ICO and GIF, and transcode video between common containers.
+            {t('convertingSubtitle')}
           </p>
         </div>
       </div>
 
       <Tabs
         items={[
-          { key: 'image', label: <span><FileImageOutlined /> Image</span>, children: <ImageConverter /> },
-          { key: 'video', label: <span><VideoCameraAddOutlined /> Video</span>, children: <VideoConverter /> },
+          { key: 'image', label: <span><FileImageOutlined /> {t('image')}</span>, children: <ImageConverter /> },
+          { key: 'video', label: <span><VideoCameraAddOutlined /> {t('video')}</span>, children: <VideoConverter /> },
         ]}
       />
     </div>
