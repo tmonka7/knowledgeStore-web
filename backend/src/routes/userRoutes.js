@@ -4,6 +4,7 @@ import {
   listPermissionCatalog,
   listUsers,
   updatePassword,
+  updateProfile,
   updateUser,
 } from '../controllers/userController.js';
 import { requireAdmin, requireAuth, requirePermission } from '../helpers/auth.js';
@@ -18,5 +19,6 @@ router.get('/permissions/catalog', requireAuth, requireAdmin, listPermissionCata
 // user needs them regardless of page permissions.
 router.get('/user/profile', requireAuth, getProfile);
 router.put('/user/password', requireAuth, updatePassword);
+router.put('/user/profile', requireAuth, updateProfile);
 
 export default router;

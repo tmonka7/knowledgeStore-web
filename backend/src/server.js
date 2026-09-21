@@ -18,6 +18,7 @@ import databaseRoutes from './routes/databaseRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import { ensureSeedAdmin, ensureSeedCategories } from './models/store.js';
+import { startChatRetention } from './helpers/chatRetention.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
@@ -83,6 +84,9 @@ const startServer = async () => {
     console.log(`Connected to MongoDB: ${MONGODB_URI}`);
     await ensureSeedAdmin();
     await ensureSeedCategories();
+    // Chat files last a week. Swept at boot as well as hourly, so a server
+    // that was down over the expiry still clears them on the way back up.
+    startChatRetention();
     app.listen(PORT, '127.0.0.1', () => {
       console.log(`Knowledge Store API is running on http://127.0.0.1:${PORT}`);
     });

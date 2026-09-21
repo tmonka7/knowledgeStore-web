@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Avatar, Button, Empty, Input, Spin, message } from 'antd';
-import { MessageOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
+import { Alert, Avatar, Button, Empty, Input, Spin, Tooltip, message } from 'antd';
+import {
+  FileImageOutlined,
+  FileOutlined,
+  FilePdfOutlined,
+  FileZipOutlined,
+  MessageOutlined,
+  PaperClipOutlined,
+  SendOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import PageHeader from '../components/ui/PageHeader';
 import api from '../api';
 import { useLanguage } from '../i18n';
@@ -8,6 +17,87 @@ import { useLanguage } from '../i18n';
 const THREAD_POLL_MS = 6000;
 const MESSAGE_POLL_MS = 4000;
 const SEARCH_DEBOUNCE_MS = 250;
+
+// Matches the limit multer enforces on the route; checking it here too saves
+// uploading 60MB only to be turned away.
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
+
+const formatBytes = (bytes) => {
+  const value = Number(bytes) || 0;
+  if (value < 1024) return `${value} B`;
+
+  const units = ['KB', 'MB', 'GB'];
+  let size = value / 1024;
+  let index = 0;
+  while (size >= 1024 && index < units.length - 1) {
+    size /= 1024;
+    index += 1;
+  }
+  return `${size >= 10 ? Math.round(size) : Math.round(size * 10) / 10} ${units[index]}`;
+};
+
+const fileIcon = (attachment) => {
+  const type = attachment.mimeType || '';
+  if (type.startsWith('image/')) return <FileImageOutlined />;
+  if (type === 'application/pdf') return <FilePdfOutlined />;
+  if (/zip|compressed|tar|rar|7z/.test(type)) return <FileZipOutlined />;
+  return <FileOutlined />;
+};
+
+// The API and the static files share an origin; the uploads path is not under
+// /api, so the suffix is trimmed the way the task attachments do it.
+const uploadUrl = (path) => {
+  const origin = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:4000/api').replace(/\/api$/, '');
+  return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
+const expiryNote = (attachment) => {
+  if (attachment.expired) return 'File deleted after 7 days';
+  const expires = attachment.expiresAt ? new Date(attachment.expiresAt) : null;
+  if (!expires || Number.isNaN(expires.getTime())) return '';
+  const days = Math.max(0, Math.ceil((expires.getTime() - Date.now()) / 86400000));
+  return days <= 1 ? 'Deleted within a day' : `Deleted in ${days} days`;
+};
+
+/**
+ * A file in a conversation.
+ *
+ * Once the week is up the file is gone but the message is not: the name keeps
+ * its "(deleted)" tag and the row stops being a link, so the conversation
+ * still shows that something was sent.
+ */
+function ChatAttachment({ attachment }) {
+  const meta = `${formatBytes(attachment.size)} · ${expiryNote(attachment)}`;
+
+  if (attachment.expired) {
+    return (
+      <div className="chat-attachment is-expired" title="This file has been deleted.">
+        <span className="chat-attachment-icon">{fileIcon(attachment)}</span>
+        <span className="chat-attachment-body">
+          <span className="chat-attachment-name">{attachment.name}</span>
+          <span className="chat-attachment-meta">{meta}</span>
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      className="chat-attachment"
+      href={uploadUrl(attachment.path)}
+      target="_blank"
+      rel="noreferrer"
+      download={attachment.name}
+      title={attachment.name}
+    >
+      <span className="chat-attachment-icon">{fileIcon(attachment)}</span>
+      <span className="chat-attachment-body">
+        <span className="chat-attachment-name">{attachment.name}</span>
+        <span className="chat-attachment-meta">{meta}</span>
+      </span>
+    </a>
+  );
+}
 
 const initials = (name = '') => name
   .split(' ')
@@ -78,8 +168,10 @@ export default function ChatPage({ user }) {
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   const bottomRef = useRef(null);
+  const fileInputRef = useRef(null);
   // Polling reads the newest timestamp from a ref so the interval never has to
   // be torn down and rebuilt as messages arrive.
   const lastMessageAtRef = useRef(null);
@@ -206,6 +298,44 @@ export default function ChatPage({ user }) {
       message.error(sendError.response?.data?.message || 'Unable to send that message.');
     } finally {
       setSending(false);
+    }
+  };
+
+  /**
+   * Sending a file.
+   *
+   * It goes as a message of its own, with whatever is in the box at the time
+   * as its note, so it lands in the conversation in the order it was sent.
+   */
+  const sendFile = async (file) => {
+    if (!file || !activeThread) return;
+
+    if (file.size > MAX_FILE_BYTES) {
+      message.error(`${file.name} is larger than ${formatBytes(MAX_FILE_BYTES)}.`);
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const note = draft.trim();
+      if (note) formData.append('body', note);
+
+      const { data } = await api.post(
+        `/chat/threads/${activeThread.id}/attachments`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      setMessages((current) => [...current, data.message]);
+      lastMessageAtRef.current = data.message.createdAt;
+      setDraft('');
+      loadThreads();
+    } catch (uploadError) {
+      message.error(uploadError.response?.data?.message || 'Unable to send that file.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -354,7 +484,8 @@ export default function ChatPage({ user }) {
                       {day.items.map((item) => (
                         <div key={item.id} className={`vision-chat-row${item.mine ? ' is-me' : ''}`}>
                           <div className={`vision-chat-bubble${item.mine ? ' is-me' : ''}`}>
-                            <div className="vision-chat-bubble-text">{item.body}</div>
+                            {item.attachment && <ChatAttachment attachment={item.attachment} />}
+                            {item.body && <div className="vision-chat-bubble-text">{item.body}</div>}
                             <div className="vision-chat-bubble-time">
                               {clockTime(item.createdAt)}
                               {item.mine && <span className="chat-receipt">{item.readAt ? ' ✓✓' : ' ✓'}</span>}
@@ -368,7 +499,33 @@ export default function ChatPage({ user }) {
                 <div ref={bottomRef} />
               </div>
 
+              {/* Said once, where the file is chosen, rather than on every
+                  bubble: uploads do not stay forever. */}
+              <p className="chat-composer-note">
+                Files are deleted a week after they are sent, and the name is
+                tagged as deleted in the conversation.
+              </p>
+
               <div className="vision-chat-composer">
+                <Tooltip title="Send a file">
+                  <Button
+                    icon={<PaperClipOutlined />}
+                    loading={uploading}
+                    aria-label="Send a file"
+                    onClick={() => fileInputRef.current?.click()}
+                  />
+                </Tooltip>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="chat-file-input"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    // Reset first, so choosing the same file again still fires.
+                    event.target.value = '';
+                    sendFile(file);
+                  }}
+                />
                 <Input.TextArea
                   rows={1}
                   value={draft}

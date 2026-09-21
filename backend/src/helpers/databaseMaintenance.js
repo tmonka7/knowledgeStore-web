@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { Record } from '../models/recordModel.js';
 import { Mail } from '../models/mailModel.js';
 import { Task } from '../models/taskModel.js';
+import { ChatMessage } from '../models/chatModel.js';
 
 // mongoose re-exports the driver, and the driver re-exports BSON, so extended
 // JSON is available without adding a dependency of our own. Canonical (rather
@@ -88,10 +89,13 @@ const toRelativeUpload = (value) => String(value || '')
  * by the optimisation task.
  */
 export const getReferencedUploads = async () => {
-  const [records, mails, tasks] = await Promise.all([
+  const [records, mails, tasks, messages] = await Promise.all([
     Record.find({}, { attachment: 1, attachments: 1 }).lean(),
     Mail.find({}, { attachment: 1 }).lean(),
     Task.find({}, { attachments: 1 }).lean(),
+    // Only the ones whose file is still on disk: once the retention sweep has
+    // deleted it, the row is a name and nothing else.
+    ChatMessage.find({ 'attachment.deletedAt': null }, { attachment: 1 }).lean(),
   ]);
 
   const referenced = new Set();
@@ -107,6 +111,7 @@ export const getReferencedUploads = async () => {
   mails.forEach((mail) => add(mail.attachment));
   // Task attachments are objects, not strings: the url is on .path.
   tasks.forEach((task) => (task.attachments || []).forEach((file) => add(file.path)));
+  messages.forEach((item) => add(item.attachment?.path));
 
   return referenced;
 };

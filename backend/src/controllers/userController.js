@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { sanitizeUser } from '../helpers/auth.js';
 import { PERMISSION_CATALOG, sanitizePermissions } from '../helpers/permissionCatalog.js';
+import { readProfileFields } from '../helpers/userProfile.js';
 import { User, getUsers, getUserById } from '../models/store.js';
 
 export const listPermissionCatalog = (req, res) => res.json({ catalog: PERMISSION_CATALOG });
@@ -35,6 +36,14 @@ export const updateUser = async (req, res) => {
   if (fullName) target.fullName = String(fullName).trim();
   if (role) target.role = role;
   if (permissions !== undefined) target.permissions = sanitizePermissions(permissions);
+
+  // Only the personal fields the request actually carries are touched, so an
+  // editor that submits just the Basic Info tab cannot blank the rest.
+  const { values: profile, error: profileError } = readProfileFields(req.body || {});
+  if (profileError) {
+    return res.status(400).json({ message: profileError });
+  }
+  Object.assign(target, profile);
 
   if (faceDescriptor !== undefined || faceImage !== undefined) {
     if (!isFaceDescriptor(faceDescriptor) || !isFaceImage(faceImage)) {
@@ -85,6 +94,34 @@ export const getProfile = async (req, res) => {
   }
 
   return res.json({ user: sanitizeUser(me.toObject ? me.toObject() : me) });
+};
+
+/**
+ * PUT /user/profile
+ *
+ * Your own personal details — gender, birthday, phone, address and job.
+ *
+ * Deliberately narrower than PUT /users/:id: name, email, role, permissions
+ * and the face photo stay with an administrator, because they are what the
+ * rest of the app identifies and authorises you by. This is the part of an
+ * account that is nobody else's business to maintain, which is why it needs
+ * no page permission.
+ */
+export const updateProfile = async (req, res) => {
+  const me = await getUserById(req.user.sub);
+  if (!me) {
+    return res.status(404).json({ message: 'User not found.' });
+  }
+
+  const { values, error } = readProfileFields(req.body || {});
+  if (error) {
+    return res.status(400).json({ message: error });
+  }
+
+  Object.assign(me, values);
+  await me.save();
+
+  return res.json({ ok: true, user: sanitizeUser(me.toObject ? me.toObject() : me) });
 };
 
 export const updatePassword = async (req, res) => {

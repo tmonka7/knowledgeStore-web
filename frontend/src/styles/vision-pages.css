@@ -2420,3 +2420,86 @@
   justify-content: space-between;
   gap: var(--v-space-2);
 }
+
+/* ---------------------------------------------------------- wallet: currency */
+
+/* Every wallet statistic is shown once per currency, so each block wears the
+   code it belongs to. The two are never added together — there is no rate in
+   this app — and the label is what keeps that visible rather than implied. */
+.wallet-currency-block + .wallet-currency-block {
+  margin-top: var(--v-space-4);
+  padding-top: var(--v-space-4);
+  border-top: 1px solid var(--v-border);
+}
+
+.wallet-currency-label {
+  display: inline-block;
+  margin-bottom: var(--v-space-2);
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--v-tint-blue);
+  color: var(--v-primary);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* --------------------------------------------------------- chat: attachments */
+
+.chat-attachment {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  margin-bottom: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--v-surface-muted);
+  text-decoration: none;
+  color: inherit;
+  max-width: 320px;
+}
+
+.vision-chat-bubble.is-me .chat-attachment {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.chat-attachment-icon {
+  font-size: 18px;
+  flex: none;
+}
+
+.chat-attachment-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chat-attachment-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-attachment-meta {
+  font-size: 11.5px;
+  opacity: 0.75;
+}
+
+/* An expired file keeps its row: the name, tagged as deleted, is the record
+   that something was sent, which is why the bubble is dimmed rather than
+   removed. */
+.chat-attachment.is-expired {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.chat-composer-note {
+  padding: 0 var(--v-space-3) var(--v-space-2);
+  font-size: 11.5px;
+  color: var(--v-text-soft);
+}
+
+.chat-file-input {
+  display: none;
+}

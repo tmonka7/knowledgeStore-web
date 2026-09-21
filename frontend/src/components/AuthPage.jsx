@@ -1,18 +1,22 @@
-import { Button, Checkbox, Form, Input, Layout, Modal, Typography, message } from 'antd';
+import { Button, Checkbox, DatePicker, Form, Input, Layout, Modal, Select, Typography, message } from 'antd';
 import {
   CameraOutlined,
   CheckCircleFilled,
   CheckSquareOutlined,
   ClockCircleOutlined,
   CloseOutlined,
+  HomeOutlined,
   LoadingOutlined,
   LockOutlined,
   MailOutlined,
+  PhoneOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
+  SolutionOutlined,
   UploadOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import { FaceIdIcon, FaceScanArt } from './FaceArt';
 import FaceRegistration from './face/FaceRegistration';
@@ -256,6 +260,36 @@ function RegisterForm({ loading, faceError, onFaceDescriptor, onSubmit }) {
       >
         <Input.Password prefix={<LockOutlined />} autoComplete="new-password" placeholder={t('confirmPassword')} />
       </Form.Item>
+      {/* Personal details, all optional: nothing here blocks an account being
+          created, and each one can be filled in later from My Page. */}
+      <Form.Item name="gender">
+        <Select
+          allowClear
+          placeholder={t('gender')}
+          options={[
+            { value: 'male', label: t('male') },
+            { value: 'female', label: t('female') },
+            { value: 'other', label: t('otherGender') },
+          ]}
+        />
+      </Form.Item>
+      <Form.Item name="birthday">
+        <DatePicker
+          style={{ width: '100%' }}
+          format="YYYY-MM-DD"
+          placeholder={t('birthday')}
+          disabledDate={(current) => current && current > dayjs().endOf('day')}
+        />
+      </Form.Item>
+      <Form.Item name="phone" rules={[{ max: 40, message: t('phoneTooLong') }]}>
+        <Input prefix={<PhoneOutlined />} autoComplete="tel" placeholder={t('phoneNumber')} />
+      </Form.Item>
+      <Form.Item name="job" rules={[{ max: 80, message: t('jobTooLong') }]}>
+        <Input prefix={<SolutionOutlined />} autoComplete="organization-title" placeholder={t('job')} />
+      </Form.Item>
+      <Form.Item name="address" rules={[{ max: 200, message: t('addressTooLong') }]}>
+        <Input prefix={<HomeOutlined />} autoComplete="street-address" placeholder={t('address')} />
+      </Form.Item>
       <FaceRegistration onChange={onFaceDescriptor} error={faceError} />
       <Button type="primary" htmlType="submit" block loading={loading}>{t('register')}</Button>
     </Form>
@@ -312,7 +346,14 @@ export default function AuthPage({ defaultUser, loading, loginForm, handleLogin,
       setFaceError(t('faceRequiredForRegistration'));
       return;
     }
-    handleRegister({ ...values, faceDescriptor: registerFaceData.descriptor, faceImage: registerFaceData.faceImage });
+    handleRegister({
+      ...values,
+      // The picker hands back a dayjs; the API stores a calendar day.
+      birthday: values.birthday ? values.birthday.format('YYYY-MM-DD') : '',
+      gender: values.gender || '',
+      faceDescriptor: registerFaceData.descriptor,
+      faceImage: registerFaceData.faceImage,
+    });
   };
 
   return (

@@ -9,11 +9,39 @@ import {
   unreadCountsFor,
 } from '../models/chatModel.js';
 import { User, getUserById } from '../models/userModel.js';
+import { expiryFrom } from '../helpers/chatRetention.js';
 
 const MESSAGE_LIMIT = 2000;
 const SEARCH_LIMIT = 20;
 
 const asPlain = (document) => (document?.toObject ? document.toObject() : document);
+
+/**
+ * What the thread list shows for its most recent message. A file with no note
+ * has no text to preview, so the file's name stands in for it.
+ */
+const previewOf = (body, attachment) => {
+  if (body) return body.slice(0, 120);
+  return attachment ? `📎 ${attachment.name}`.slice(0, 120) : '';
+};
+
+/**
+ * One message as the browser sees it.
+ *
+ * `mine` is decided here so a bubble never has to compare ids to know which
+ * side it belongs on, and `expired` says plainly that the file behind an
+ * attachment has been deleted — the name, already tagged, stays either way.
+ */
+const describeMessage = (item, me) => {
+  const plain = asPlain(item);
+  return {
+    ...plain,
+    mine: plain.senderId === me,
+    attachment: plain.attachment
+      ? { ...plain.attachment, expired: Boolean(plain.attachment.deletedAt) }
+      : null,
+  };
+};
 
 const publicUser = (user) => (user ? {
   id: user.id,
@@ -123,14 +151,7 @@ export const listMessages = async (req, res) => {
   const messages = await getMessages(thread.id, { after, limit: MESSAGE_LIMIT });
   await markThreadRead(thread.id, req.user.sub);
 
-  return res.json({
-    messages: messages.map((item) => ({
-      ...asPlain(item),
-      // Which side of the thread a bubble sits on is the server's answer, so
-      // the browser never has to compare ids to decide.
-      mine: item.senderId === req.user.sub,
-    })),
-  });
+  return res.json({ messages: messages.map((item) => describeMessage(item, req.user.sub)) });
 };
 
 export const sendMessage = async (req, res) => {
@@ -149,14 +170,63 @@ export const sendMessage = async (req, res) => {
     body,
   });
 
-  // The preview on the thread list is denormalised so listing conversations
-  // does not have to look up the last message of each one.
-  thread.lastMessageAt = created.createdAt;
-  thread.lastMessagePreview = body.slice(0, 120);
-  thread.lastMessageSenderId = req.user.sub;
-  await thread.save();
+  await touchThread(thread, created, body, null, req.user.sub);
 
-  return res.status(201).json({ message: { ...asPlain(created), mine: true } });
+  return res.status(201).json({ message: describeMessage(created, req.user.sub) });
+};
+
+/** The denormalised preview on the thread list, so listing is one query. */
+const touchThread = async (thread, created, body, attachment, senderId) => {
+  thread.lastMessageAt = created.createdAt;
+  thread.lastMessagePreview = previewOf(body, attachment);
+  thread.lastMessageSenderId = senderId;
+  await thread.save();
+};
+
+/**
+ * POST /chat/threads/:threadId/attachments  (multipart: file, optional body)
+ *
+ * A file is sent as a message of its own, not as a property of an existing
+ * one: it belongs in the conversation in the order it was sent, and it has to
+ * survive the file behind it being deleted a week later.
+ *
+ * multer has already written the upload by the time this runs, so a rejection
+ * here leaves a file nothing points at — which is exactly what the Database
+ * Management cleanup collects.
+ */
+export const sendAttachment = async (req, res) => {
+  const thread = await getThreadFor(req.user.sub, req.params.threadId);
+  if (!thread) return res.status(404).json({ message: 'Conversation not found.' });
+
+  const file = req.file;
+  if (!file) return res.status(400).json({ message: 'Choose a file to send.' });
+
+  const body = String(req.body?.body ?? '').trim().slice(0, 4000);
+  const recipientId = thread.participantIds.find((id) => id !== req.user.sub);
+
+  const attachment = {
+    // The original name is the label and the download name; on disk the file
+    // carries a generated one, so two people sending 'log.txt' never collide.
+    name: file.originalname,
+    path: `/uploads/chat/${file.filename}`,
+    size: file.size,
+    mimeType: file.mimetype,
+    // Set once, here: the week runs from the upload, not from the sweep.
+    expiresAt: expiryFrom(),
+    deletedAt: null,
+  };
+
+  const created = await createMessage({
+    threadId: thread.id,
+    senderId: req.user.sub,
+    recipientId,
+    body,
+    attachment,
+  });
+
+  await touchThread(thread, created, body, attachment, req.user.sub);
+
+  return res.status(201).json({ message: describeMessage(created, req.user.sub) });
 };
 
 export const markRead = async (req, res) => {

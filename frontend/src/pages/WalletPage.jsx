@@ -18,16 +18,32 @@ import Pagination from '../components/ui/Pagination';
 import StatCard from '../components/ui/StatCard';
 import WalletEntryModal from '../components/wallet/WalletEntryModal';
 import { BalanceTrend, CategoryBreakdown, MonthlyFlowChart } from '../components/wallet/WalletCharts';
-import { CURRENCIES, formatMoney, readStoredCurrency } from '../components/wallet/money';
+import { CURRENCIES, DEFAULT_CURRENCY, formatMoney, rememberCurrency } from '../components/wallet/money';
 
 const PAGE_SIZE = 10;
 const MONTH_OPTIONS = [3, 6, 12, 24];
 
-const emptySummary = {
+const emptyCurrencySummary = {
   totals: { income: 0, expense: 0, balance: 0, entries: 0 },
   monthly: [],
   categories: { income: [], expense: [] },
 };
+
+const emptySummary = { entries: 0, byCurrency: {} };
+
+/**
+ * A labelled block, so a figure is never shown without the currency it is in.
+ * Every statistic on this page appears once per currency, side by side; they
+ * are never added together, because nothing here knows a rate between them.
+ */
+function CurrencyBlock({ code, children }) {
+  return (
+    <div className="wallet-currency-block">
+      <span className="wallet-currency-label">{code}</span>
+      {children}
+    </div>
+  );
+}
 
 /**
  * Wallet Management.
@@ -44,7 +60,6 @@ export default function WalletPage({ user, embedded = false }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [page, setPage] = useState(1);
-  const [currency, setCurrency] = useState(readStoredCurrency);
 
   const [range, setRange] = useState(null);
   const [typeFilter, setTypeFilter] = useState('all');
@@ -80,7 +95,6 @@ export default function WalletPage({ user, embedded = false }) {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [params]);
-  useEffect(() => { localStorage.setItem('wallet-currency', currency); }, [currency]);
 
   // Categories are whatever has been used so far, so the filter and the form
   // suggestions stay in step with the data without a second endpoint.
@@ -88,6 +102,8 @@ export default function WalletPage({ user, embedded = false }) {
     () => [...new Set(entries.map((entry) => entry.category).filter(Boolean))].sort(),
     [entries],
   );
+
+  const summaryFor = (code) => summary.byCurrency?.[code] || emptyCurrencySummary;
 
   const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
   const visibleEntries = entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -102,6 +118,9 @@ export default function WalletPage({ user, embedded = false }) {
         await api.post('/wallet/entries', values);
         message.success('Entry recorded.');
       }
+      // Preselects the same currency next time; a run of entries is usually
+      // in one of them.
+      rememberCurrency(values.currency);
       setModalOpen(false);
       setEditingEntry(null);
       await load();
@@ -113,6 +132,7 @@ export default function WalletPage({ user, embedded = false }) {
   };
 
   const removeEntry = (entry) => {
+    const currency = entry.currency || DEFAULT_CURRENCY;
     Modal.confirm({
       title: 'Delete this entry?',
       content: `${entry.type === 'income' ? 'Income' : 'Expense'} of ${formatMoney(entry.amount, currency)} on ${entry.date}.`,
@@ -129,19 +149,10 @@ export default function WalletPage({ user, embedded = false }) {
     });
   };
 
-  const totals = summary.totals || emptySummary.totals;
-  const positiveBalance = totals.balance >= 0;
-
   // The toolbar is the same either way; only its frame changes. Embedded in a
   // My Page tab it sits on its own, because that page already has the header.
   const toolbar = (
     <>
-      <Select
-        value={currency}
-        onChange={setCurrency}
-        options={CURRENCIES.map((code) => ({ value: code, label: code }))}
-        style={{ width: 96 }}
-      />
       <Button className="vision-btn-ghost" icon={<ReloadOutlined />} loading={loading} onClick={load}>
         Refresh
       </Button>
@@ -165,42 +176,51 @@ export default function WalletPage({ user, embedded = false }) {
       ) : (
         <PageHeader
           title="Wallet Management"
-          subtitle="Record income and expenses, and see where the money went."
+          subtitle="Record income and expenses in either currency, and see where the money went."
           actions={toolbar}
         />
       )}
 
-      <div className="vision-stat-grid">
-        <StatCard
-          tone="blue"
-          icon={<ArrowUpOutlined />}
-          label="Income"
-          value={formatMoney(totals.income, currency, { compact: true })}
-          meta={`${summary.categories?.income?.length || 0} categories`}
-        />
-        <StatCard
-          tone="amber"
-          icon={<ArrowDownOutlined />}
-          label="Expense"
-          value={formatMoney(totals.expense, currency, { compact: true })}
-          meta={`${summary.categories?.expense?.length || 0} categories`}
-        />
-        <StatCard
-          tone={positiveBalance ? 'green' : 'red'}
-          icon={<WalletOutlined />}
-          label="Balance"
-          value={formatMoney(totals.balance, currency, { compact: true })}
-          trend={positiveBalance ? 'up' : 'down'}
-          meta={positiveBalance ? 'In surplus' : 'Spending exceeds income'}
-        />
-        <StatCard
-          tone="violet"
-          icon={<WalletOutlined />}
-          label="Entries"
-          value={totals.entries}
-          meta={range ? 'In the selected range' : 'All time'}
-        />
-      </div>
+      {/* One row of cards per currency. Two currencies with no rate between
+          them cannot share a total, so they do not share a row either. */}
+      {CURRENCIES.map((code) => {
+        const { totals, categories } = summaryFor(code);
+        const positiveBalance = totals.balance >= 0;
+
+        return (
+          <div className="vision-stat-grid" key={code}>
+            <StatCard
+              tone="blue"
+              icon={<ArrowUpOutlined />}
+              label={`Income · ${code}`}
+              value={formatMoney(totals.income, code, { compact: true })}
+              meta={`${categories?.income?.length || 0} categories`}
+            />
+            <StatCard
+              tone="amber"
+              icon={<ArrowDownOutlined />}
+              label={`Expense · ${code}`}
+              value={formatMoney(totals.expense, code, { compact: true })}
+              meta={`${categories?.expense?.length || 0} categories`}
+            />
+            <StatCard
+              tone={positiveBalance ? 'green' : 'red'}
+              icon={<WalletOutlined />}
+              label={`Balance · ${code}`}
+              value={formatMoney(totals.balance, code, { compact: true })}
+              trend={positiveBalance ? 'up' : 'down'}
+              meta={positiveBalance ? 'In surplus' : 'Spending exceeds income'}
+            />
+            <StatCard
+              tone="violet"
+              icon={<WalletOutlined />}
+              label={`Entries · ${code}`}
+              value={totals.entries}
+              meta={range ? 'In the selected range' : 'All time'}
+            />
+          </div>
+        );
+      })}
 
       <FilterBar
         actions={(
@@ -250,9 +270,13 @@ export default function WalletPage({ user, embedded = false }) {
           <h3 className="vision-section-title">Income and expense</h3>
           <span className="vision-cell-muted">Last {months} months</span>
         </div>
-        {!summary.monthly?.length
-          ? <Empty description="Nothing recorded yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          : <MonthlyFlowChart months={summary.monthly} currency={currency} />}
+        {CURRENCIES.map((code) => (
+          <CurrencyBlock code={code} key={code}>
+            {!summaryFor(code).totals.entries
+              ? <Empty description={`Nothing recorded in ${code}`} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              : <MonthlyFlowChart months={summaryFor(code).monthly} currency={code} />}
+          </CurrencyBlock>
+        ))}
       </section>
 
       <div className="vision-overview-split">
@@ -261,17 +285,24 @@ export default function WalletPage({ user, embedded = false }) {
             <h3 className="vision-section-title">Running balance</h3>
             <span className="vision-cell-muted">Cumulative net</span>
           </div>
-          {!summary.monthly?.length
-            ? <Empty description="Nothing recorded yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            : <BalanceTrend months={summary.monthly} currency={currency} />}
+          {CURRENCIES.map((code) => (
+            <CurrencyBlock code={code} key={code}>
+              {!summaryFor(code).totals.entries
+                ? <Empty description={`Nothing recorded in ${code}`} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                : <BalanceTrend months={summaryFor(code).monthly} currency={code} />}
+            </CurrencyBlock>
+          ))}
         </section>
 
         <section className="vision-panel vision-panel-tight">
           <div className="vision-panel-head">
             <h3 className="vision-section-title">Spending by category</h3>
-            <span className="vision-cell-muted">Top {summary.categories?.expense?.length || 0}</span>
           </div>
-          <CategoryBreakdown rows={summary.categories?.expense || []} type="expense" currency={currency} />
+          {CURRENCIES.map((code) => (
+            <CurrencyBlock code={code} key={code}>
+              <CategoryBreakdown rows={summaryFor(code).categories?.expense || []} type="expense" currency={code} />
+            </CurrencyBlock>
+          ))}
         </section>
       </div>
 
@@ -279,9 +310,12 @@ export default function WalletPage({ user, embedded = false }) {
         <section className="vision-panel vision-panel-tight">
           <div className="vision-panel-head">
             <h3 className="vision-section-title">Income by category</h3>
-            <span className="vision-cell-muted">Top {summary.categories?.income?.length || 0}</span>
           </div>
-          <CategoryBreakdown rows={summary.categories?.income || []} type="income" currency={currency} />
+          {CURRENCIES.map((code) => (
+            <CurrencyBlock code={code} key={code}>
+              <CategoryBreakdown rows={summaryFor(code).categories?.income || []} type="income" currency={code} />
+            </CurrencyBlock>
+          ))}
         </section>
 
         <section className="vision-panel vision-panel-tight">
@@ -291,21 +325,28 @@ export default function WalletPage({ user, embedded = false }) {
           <div className="vision-table-scroll">
             <table className="vision-data-table">
               <thead>
-                <tr><th>Month</th><th>Income</th><th>Expense</th><th>Net</th></tr>
+                <tr>
+                  <th>Month</th>
+                  <th>Currency</th>
+                  <th>Income</th>
+                  <th>Expense</th>
+                  <th>Net</th>
+                </tr>
               </thead>
               <tbody>
-                {(summary.monthly || []).map((month) => (
-                  <tr key={month.key}>
+                {CURRENCIES.flatMap((code) => summaryFor(code).monthly.map((month) => (
+                  <tr key={`${code}-${month.key}`}>
                     <td>{month.label}</td>
-                    <td className="vision-cell-muted">{formatMoney(month.income, currency)}</td>
-                    <td className="vision-cell-muted">{formatMoney(month.expense, currency)}</td>
+                    <td className="vision-cell-muted">{code}</td>
+                    <td className="vision-cell-muted">{formatMoney(month.income, code)}</td>
+                    <td className="vision-cell-muted">{formatMoney(month.expense, code)}</td>
                     <td className={month.net >= 0 ? 'vision-amount is-income' : 'vision-amount is-expense'}>
-                      {formatMoney(month.net, currency)}
+                      {formatMoney(month.net, code)}
                     </td>
                   </tr>
-                ))}
-                {!summary.monthly?.length && (
-                  <tr><td colSpan={4} className="vision-cell-muted">Nothing recorded yet.</td></tr>
+                )))}
+                {!summary.entries && (
+                  <tr><td colSpan={5} className="vision-cell-muted">Nothing recorded yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -332,6 +373,7 @@ export default function WalletPage({ user, embedded = false }) {
                     <th>Category</th>
                     <th>Note</th>
                     <th>Method</th>
+                    <th>Currency</th>
                     <th>Amount</th>
                     {(canEdit || canDelete) && <th>Actions</th>}
                   </tr>
@@ -348,8 +390,10 @@ export default function WalletPage({ user, embedded = false }) {
                       <td>{entry.category}</td>
                       <td className="vision-cell-muted" title={entry.note}>{entry.note || '—'}</td>
                       <td className="vision-cell-muted">{entry.method || '—'}</td>
+                      <td className="vision-cell-muted">{entry.currency || DEFAULT_CURRENCY}</td>
                       <td className={`vision-amount is-${entry.type}`}>
-                        {entry.type === 'income' ? '+' : '−'}{formatMoney(entry.amount, currency)}
+                        {entry.type === 'income' ? '+' : '−'}
+                        {formatMoney(entry.amount, entry.currency || DEFAULT_CURRENCY)}
                       </td>
                       {(canEdit || canDelete) && (
                         <td>

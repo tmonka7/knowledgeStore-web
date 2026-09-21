@@ -25,12 +25,33 @@ const threadSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 }, { collection: 'chat_threads' });
 
+/*
+ * A transferred file.
+ *
+ * Chat uploads are temporary by design: `expiresAt` is set a week ahead when
+ * the file lands, and the retention sweep deletes it from disk on that date,
+ * stamps `deletedAt` and appends the deletion tag to `name`. The message and
+ * the tagged name stay — the record that a file was sent outlives the file —
+ * so nothing here is ever removed, only emptied.
+ */
+const chatAttachmentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  path: { type: String, required: true },
+  size: { type: Number, default: 0 },
+  mimeType: { type: String, default: '' },
+  expiresAt: { type: Date, required: true, index: true },
+  deletedAt: { type: Date, default: null },
+}, { _id: false });
+
 const messageSchema = new mongoose.Schema({
   id: { type: String, unique: true, required: true, default: () => randomUUID() },
   threadId: { type: String, required: true, index: true },
   senderId: { type: String, required: true },
   recipientId: { type: String, required: true },
-  body: { type: String, required: true },
+  // Not required: a message can be a file with nothing written alongside it.
+  // The controller refuses a message that is empty in both respects.
+  body: { type: String, default: '' },
+  attachment: { type: chatAttachmentSchema, default: null },
   // Null until the recipient opens the thread; the unread badge counts these.
   readAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now, index: true },

@@ -447,4 +447,15 @@
   <text id="saveRecord" en="Save Record" es="Guardar registro" zh="保存记录" jp="レコードを保存" />
   <text id="schedulesCouldNotLoad" en="Schedules could not be loaded." es="No se pudieron cargar las agendas." zh="无法加载日程。" jp="スケジュールを読み込めません。" />
   <text id="moreSchedules" en="+{count} more" es="+{count} más" zh="还有 {count} 个" jp="他 {count} 件" />
+  <text id="gender" en="Gender" es="Genero" zh="性别" jp="性別" />
+  <text id="male" en="Male" es="Masculino" zh="男" jp="男性" />
+  <text id="female" en="Female" es="Femenino" zh="女" jp="女性" />
+  <text id="otherGender" en="Other" es="Otro" zh="其他" jp="その他" />
+  <text id="birthday" en="Birthday" es="Fecha de nacimiento" zh="生日" jp="生年月日" />
+  <text id="phoneNumber" en="Phone number" es="Numero de telefono" zh="电话号码" jp="電話番号" />
+  <text id="address" en="Address" es="Direccion" zh="地址" jp="住所" />
+  <text id="job" en="Job" es="Trabajo" zh="职业" jp="職業" />
+  <text id="phoneTooLong" en="Phone number is too long." es="El numero de telefono es demasiado largo." zh="电话号码过长。" jp="電話番号が長すぎます。" />
+  <text id="addressTooLong" en="Address is too long." es="La direccion es demasiado larga." zh="地址过长。" jp="住所が長すぎます。" />
+  <text id="jobTooLong" en="Job title is too long." es="El puesto es demasiado largo." zh="职位名称过长。" jp="職業名が長すぎます。" />
 </translations>

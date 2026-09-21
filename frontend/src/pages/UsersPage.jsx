@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
-import { Alert, Button, Checkbox, Form, Input, Modal, Select, Table, Typography } from 'antd';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Button, Checkbox, DatePicker, Form, Input, Modal, Select, Table, Typography } from 'antd';
+import dayjs from 'dayjs';
 import {
   AppstoreFilled,
   CameraFilled,
@@ -14,11 +15,13 @@ import {
   ExclamationCircleFilled,
   EyeOutlined,
   FileTextOutlined,
+  HomeOutlined,
   IdcardOutlined,
   LineChartOutlined,
   MailFilled,
   MailOutlined,
   MessageFilled,
+  PhoneOutlined,
   PictureOutlined,
   PlusOutlined,
   ProjectOutlined,
@@ -28,6 +31,7 @@ import {
   SaveOutlined,
   ScanOutlined,
   SearchOutlined,
+  SolutionOutlined,
   TagFilled,
   TeamOutlined,
   UploadOutlined,
@@ -101,6 +105,7 @@ export default function UsersPage({
   user,
   userTableColumns,
   handleUpdateUser,
+  onRefreshUsers,
   permissionCatalog = [],
 }) {
   const { t } = useLanguage();
@@ -124,6 +129,23 @@ export default function UsersPage({
   const [roleDraft, setRoleDraft] = useState('all');
   const [faceDraft, setFaceDraft] = useState('all');
   const [filters, setFilters] = useState({ query: '', role: 'all', face: 'all' });
+
+  /**
+   * The list App loaded at sign-in can be minutes or hours old, and anyone who
+   * registered since is missing from it — which is what made new accounts look
+   * as though they were never created. Opening this page re-reads it, and the
+   * Refresh button covers the case of sitting on the page while someone signs
+   * up.
+   */
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => { onRefreshUsers?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await onRefreshUsers?.();
+    setRefreshing(false);
+  };
 
   const applyFilters = () => setFilters({ query: queryDraft.trim(), role: roleDraft, face: faceDraft });
 
@@ -170,7 +192,16 @@ export default function UsersPage({
     setFaceUpdate(null);
     setFaceUpdateError('');
     setFaceFileName('');
-    editForm.setFieldsValue({ fullName: record.fullName, email: record.email });
+    editForm.setFieldsValue({
+      fullName: record.fullName,
+      email: record.email,
+      gender: record.gender || undefined,
+      // The API stores a 'YYYY-MM-DD' string; the picker wants a dayjs.
+      birthday: record.birthday ? dayjs(record.birthday) : null,
+      phone: record.phone || '',
+      address: record.address || '',
+      job: record.job || '',
+    });
   };
 
   const closeEditor = () => {
@@ -243,6 +274,9 @@ export default function UsersPage({
     setSaving(true);
     const ok = await handleUpdateUser(editingUser.id, {
       ...values,
+      // Back to the calendar-day string the API stores; '' clears it.
+      birthday: values.birthday ? values.birthday.format('YYYY-MM-DD') : '',
+      gender: values.gender || '',
       role: draftRole,
       permissions: selectedPermissions,
       // The API expects `faceDescriptor`; `faceUpdate` stores it as `descriptor`.
@@ -287,10 +321,17 @@ export default function UsersPage({
       <PageHeader
         title={t('usersManagement')}
         subtitle={t('usersManagementSubtitle')}
-        actions={isAdmin && (
-          <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => setAddUserOpen(true)}>
-            {t('addUser')}
-          </Button>
+        actions={(
+          <>
+            <Button className="vision-btn-ghost" icon={<ReloadOutlined />} loading={refreshing} onClick={refresh}>
+              Refresh
+            </Button>
+            {isAdmin && (
+              <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => setAddUserOpen(true)}>
+                {t('addUser')}
+              </Button>
+            )}
+          </>
         )}
       />
 
@@ -509,6 +550,55 @@ export default function UsersPage({
                       rules={[{ required: true, type: 'email', message: 'Enter a valid email address.' }]}
                     >
                       <Input placeholder={t('email')} />
+                    </Form.Item>
+                    {/* Personal details. Every one of them is optional — an
+                        account created before these fields existed simply has
+                        them empty, and nothing in the app depends on them. */}
+                    <Form.Item
+                      name="gender"
+                      label={<span className="user-editor-label"><UserOutlined /> Gender</span>}
+                    >
+                      <Select
+                        allowClear
+                        placeholder="Not specified"
+                        options={[
+                          { value: 'male', label: 'Male' },
+                          { value: 'female', label: 'Female' },
+                          { value: 'other', label: 'Other' },
+                        ]}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="birthday"
+                      label={<span className="user-editor-label"><CalendarOutlined /> Birthday</span>}
+                    >
+                      <DatePicker
+                        style={{ width: '100%' }}
+                        format="YYYY-MM-DD"
+                        placeholder="YYYY-MM-DD"
+                        disabledDate={(current) => current && current > dayjs().endOf('day')}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="phone"
+                      label={<span className="user-editor-label"><PhoneOutlined /> Phone number</span>}
+                      rules={[{ max: 40, message: 'Phone number is too long.' }]}
+                    >
+                      <Input placeholder="+1 555 0100" />
+                    </Form.Item>
+                    <Form.Item
+                      name="address"
+                      label={<span className="user-editor-label"><HomeOutlined /> Address</span>}
+                      rules={[{ max: 200, message: 'Address is too long.' }]}
+                    >
+                      <Input.TextArea rows={2} placeholder="Street, city, country" />
+                    </Form.Item>
+                    <Form.Item
+                      name="job"
+                      label={<span className="user-editor-label"><SolutionOutlined /> Job</span>}
+                      rules={[{ max: 80, message: 'Job title is too long.' }]}
+                    >
+                      <Input placeholder="QA engineer" />
                     </Form.Item>
                     <Form.Item
                       label={<span className="user-editor-label"><IdcardOutlined /> Role</span>}

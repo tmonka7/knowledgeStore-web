@@ -1,4 +1,6 @@
 import {
+  DEFAULT_WALLET_CURRENCY,
+  WALLET_CURRENCIES,
   WALLET_TYPES,
   createWalletEntry,
   getWalletEntries,
@@ -20,6 +22,9 @@ const toAmount = (value) => Math.round((Number(value) || 0) * 100) / 100;
 const entryFields = (body = {}) => ({
   type: String(body.type || '').toLowerCase(),
   amount: toAmount(body.amount),
+  // Defaulted rather than rejected when missing: an entry recorded before the
+  // wallet held two currencies was in the default one.
+  currency: String(body.currency || DEFAULT_WALLET_CURRENCY).toUpperCase(),
   category: String(body.category || '').trim() || 'Other',
   note: String(body.note || '').trim(),
   method: String(body.method || '').trim(),
@@ -29,6 +34,7 @@ const entryFields = (body = {}) => ({
 const validate = (entry) => {
   if (!WALLET_TYPES.includes(entry.type)) return `Type must be one of ${WALLET_TYPES.join(', ')}.`;
   if (!Number.isFinite(entry.amount) || entry.amount <= 0) return 'Amount must be greater than zero.';
+  if (!WALLET_CURRENCIES.includes(entry.currency)) return `Currency must be one of ${WALLET_CURRENCIES.join(', ')}.`;
   if (!isDateKey(entry.date)) return 'Date must be in YYYY-MM-DD format.';
   if (entry.category.length > 40) return 'Category must be 40 characters or fewer.';
   return '';
@@ -39,6 +45,11 @@ const readFilters = (query = {}) => ({
   to: isDateKey(query.to) ? query.to : '',
   type: WALLET_TYPES.includes(String(query.type || '')) ? String(query.type) : '',
   category: String(query.category || '').trim(),
+  // Present for completeness — the page deliberately does not filter by
+  // currency, because the statistics are meant to show both side by side.
+  currency: WALLET_CURRENCIES.includes(String(query.currency || '').toUpperCase())
+    ? String(query.currency).toUpperCase()
+    : '',
 });
 
 export const listEntries = async (req, res) => {
@@ -56,7 +67,7 @@ export const createEntry = async (req, res) => {
   await writeLog({
     source: 'wallet',
     action: `entry:${entry.type}`,
-    message: `Recorded ${entry.type} of ${entry.amount} (${entry.category})`,
+    message: `Recorded ${entry.type} of ${entry.amount} ${entry.currency} (${entry.category})`,
     actor: { id: req.user.sub, username: req.user.username },
   });
 
@@ -92,25 +103,8 @@ const monthLabel = (key) => {
   return new Date(year, month - 1, 1).toLocaleString('en-US', { month: 'short' });
 };
 
-/**
- * GET /wallet/summary?months=6&from=&to=
- *
- * The statistics are added up here rather than in the browser so the totals,
- * the monthly bars and the category breakdown can never disagree with each
- * other, and so a filtered view still reports on the same rows it lists.
- */
-export const getSummary = async (req, res) => {
-  const months = Math.min(Math.max(Number(req.query.months) || DEFAULT_MONTHS, 1), 24);
-  const filters = readFilters(req.query);
-  const entries = (await getWalletEntries(req.user.sub, filters)).map(asPlain);
-
-  const totals = entries.reduce((accumulator, entry) => {
-    accumulator[entry.type] = toAmount(accumulator[entry.type] + entry.amount);
-    return accumulator;
-  }, { income: 0, expense: 0 });
-
-  // Seeded with an empty slot per month so a quiet month keeps its place on
-  // the axis instead of collapsing the series.
+/** An empty slot per month, so a quiet month keeps its place on the axis. */
+const emptySeries = (months) => {
   const series = new Map();
   const now = new Date();
   for (let index = months - 1; index >= 0; index -= 1) {
@@ -118,7 +112,17 @@ export const getSummary = async (req, res) => {
     const key = monthKey(date);
     series.set(key, { key, label: monthLabel(key), income: 0, expense: 0, net: 0 });
   }
+  return series;
+};
 
+/** Everything the page shows about one currency, from that currency's rows. */
+const summarise = (entries, months) => {
+  const totals = entries.reduce((accumulator, entry) => {
+    accumulator[entry.type] = toAmount(accumulator[entry.type] + entry.amount);
+    return accumulator;
+  }, { income: 0, expense: 0 });
+
+  const series = emptySeries(months);
   entries.forEach((entry) => {
     const key = String(entry.date).slice(0, 7);
     const slot = series.get(key);
@@ -141,8 +145,7 @@ export const getSummary = async (req, res) => {
     return [...counts.values()].sort((a, b) => b.total - a.total).slice(0, TOP_CATEGORIES);
   };
 
-  return res.json({
-    range: { months, ...filters },
+  return {
     totals: {
       income: totals.income,
       expense: totals.expense,
@@ -151,5 +154,36 @@ export const getSummary = async (req, res) => {
     },
     monthly: [...series.values()],
     categories: { income: byCategory('income'), expense: byCategory('expense') },
+  };
+};
+
+/**
+ * GET /wallet/summary?months=6&from=&to=
+ *
+ * The statistics are added up here rather than in the browser so the totals,
+ * the monthly bars and the category breakdown can never disagree with each
+ * other, and so a filtered view still reports on the same rows it lists.
+ *
+ * Every figure is reported once per currency and never merged: there is no
+ * exchange rate in this app, so a single "balance" across USD and REM would be
+ * a number nobody could act on. Each currency is summarised even when it has
+ * no rows, so the page can always show both side by side.
+ */
+export const getSummary = async (req, res) => {
+  const months = Math.min(Math.max(Number(req.query.months) || DEFAULT_MONTHS, 1), 24);
+  const filters = readFilters(req.query);
+  const entries = (await getWalletEntries(req.user.sub, filters)).map(asPlain);
+
+  const byCurrency = {};
+  WALLET_CURRENCIES.forEach((code) => {
+    const rows = entries.filter((entry) => (entry.currency || DEFAULT_WALLET_CURRENCY) === code);
+    byCurrency[code] = summarise(rows, months);
+  });
+
+  return res.json({
+    range: { months, ...filters },
+    currencies: WALLET_CURRENCIES,
+    entries: entries.length,
+    byCurrency,
   });
 };

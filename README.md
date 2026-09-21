@@ -1,5 +1,4 @@
-| Delete unlinked uploaded files | Removes files under `uploads/` that no record, mail or task attachment references |
-| Delete unlinked uploaded files | Removes files under `uploads/` that no record, mail or task attachment references |# Knowledge Store
+# Knowledge Store
 
 A full-stack starter app with:
 - React + Vite + Ant Design frontend
@@ -25,6 +24,18 @@ A full-stack starter app with:
 
 - Username: `admin`
 - Password: `admin123`
+
+## Documentation
+
+Written against this build, in `docs/`:
+
+| Document | What it answers |
+| --- | --- |
+| [Requirements Specification](docs/requirements-specification.md) | What the system must do, as numbered requirements with actors and constraints |
+| [System Design Document](docs/system-design.md) | Architecture, data model, authorisation, the workflow/currency/retention mechanisms, API surface |
+| [Screen Design Document](docs/screen-design.md) | Navigation map, the grammar every page follows, and each screen's regions and controls |
+| [Test Case Specification](docs/test-case-specification.md) | Cases traced to requirement IDs, with a regression set for the current release |
+| [User Manual](docs/user-manual.md) | How to use the application, written for the people using it |
 
 ## Database Management
 
@@ -101,6 +112,23 @@ a file so it can be read and cleared without shell access.
 **Chat** is direct messages between accounts on this app: search for someone,
 pick them, and write to them.
 
+### File transfer
+
+A file goes as a message of its own — `POST /chat/threads/:id/attachments`,
+multipart, with whatever was in the composer as its note — so it sits in the
+conversation in the order it was sent rather than hanging off another message.
+Limit: one file, 25 MB, stored under `uploads/chat/` with a generated name.
+
+**Uploads live for a week.** `helpers/chatRetention.js` sweeps at boot and
+hourly: it deletes the file, appends `(deleted)` to the stored name and stamps
+`deletedAt`. The message itself is never removed — the record that a file was
+sent outlives the file, and the tagged name is what tells the UI to stop
+offering a download. The sweep refuses any stored path that resolves outside
+`uploads/chat`, because that path comes back out of the database.
+
+`getReferencedUploads` counts chat attachments whose file has not yet been
+swept, so the Database Management orphan cleanup never deletes a live one.
+
 It used to be something else. A conversation carried a single `ownerId`, every
 message was stored as `sender: 'me'`, and no message named a recipient — so a
 "chat" was a private notepad that nobody else could ever receive. The model was
@@ -157,6 +185,14 @@ API enforces regardless.
 
 ### Account
 
+Alongside the password form, **Personal details** edits the five optional
+fields an account carries — gender, birthday, phone, address and job — through
+`PUT /user/profile`. That route is deliberately narrower than `PUT /users/:id`:
+name, email, role, permissions and the face photo stay with an administrator,
+because they are what the rest of the app identifies and authorises you by.
+`birthday` is a `YYYY-MM-DD` string, must be a real date, and is refused if it
+is in the future.
+
 Your profile, and the form for changing your own password. That form used to
 sit at the bottom of the Users page, which only administrators can open — so
 the one setting every account has was behind a permission almost nobody had.
@@ -173,12 +209,25 @@ Amounts are stored positive and `type` (`income` / `expense`) carries the sign,
 which keeps each series a plain sum. Dates are `YYYY-MM-DD` strings rather than
 `Date` values for the same reason schedules are — an entry belongs to a
 calendar day in the owner's timezone, and an instant would drift across the
-month boundary in the charts. The currency is a display choice held in
-`localStorage`; switching it never rewrites a stored figure.
+month boundary in the charts.
+
+#### Two currencies, never merged
+
+The currency is a property of the **entry**, chosen when it is recorded, and
+is one of `USD` or `REM` (`USD` for rows written before the field existed).
 
 `GET /wallet/summary` adds up the totals, the monthly series and the category
 breakdown on the server, against the same filters the entry list uses, so the
-stat cards, the charts and the table can never disagree.
+stat cards, the charts and the table can never disagree. It does that once per
+currency and returns `byCurrency: { USD: {…}, REM: {…} }`, summarising a
+currency even when it has no rows, so the page can always show both side by
+side.
+
+Nothing converts between them. There is no exchange rate anywhere in this app,
+and a combined balance would be a figure nobody could act on — so there is no
+combined balance, and no currency selector to hide one behind. `REM` is not an
+ISO 4217 code, so `money.js` formats it as a number followed by the code while
+`USD` goes through `Intl`.
 
 #### Chart colours
 

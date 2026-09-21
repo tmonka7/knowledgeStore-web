@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { AutoComplete, DatePicker, Form, Input, InputNumber, Modal, Radio } from 'antd';
+import { AutoComplete, DatePicker, Form, Input, InputNumber, Modal, Radio, Select } from 'antd';
 import dayjs from 'dayjs';
+import { CURRENCIES, DEFAULT_CURRENCY, readLastCurrency } from './money';
 
 const INCOME_CATEGORIES = ['Salary', 'Sales', 'Refund', 'Interest', 'Gift', 'Other'];
 const EXPENSE_CATEGORIES = ['Hardware', 'Software', 'Hosting', 'Travel', 'Office', 'Food', 'Other'];
@@ -16,8 +17,20 @@ export default function WalletEntryModal({ open, entry, saving, knownCategories 
   useEffect(() => {
     if (!open) return;
     form.setFieldsValue(entry
-      ? { ...entry, date: dayjs(entry.date) }
-      : { type: 'expense', date: dayjs(), amount: null, category: undefined, note: '', method: '' });
+      // An entry saved before the wallet held two currencies has none stored;
+      // it was recorded in the default one.
+      ? { ...entry, currency: entry.currency || DEFAULT_CURRENCY, date: dayjs(entry.date) }
+      : {
+        type: 'expense',
+        // Preselected from the last entry, because a run of entries is
+        // usually in one currency. It is only a starting point.
+        currency: readLastCurrency(),
+        date: dayjs(),
+        amount: null,
+        category: undefined,
+        note: '',
+        method: '',
+      });
   }, [open, entry, form]);
 
   const suggestions = [...new Set([
@@ -54,6 +67,14 @@ export default function WalletEntryModal({ open, entry, saving, knownCategories 
             rules={[{ required: true, message: 'Enter an amount.' }, { type: 'number', min: 0.01, message: 'Amount must be greater than zero.' }]}
           >
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} placeholder="0.00" />
+          </Form.Item>
+          <Form.Item
+            name="currency"
+            label="Currency"
+            rules={[{ required: true, message: 'Choose a currency.' }]}
+            extra="Kept per entry; totals are never converted."
+          >
+            <Select options={CURRENCIES.map((code) => ({ value: code, label: code }))} />
           </Form.Item>
           <Form.Item name="date" label="Date" rules={[{ required: true, message: 'Pick a date.' }]}>
             <DatePicker style={{ width: '100%' }} allowClear={false} />

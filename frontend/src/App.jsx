@@ -448,6 +448,24 @@ function App() {
     }
   };
 
+  /**
+   * Your own personal details, from My Page.
+   *
+   * The response carries the whole account back, so the header and every page
+   * reading `user` update without a second request.
+   */
+  const handleUpdateProfile = async (values) => {
+    try {
+      const { data } = await api.put('/user/profile', values);
+      setUser(data.user);
+      message.success('Profile updated.');
+      return true;
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Unable to update your profile.');
+      return false;
+    }
+  };
+
   const userTableColumns = useMemo(
     () => [
       {
@@ -554,7 +572,11 @@ function App() {
       setIsAddModalOpen={setIsAddModalOpen}
       userTableColumns={userTableColumns}
       handleUpdatePassword={handleUpdatePassword}
+      handleUpdateProfile={handleUpdateProfile}
       handleUpdateUser={handleUpdateUser}
+      // The user list is loaded once at sign-in, so an account that registers
+      // afterwards is missing from it until this is called again.
+      onRefreshUsers={fetchUsers}
       permissionCatalog={permissionCatalog}
       attachmentName={attachmentName}
       setAttachmentName={setAttachmentName}

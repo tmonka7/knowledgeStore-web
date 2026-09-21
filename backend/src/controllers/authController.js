@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { createToken, sanitizeUser } from '../helpers/auth.js';
+import { readProfileFields } from '../helpers/userProfile.js';
 import { User, createUser, getUserByUsername } from '../models/store.js';
 
 export const register = async (req, res) => {
@@ -31,6 +32,13 @@ export const register = async (req, res) => {
     return res.status(400).json({ message: 'The face photo is invalid or too large. Please use a different photo.' });
   }
 
+  // Gender, birthday, phone, address and job are all optional here: the sign-up
+  // form offers them, and an account that skips them is still complete.
+  const { values: profile, error: profileError } = readProfileFields(req.body || {});
+  if (profileError) {
+    return res.status(400).json({ message: profileError });
+  }
+
   try {
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
 
@@ -39,7 +47,7 @@ export const register = async (req, res) => {
       return res.status(409).json({ message: `That ${field} is already registered.` });
     }
 
-    const newUser = await createUser({ username, email, fullName, password, role: 'user', faceDescriptor, faceImage });
+    const newUser = await createUser({ username, email, fullName, password, role: 'user', faceDescriptor, faceImage, profile });
     const token = createToken(newUser.toObject ? newUser.toObject() : newUser);
 
     return res.status(201).json({

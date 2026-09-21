@@ -120,7 +120,9 @@ export default function DashboardPage({
   handleCreateCategory,
   handleDeleteCategory,
   handleUpdatePassword,
+  handleUpdateProfile,
   handleUpdateUser,
+  onRefreshUsers,
   permissionCatalog,
   loading,
   isAddModalOpen,
@@ -629,6 +631,7 @@ export default function DashboardPage({
               user={user}
               userTableColumns={userTableColumns}
               handleUpdateUser={handleUpdateUser}
+              onRefreshUsers={onRefreshUsers}
               permissionCatalog={permissionCatalog}
             />
           )}
@@ -640,7 +643,13 @@ export default function DashboardPage({
           {effectiveKey === 'projects' && <ProjectsPage user={user} />}
 
           {/* Wallet now lives inside My Page, with the account's other personal data. */}
-          {effectiveKey === 'my-page' && <MyPage user={user} onUpdatePassword={handleUpdatePassword} />}
+          {effectiveKey === 'my-page' && (
+            <MyPage
+              user={user}
+              onUpdatePassword={handleUpdatePassword}
+              onUpdateProfile={handleUpdateProfile}
+            />
+          )}
 
           {/* A reset or a replace-restore drops the account behind the current
               token, so the page is given the way out of a dead session. */}

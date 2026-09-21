@@ -8,6 +8,7 @@ import {
 import PageHeader from '../components/ui/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
 import PasswordCard from '../components/account/PasswordCard';
+import ProfileCard, { GENDER_LABEL } from '../components/account/ProfileCard';
 import ContactsPanel from '../components/account/ContactsPanel';
 import WalletPage from './WalletPage';
 import { can } from '../permissions';
@@ -25,7 +26,7 @@ const formatDate = (value) => {
  * page permission: it is always your own account. The tabs inside still
  * respect the wallet and contacts permissions, which the API enforces anyway.
  */
-export default function MyPage({ user, onUpdatePassword }) {
+export default function MyPage({ user, onUpdatePassword, onUpdateProfile }) {
   const showWallet = can(user, 'wallet');
   const showContacts = can(user, 'contacts');
 
@@ -50,6 +51,11 @@ export default function MyPage({ user, onUpdatePassword }) {
                 <li><span>Name</span><strong>{user?.fullName || '—'}</strong></li>
                 <li><span>Username</span><strong>{user?.username || '—'}</strong></li>
                 <li><span>Email</span><strong>{user?.email || '—'}</strong></li>
+                <li><span>Gender</span><strong>{GENDER_LABEL[user?.gender] || '—'}</strong></li>
+                <li><span>Birthday</span><strong>{user?.birthday || '—'}</strong></li>
+                <li><span>Phone</span><strong>{user?.phone || '—'}</strong></li>
+                <li><span>Job</span><strong>{user?.job || '—'}</strong></li>
+                <li><span>Address</span><strong>{user?.address || '—'}</strong></li>
                 <li><span>Member since</span><strong>{formatDate(user?.createdAt)}</strong></li>
               </ul>
             </div>
@@ -58,6 +64,8 @@ export default function MyPage({ user, onUpdatePassword }) {
               Name, email and face photo are changed by an administrator on the Users page.
             </p>
           </section>
+
+          <ProfileCard user={user} onSubmit={onUpdateProfile} />
 
           <PasswordCard onSubmit={onUpdatePassword} />
         </div>
