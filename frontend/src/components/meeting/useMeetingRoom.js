@@ -132,8 +132,21 @@ export default function useMeetingRoom({ meetingId, active }) {
     const entry = { pc, remoteStream, queued: [], videoSender: null };
 
     const stream = localStreamRef.current;
-    const videoTrack = stream?.getVideoTracks()[0] || null;
+    const cameraTrack = stream?.getVideoTracks()[0] || null;
     const audioTrack = stream?.getAudioTracks()[0] || null;
+
+    /*
+     * A share already in progress is what this connection has to carry.
+     *
+     * Reading the camera track here unconditionally was wrong, and wrong in a
+     * way that looked like screen sharing being broken outright: this runs for
+     * every new peer connection, so anyone who joined during a share got the
+     * camera — and if the share was started before the first person arrived,
+     * which is the normal way a presenter behaves, every connection was built
+     * from the camera and nobody ever saw the screen at all.
+     */
+    const screenTrack = screenTrackRef.current;
+    const videoTrack = screenTrack?.readyState === 'live' ? screenTrack : cameraTrack;
 
     /*
      * Both m-lines are reserved up front, with or without a track to put in
@@ -461,6 +474,24 @@ export default function useMeetingRoom({ meetingId, active }) {
   const stopShareRef = useRef(() => {});
 
   const stopShare = useCallback(async () => {
+    const screen = screenTrackRef.current;
+    // Idempotent: pressing the button and the browser's own "Stop sharing"
+    // bar can both land, and the second one must do nothing.
+    if (!screen) return;
+
+    /*
+     * Cleared before the senders are swapped back, not after. ensurePeer reads
+     * this ref to decide what a new connection should carry, so leaving it set
+     * for the duration of the loop means anyone joining in that window is
+     * handed a screen track that is about to stop.
+     */
+    screenTrackRef.current = null;
+    screen.stop();
+    setScreenStream(null);
+    setSharing(false);
+    stateRef.current = { ...stateRef.current, sharing: false };
+    publishState();
+
     const camera = cameraTrackRef.current;
     for (const entry of peersRef.current.values()) {
       try {
@@ -469,13 +500,6 @@ export default function useMeetingRoom({ meetingId, active }) {
         console.warn('Could not restore the camera for a participant:', replaceError.message);
       }
     }
-
-    screenTrackRef.current?.stop();
-    screenTrackRef.current = null;
-    setScreenStream(null);
-    setSharing(false);
-    stateRef.current = { ...stateRef.current, sharing: false };
-    publishState();
   }, [publishState]);
 
   stopShareRef.current = stopShare;
@@ -497,13 +521,40 @@ export default function useMeetingRoom({ meetingId, active }) {
 
     const track = display.getVideoTracks()[0];
     if (!track) return;
+
+    // A previous share that somehow outlived its state would otherwise keep
+    // the capture indicator lit and hold the source open.
+    if (screenTrackRef.current && screenTrackRef.current !== track) screenTrackRef.current.stop();
     screenTrackRef.current = track;
+
+    // Tells the encoder this is a screen rather than a face: it favours
+    // sharpness over frame rate, which is what makes shared text readable.
+    if ('contentHint' in track) track.contentHint = 'detail';
+
+    /*
+     * Attached before anything is awaited. The browser's own "Stop sharing"
+     * bar ends the track without telling this code, and a person who presses
+     * it immediately would otherwise do so while the handler did not yet
+     * exist, leaving the call convinced it was still presenting.
+     */
+    track.onended = () => { stopShareRef.current(); };
+
+    // Set before the senders are swapped so the preview and the indicator are
+    // already right while the loop runs, rather than lagging behind it.
+    setScreenStream(display);
+    setSharing(true);
+    stateRef.current = { ...stateRef.current, sharing: true };
+    publishState();
 
     /*
      * Swapping the track inside the existing sender, rather than adding a new
      * one. replaceTrack does not change the shape of the session, so no offer
      * or answer is exchanged and there is no window in which the two sides
      * disagree about what is being sent.
+     *
+     * This covers the peers connected right now; ensurePeer covers the ones
+     * that connect later, and both have to, or the share reaches one group
+     * and not the other.
      */
     for (const entry of peersRef.current.values()) {
       try {
@@ -512,15 +563,6 @@ export default function useMeetingRoom({ meetingId, active }) {
         console.warn('Could not share the screen with a participant:', replaceError.message);
       }
     }
-
-    // The browser's own "Stop sharing" bar ends the track without telling this
-    // code, so the call has to hear about it from the track itself.
-    track.onended = () => { stopShareRef.current(); };
-
-    setScreenStream(display);
-    setSharing(true);
-    stateRef.current = { ...stateRef.current, sharing: true };
-    publishState();
   }, [publishState]);
 
   const toggleShare = useCallback(() => (sharing ? stopShare() : startShare()), [sharing, startShare, stopShare]);

@@ -369,6 +369,22 @@ does not change the shape of the session and so needs no renegotiation — and a
 renegotiation mid-call is exactly where glare would otherwise reappear. It also
 means someone who joined without a camera can still share their screen.
 
+`replaceTrack` only reaches the peers that are connected at that moment, so
+**`ensurePeer` reads the screen track too** when building a new connection.
+Both halves are required and the missing one made the feature look broken
+outright: connections built during a share carried the camera, and since a
+presenter usually starts before anyone arrives, every connection was built that
+way and nobody ever saw the screen. `stopShare` clears the ref before swapping
+the senders back, so a peer joining during that window is not handed a track
+that is about to stop.
+
+A shared screen is rendered with `object-fit: contain` rather than `cover`, on
+the tile and in the recording's canvas. Cropping a face to fill a cell is fine;
+cropping a presentation removes the edges of what somebody is showing, and they
+have no way of knowing it happened. The captured track is also given
+`contentHint = 'detail'`, which trades frame rate for sharpness — the right way
+round for text.
+
 **ICE candidates are queued** until the description they belong to has been
 applied. They routinely arrive first, and adding one early throws.
 

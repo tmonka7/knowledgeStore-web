@@ -71,8 +71,12 @@ const send = (peer, payload) => {
   }
 };
 
+// Reads the room rather than creating one: the last person leaving deletes
+// their room, and the 'peer-left' that follows would otherwise put an empty
+// Map straight back into `rooms` and leave it there for the life of the
+// process.
 const broadcast = (meetingId, payload, exceptPeerId = null) => {
-  for (const peer of roomOf(meetingId).values()) {
+  for (const peer of rooms.get(meetingId)?.values() || []) {
     if (peer.id === exceptPeerId) continue;
     send(peer, payload);
   }

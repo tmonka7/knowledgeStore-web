@@ -193,6 +193,17 @@ at once — "glare", the classic cause of a call that connects one way only. Bot
 audio and video m-lines are reserved when a connection opens, so starting a
 screen share is a `replaceTrack` with no renegotiation at all.
 
+**Screen sharing has two halves and needs both.** `replaceTrack` swaps the
+track for the peers connected at that moment; `ensurePeer` reads the screen
+track when building a *new* connection. Missing the second one made the
+feature look broken outright — connections built during a share carried the
+camera, and since a presenter normally starts before anyone arrives, every
+connection was built that way and nobody ever saw the screen. A shared track
+is also given `contentHint = 'detail'` (sharpness over frame rate, the right
+way round for text) and is rendered `contain` rather than `cover`, on the tile
+and in recordings: cropping a face to fill a cell is fine, cropping a
+presentation removes its edges and the presenter cannot tell.
+
 ### Occupancy is not stored
 
 Who is in a room lives in the signalling process's memory, not in MongoDB.
