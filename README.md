@@ -19,8 +19,61 @@ A full-stack starter app with:
 3. Start frontend:
    - `npm --prefix frontend run dev`
 4. Open:
-   - Frontend: http://localhost:5173
-   - API: http://localhost:4000/api/health
+   - Frontend: https://localhost:6173
+   - API: https://localhost:4000/api/health
+
+## Running over HTTPS
+
+**This is how the app is meant to run, not a hardening step.** Cameras, screen
+sharing and face capture are all gated on a secure context, and `localhost` is
+the only address a browser grants that over plain `http://`. The moment a
+colleague opens the app from another machine — which is the entire point of a
+meeting — it has to be https or their camera does not exist as far as the
+browser is concerned.
+
+Put a certificate and its key at the repository root as `server.crt` and
+`server.key` and both halves pick them up on their own: the API serves https,
+and the Vite dev server serves https *and* proxies `/api` and `/rtc` through to
+the API. Nothing else needs configuring. Other paths, or turning it off again:
+
+| Setting | Effect |
+| --- | --- |
+| `SSL_CERT_PATH`, `SSL_KEY_PATH` | Where the certificate and key live. Relative paths are resolved against the backend folder, then the repository root. |
+| `USE_HTTPS=false` | Serve plain http even though the files are there. |
+| `HTTPS_PORT` | The https port, when it should differ from `PORT`. |
+| `API_HOST`, `API_PORT` | Where the dev server's proxy looks for the API. Defaults to `127.0.0.1:4000`. |
+
+The dev server's proxy talks to the API with certificate checking off, because
+a self-signed certificate is one Node refuses. That is this machine trusting
+its own backend; the browser's connection is to the dev server and is still
+checked normally.
+
+**A self-signed certificate needs one deliberate exception per browser.** The
+first visit shows a warning; accepting it is enough, and the meeting socket is
+covered by the same exception because it runs over the page's own origin. Two
+things make that worse than it needs to be:
+
+- **A certificate with no `subjectAltName` is rejected outright by name.**
+  Browsers have ignored the `CN` field for hostname matching since 2017, so a
+  certificate that names its host only there always fails, on every address.
+  It can still be clicked through, but it can never be trusted properly.
+- **Each origin is separate.** `localhost` and `192.168.1.10` are two
+  exceptions, so put every address you will actually use in the certificate:
+
+```
+openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
+  -keyout server.key -out server.crt -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:192.168.1.10"
+```
+
+For colleagues to join, only the dev server has to be reachable — it already
+listens on every interface, and it is what forwards `/api` and `/rtc` onward,
+so the API can stay on loopback and out of reach. What does need saying is the
+origin: the proxy passes the browser's `Origin` header through, and the API
+only trusts loopback and private-range origins by default. Served from a public
+address, list it — `ALLOWED_ORIGINS=https://95.217.56.218:6173`. Pointing
+`VITE_API_URL` straight at the API instead is what makes `HOST=0.0.0.0`
+necessary, along with a second certificate exception.
 
 ## Default admin login
 

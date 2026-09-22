@@ -537,9 +537,13 @@ by `frontend/src/i18n.js`, which fetches the catalogue once, parses it with
 | Variable | Default | Meaning |
 |---|---|---|
 | `PORT` | 4000 | API port |
+| `USE_HTTPS` | on when the files exist | The API serves TLS whenever the certificate and key are found. `false` forces plain http without moving them. |
+| `SSL_CERT_PATH`, `SSL_KEY_PATH` | `server.crt`, `server.key` | Resolved against the backend folder, then the repository root. The dev server reads the same two settings. |
+| `HTTPS_PORT` | same as `PORT` | The TLS port, when it should differ. |
+| `API_HOST`, `API_PORT` | `127.0.0.1`, then `HTTPS_PORT`/`PORT`/4000 | Where the dev server proxies `/api` and `/rtc` to. It reads these, and the TLS settings above, from `backend/.env`, so both halves decide alike. |
 | `MONGODB_URI` | `mongodb://127.0.0.1:27017/knowledge-store` | Database |
 | `JWT_SECRET` | a development string | **Must** be set in any real deployment |
-| `VITE_API_URL` | `http://127.0.0.1:4000/api` | API base used by the browser |
+| `VITE_API_URL` | unset | Left unset, the browser calls a relative `/api` and the dev server proxies it. Setting it points the browser at another origin, which then needs its own certificate trust. |
 | `HOST` | `127.0.0.1` | Interface the API binds to. Loopback means only this machine can reach it, so a meeting cannot have a second participant. |
 | `ALLOWED_ORIGINS` | — | Extra origins the frontend is served from, comma separated. Needed alongside `HOST`. Opt-in rather than a wildcard. |
 | `MEETING_MAX_PEERS` | 8 | People per meeting. Mesh cost is quadratic; 4–6 is comfortable. |
@@ -558,6 +562,27 @@ whatever `ALLOWED_ORIGINS` lists.
 
 In development the Vite dev server must proxy `/rtc` with `ws: true` as well as
 `/api`; without the flag it answers the upgrade itself and no meeting connects.
+
+### Serving over TLS
+
+Both halves read the same certificate, and finding the files is what switches
+TLS on: the API serves https, and the dev server serves https and proxies
+`/api` and `/rtc` through to it. The proxy talks to the API with certificate
+verification disabled, because a self-signed certificate is one Node refuses —
+that is the machine trusting its own backend, and the browser's connection, to
+the dev server, is still verified normally.
+
+Keeping the browser on a single origin is deliberate. A browser shows an
+interstitial for an untrusted page and lets the person accept it, but shows
+nothing at all for a WebSocket — an untrusted `wss://` simply fails. Proxying
+the socket through the page's own origin means the one exception made for the
+page also covers the meeting. Pointing `VITE_API_URL` at the API directly
+splits them again, and that origin must then be trusted in its own right.
+
+A certificate whose host appears only in `CN` is rejected by every current
+browser; hostname matching has used `subjectAltName` alone since 2017. Each
+address is its own entry and its own exception, so a certificate meant for
+`localhost` and a LAN address has to name both.
 
 ## 8. Known limitations
 
