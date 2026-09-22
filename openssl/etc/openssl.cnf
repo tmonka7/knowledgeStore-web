@@ -1,0 +1,23 @@
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+legacy = legacy_sect
+fips = fips_sect
+
+[default_sect]
+activate = 1
+
+[legacy_sect]
+activate = 1
+
+[fips_sect]
+activate = 0
+conditional-errors = 1
+security-checks = 1
+tls1-prf-ems-check = 1
+drbg-no-trunc-md = 1
+module-mac = 3D:1A:CC:91:22:08:EB:54:9D:1C:2B:16:2C:6D:69:77:23:A2:12:8B:C9:84:B5:6B:2B:77:84:3C:0A:47:6F:80

@@ -1,0 +1,4 @@
+create two shortcut in node_modules
+  backend => backend            
+  knowledge-store => ../
+  frontend => frontend

@@ -1,10 +1,18 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import fs from 'node:fs';
 import http from 'node:http';
+import https from 'node:https';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const backendRoot = path.resolve(__dirname, '..');
+const workspaceRoot = path.resolve(backendRoot, '..');
+dotenv.config({ path: path.join(backendRoot, '.env') });
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import dataRoutes from './routes/dataRoutes.js';
@@ -26,8 +34,30 @@ import { backfillDefaultPermissions } from './helpers/permissionBackfill.js';
 import { backfillAccountStatus } from './helpers/accountStatusBackfill.js';
 import { attachMeetingSignaling } from './helpers/meetingSignaling.js';
 
+const resolveCertPath = (value) => {
+  if (!value) return null;
+  if (path.isAbsolute(value)) return value;
+
+  const candidates = [
+    path.resolve(backendRoot, value),
+    path.resolve(workspaceRoot, value),
+    path.resolve(process.cwd(), value),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+};
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
+const HTTPS_PORT = Number(process.env.HTTPS_PORT || PORT);
+const SSL_KEY_PATH = resolveCertPath(process.env.SSL_KEY_PATH || 'server.key');
+const SSL_CERT_PATH = resolveCertPath(process.env.SSL_CERT_PATH || 'server.crt');
+const hasExplicitHttpsSetting = String(process.env.USE_HTTPS || '').toLowerCase() === 'true';
+const hasSslFiles = fs.existsSync(SSL_KEY_PATH) && fs.existsSync(SSL_CERT_PATH);
+const USE_HTTPS = hasSslFiles && process.env.USE_HTTPS !== 'false';
+
+if (hasExplicitHttpsSetting && !hasSslFiles) {
+  throw new Error(`USE_HTTPS=true but the certificate files were not found at ${SSL_KEY_PATH} and ${SSL_CERT_PATH}.`);
+}
 /*
  * Loopback by default, which is what this has always been.
  *
@@ -46,9 +76,28 @@ fs.mkdirSync(uploadDir, { recursive: true });
 fs.mkdirSync(backupDir, { recursive: true });
 console.log(`Starting Knowledge Store API on port ${process.env.PORT}...`);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/knowledge-store';
-// Vite falls back to another port when 5173/4173 is taken (strictPort is off),
-// so allow any port on the loopback host instead of a fixed list.
-const isLocalOrigin = (origin) => /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+const normalizeOrigin = (origin) => origin ? origin.trim().replace(/\/$/, '').toLowerCase() : '';
+
+const isLocalOrigin = (origin) => {
+  try {
+    const { protocol, hostname } = new URL(origin);
+    const localHostnames = new Set([
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '::1',
+      '[::1]',
+    ]);
+
+    if (!['http:', 'https:'].includes(protocol)) return false;
+    if (localHostnames.has(hostname)) return true;
+    if (hostname.endsWith('.localhost') || hostname.endsWith('.local') || hostname.endsWith('.localdomain')) return true;
+    if (/^(?:10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[0-1])\.)/.test(hostname)) return true;
+    return false;
+  } catch {
+    return false;
+  }
+};
 
 /*
  * Extra origins, comma separated, for when the frontend is served to other
@@ -61,13 +110,14 @@ const isLocalOrigin = (origin) => /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.t
 const extraOrigins = new Set(
   String(process.env.ALLOWED_ORIGINS || '')
     .split(',')
-    .map((value) => value.trim().replace(/\/$/, ''))
+    .map((value) => normalizeOrigin(value))
     .filter(Boolean),
 );
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || isLocalOrigin(origin) || extraOrigins.has(origin.replace(/\/$/, ''))) {
+    const normalizedOrigin = normalizeOrigin(origin);
+    if (!origin || isLocalOrigin(origin) || extraOrigins.has(normalizedOrigin)) {
       callback(null, true);
       return;
     }
@@ -127,16 +177,24 @@ const startServer = async () => {
     startChatRetention();
 
     /*
-     * An explicit http.Server rather than app.listen(), because the meeting
+     * An explicit server object rather than app.listen(), because the meeting
      * signalling socket has to share this port: WebSocket upgrades arrive on
      * the same connection the API is served over, and ws needs the server
      * object to intercept them. Express alone never exposes it.
      */
-    const server = http.createServer(app);
+    const server = USE_HTTPS
+      ? https.createServer({
+          key: fs.readFileSync(SSL_KEY_PATH),
+          cert: fs.readFileSync(SSL_CERT_PATH),
+        }, app)
+      : http.createServer(app);
     attachMeetingSignaling(server);
 
-    server.listen(PORT, HOST, () => {
-      console.log(`Knowledge Store API is running on http://${HOST}:${PORT}`);
+    const listenPort = USE_HTTPS ? HTTPS_PORT : PORT;
+    const protocol = USE_HTTPS ? 'https' : 'http';
+
+    server.listen(listenPort, HOST, () => {
+      console.log(`Knowledge Store API is running on ${protocol}://${HOST}:${listenPort}`);
     });
   } catch (error) {
     console.error('MongoDB connection failed:', error.message);

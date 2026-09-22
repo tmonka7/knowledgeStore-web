@@ -7,3 +7,6 @@ npm-debug.log*
 .env
 .env.local
 backend/backups
+/openssl
+/openssl
+/openssl/bin

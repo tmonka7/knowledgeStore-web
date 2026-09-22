@@ -1,0 +1,19 @@
+[req]
+distinguished_name = falcon
+x509_extensions = v3_req
+prompt = no
+
+[falcon]
+C = JP
+ST = Tokyo
+L = Tokyo
+O = My Development
+OU = NodeJS
+CN = localhost
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+IP.1 = 127.0.0.1
