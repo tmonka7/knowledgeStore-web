@@ -513,14 +513,35 @@ export default function useMeetingRoom({ meetingId, active }) {
     let display;
     try {
       display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-    } catch {
-      // Cancelling the picker is the usual reason and is not an error worth
-      // shouting about.
+    } catch (shareError) {
+      /*
+       * Cancelling the picker is the usual reason and deserves no message.
+       * Everything else did: swallowing all of them meant a capture blocked by
+       * policy, or a source that could not be read, looked exactly like a
+       * button that does nothing — which is indistinguishable from a bug and
+       * impossible for the person to act on.
+       *
+       * Cancelling reports NotAllowedError too, so that one name stays quiet
+       * and goes to the console instead.
+       */
+      const name = shareError?.name || '';
+      if (name === 'NotAllowedError' || name === 'AbortError') {
+        console.warn('Screen share was not started:', name, shareError?.message || '');
+      } else {
+        setNotice(`Screen sharing could not start (${name || 'unknown error'}). `
+          + 'If this browser is managed, screen capture may be blocked by policy.');
+      }
       return;
     }
 
     const track = display.getVideoTracks()[0];
-    if (!track) return;
+    if (!track) {
+      // A stream with no video track cannot be presented, and leaving it open
+      // holds the capture indicator lit for a share nobody can see.
+      display.getTracks().forEach((spare) => spare.stop());
+      setNotice('That screen or window produced no video to share.');
+      return;
+    }
 
     // A previous share that somehow outlived its state would otherwise keep
     // the capture indicator lit and hold the source open.

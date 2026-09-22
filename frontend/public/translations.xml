@@ -318,7 +318,8 @@
   <text id="chooseImageFirst" en="Choose an image first." es="Elija primero una imagen." zh="请先选择图像。" jp="最初に画像を選択してください。" />
   <text id="convertedToFormat" en="Converted to {format}." es="Convertido a {format}." zh="已转换为 {format}。" jp="{format}に変換しました。" />
   <text id="sourceImage" en="Source image" es="Imagen de origen" zh="源图像" jp="元画像" />
-  <text id="selectImageFile" en="Select PNG / JPG / WebP / GIF / BMP" es="Seleccione PNG / JPG / WebP / GIF / BMP" zh="选择 PNG / JPG / WebP / GIF / BMP" jp="PNG / JPG / WebP / GIF / BMPを選択" />
+  <text id="selectImageFile" en="Select PNG / JPG / WebP / GIF / BMP / SVG" es="Seleccione PNG / JPG / WebP / GIF / BMP / SVG" zh="选择 PNG / JPG / WebP / GIF / BMP / SVG" jp="PNG / JPG / WebP / GIF / BMP / SVGを選択" />
+  <text id="vectorSourceNote" en="Vector source — the size above is only a starting point, and any output size is rendered from the SVG itself." es="Origen vectorial: el tamaño anterior es solo un punto de partida y cualquier tamaño de salida se genera a partir del propio SVG." zh="矢量源——上述尺寸仅为起点，任何输出尺寸都直接由 SVG 渲染。" jp="ベクター素材です。上記のサイズは出発点にすぎず、どの出力サイズもSVGから直接描画されます。" />
   <text id="lockAspectRatio" en="Lock aspect ratio" es="Bloquear proporción" zh="锁定纵横比" jp="アスペクト比を固定" />
   <text id="qualityPercent" en="Quality {percent}%" es="Calidad {percent}%" zh="质量 {percent}%" jp="品質 {percent}%" />
   <text id="background" en="Background" es="Fondo" zh="背景" jp="背景" />
@@ -365,7 +366,7 @@
   <text id="uploadFontForLvgl" en="Upload a font and convert to generate an LVGL font .c file." es="Suba una fuente y conviértala para generar un archivo de fuente LVGL .c." zh="上传字体并转换以生成 LVGL 字体 .c 文件。" jp="フォントをアップロードして変換し、LVGLフォント.cファイルを生成します。" />
   <text id="imageDecodeFailed" en="That file could not be decoded as an image." es="No se pudo decodificar ese archivo como imagen." zh="无法将该文件解码为图像。" jp="そのファイルを画像としてデコードできませんでした。" />
   <text id="chooseLvglImageFirst" en="Choose a PNG, JPG or WebP first." es="Elija primero un PNG, JPG o WebP." zh="请先选择 PNG、JPG 或 WebP。" jp="最初にPNG、JPG、WebPを選択してください。" />
-  <text id="selectPngJpgWebp" en="Select PNG / JPG / WebP" es="Seleccione PNG / JPG / WebP" zh="选择 PNG / JPG / WebP" jp="PNG / JPG / WebPを選択" />
+  <text id="selectPngJpgWebp" en="Select PNG / JPG / WebP / GIF / SVG" es="Seleccione PNG / JPG / WebP / GIF / SVG" zh="选择 PNG / JPG / WebP / GIF / SVG" jp="PNG / JPG / WebP / GIF / SVGを選択" />
   <text id="widthShort" en="W" es="W" zh="宽" jp="幅" />
   <text id="heightShort" en="H" es="H" zh="高" jp="高さ" />
   <text id="orderedDithering" en="Ordered dithering (RGB565)" es="Tramado ordenado (RGB565)" zh="有序抖动（RGB565）" jp="ディザリング（RGB565）" />
@@ -373,7 +374,7 @@
   <text id="preview" en="Preview" es="Vista previa" zh="预览" jp="プレビュー" />
   <text id="sourceDimensionsNoName" en="Source {width} × {height} px" es="Origen {width} × {height} px" zh="源图像 {width} × {height} 像素" jp="元画像 {width} × {height} px" />
   <text id="uploadImageForLvgl" en="Upload an image and convert to generate an LVGL image .c file." es="Suba una imagen y conviértala para generar un archivo de imagen LVGL .c." zh="上传图像并转换以生成 LVGL 图像 .c 文件。" jp="画像をアップロードして変換し、LVGL画像.cファイルを生成します。" />
-  <text id="lvglSubtitle" en="Convert fonts and images into LVGL-ready C source, using the lv_font_conv and lv_img_conv formats." es="Convierta fuentes e imágenes en código C listo para LVGL usando los formatos lv_font_conv y lv_img_conv." zh="使用 lv_font_conv 和 lv_img_conv 格式将字体和图像转换为 LVGL 可用的 C 源代码。" jp="lv_font_convとlv_img_conv形式を使い、フォントと画像をLVGL対応Cソースに変換します。" />
+  <text id="lvglSubtitle" en="Convert fonts and images into LVGL-ready C source: lv_font_conv for fonts, and the LVGL v9 image format for images." es="Convierta fuentes e imágenes en código C listo para LVGL: lv_font_conv para fuentes y el formato de imagen de LVGL v9 para imágenes." zh="将字体和图像转换为 LVGL 可用的 C 源代码：字体使用 lv_font_conv，图像使用 LVGL v9 图像格式。" jp="フォントと画像をLVGL対応Cソースに変換します。フォントはlv_font_conv、画像はLVGL v9の画像形式です。" />
   <text id="fontConverter" en="Font converter" es="Convertidor de fuentes" zh="字体转换器" jp="フォント変換" />
   <text id="imageConverter" en="Image converter" es="Convertidor de imágenes" zh="图像转换器" jp="画像変換" />
   <text id="overviewSubtitle" en="Every module in the project, with live counts{suffix}." es="Cada módulo del proyecto, con recuentos en vivo{suffix}." zh="项目中的每个模块及实时计数{suffix}。" jp="プロジェクトの各モジュールとリアルタイム件数{suffix}。" />

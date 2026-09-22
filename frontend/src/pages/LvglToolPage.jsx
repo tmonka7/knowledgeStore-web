@@ -9,6 +9,9 @@ import api from '../api';
 import {
   COLOR_FORMATS, FLATTENS_ALPHA, SUPPORTS_DITHER, buildImageC, safeCName,
 } from '../lib/lvglImage';
+// Shared with the image converter so both tools read SVG the same way: sized
+// from the markup, and re-rendered at whatever size is asked for.
+import { loadImageFile } from '../lib/imageConvert';
 import { useLanguage } from '../i18n';
 
 // antd renders one <optgroup> per entry, keeping the long v9 format list
@@ -270,26 +273,37 @@ function ImageConverter() {
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
   }, []);
 
-  const loadImage = (file) => {
+  const loadImage = async (file) => {
     if (!file) return;
     setError('');
 
-    if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
-    const url = URL.createObjectURL(file);
-    objectUrl.current = url;
+    try {
+      const loaded = await loadImageFile(file);
 
-    const image = new Image();
-    image.onload = () => {
-      setSource({ url, width: image.naturalWidth, height: image.naturalHeight, element: image });
-      setWidth(image.naturalWidth);
-      setHeight(image.naturalHeight);
+      if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+      objectUrl.current = loaded.url;
+
+      setSource({
+        url: loaded.url,
+        width: loaded.width,
+        height: loaded.height,
+        element: loaded.image,
+        // SVG only: lets the conversion below re-draw the vector at the exact
+        // size being emitted, which for an embedded asset matters more than
+        // usual — the C array is the final artefact, and a blurry one cannot
+        // be sharpened later on the device.
+        renderAt: loaded.renderAt,
+        vector: loaded.vector,
+      });
+      setWidth(loaded.width);
+      setHeight(loaded.height);
       setName((current) => (current === 'img_asset'
         ? safeCName(file.name.replace(/\.[^.]+$/, ''), 'img_asset')
         : current));
       setResult(null);
-    };
-    image.onerror = () => setError(t('imageDecodeFailed'));
-    image.src = url;
+    } catch (caught) {
+      setError(caught?.message || t('imageDecodeFailed'));
+    }
   };
 
   const run = async () => {
@@ -311,8 +325,23 @@ function ImageConverter() {
       canvas.height = outHeight;
       const context = canvas.getContext('2d', { willReadFrequently: true });
       context.clearRect(0, 0, outWidth, outHeight);
-      context.drawImage(source.element, 0, 0, outWidth, outHeight);
-      const { data } = context.getImageData(0, 0, outWidth, outHeight);
+
+      // A vector is rendered at the output size; a raster is scaled to it.
+      const drawn = source.renderAt
+        ? await source.renderAt(outWidth, outHeight)
+        : source.element;
+      context.drawImage(drawn, 0, 0, outWidth, outHeight);
+      let data;
+      try {
+        ({ data } = context.getImageData(0, 0, outWidth, outHeight));
+      } catch (readError) {
+        // An SVG that pulls in a picture from another site taints the canvas,
+        // and the pixels can no longer be read back at all. The browser's own
+        // wording for this does not mention SVG, so it is worth saying.
+        throw new Error(source.vector
+          ? 'That SVG loads an image from another site, so its pixels cannot be read. Inline the image and try again.'
+          : readError.message);
+      }
 
       const outName = safeCName(name, 'img_asset');
       const { code, stride, dataSize } = await buildImageC({
@@ -355,7 +384,7 @@ function ImageConverter() {
             <input
               id="lvgl-image-upload"
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
+              accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.svg"
               className="mail-file-input"
               onChange={(event) => loadImage(event.target.files?.[0])}
             />
@@ -423,6 +452,15 @@ function ImageConverter() {
             <img src={source.url} alt={t('sourcePreview')} className="lvgl-image-preview" />
             <Paragraph style={{ marginTop: 12, marginBottom: 0 }}>
               <Text type="secondary">{t('sourceDimensionsNoName', { width: source.width, height: source.height })}</Text>
+              {/* Set the width and height to the size the display actually
+                  uses: for a vector that is a free choice, and the array is
+                  built at exactly that resolution. */}
+              {source.vector && (
+                <>
+                  <br />
+                  <Text type="secondary">{t('vectorSourceNote')}</Text>
+                </>
+              )}
             </Paragraph>
           </Card>
         )}
@@ -430,7 +468,9 @@ function ImageConverter() {
 
       <Col span={24} lg={14}>
         <OutputCard
-          title="Generated lv_img_conv output"
+          /* Named for what it actually emits. "lv_img_conv" is the v8 tool,
+             and calling the output that made a v9 file look like a v8 one. */
+          title="Generated LVGL v9 image (lv_image_dsc_t)"
           result={result}
           emptyText={t('uploadImageForLvgl')}
         />

@@ -12,6 +12,18 @@
  * Video is not handled here; it goes to the API, which has ffmpeg.
  */
 
+/*
+ * SVG is the odd one in: it has no pixels at all until something chooses a
+ * size, so it is not decoded once and then scaled like the others. The markup
+ * is re-rendered at whatever size is being asked for, which is what makes a
+ * 16px icon and a 256px icon from the same file both come out sharp instead of
+ * one of them being a resampled copy of the other.
+ *
+ * A browser also has no obligation to tell us how big an SVG "is". Firefox
+ * reports nothing at all for a file that carries only a viewBox, so the size
+ * is worked out from the markup here rather than read off the decoded image.
+ */
+
 export const IMAGE_FORMATS = [
   { value: 'png', label: 'PNG', extension: 'png', mime: 'image/png', hint: 'Lossless, keeps transparency.' },
   { value: 'jpg', label: 'JPG', extension: 'jpg', mime: 'image/jpeg', hint: 'Lossy, no transparency — flattened onto the background colour.' },
@@ -26,6 +38,81 @@ const ICO_SIZES = [16, 32, 48, 64, 128, 256];
 const ICO_MAX = 256;
 
 const GIFENC_URL = '/gifenc/gifenc.esm.js';
+
+/** What a browser uses for an <img> that declares no size of its own. */
+const SVG_FALLBACK = { width: 300, height: 150 };
+
+export const isSvgFile = (file) => file?.type === 'image/svg+xml'
+  || /\.svg$/i.test(file?.name || '');
+
+/** A width/height attribute in px or with no unit; anything else is unusable. */
+const svgLength = (value) => {
+  const match = /^\s*([0-9]*\.?[0-9]+)\s*(px)?\s*$/i.exec(value || '');
+  return match ? Number(match[1]) : 0;
+};
+
+/**
+ * Reads an SVG and returns its natural size plus a way to render it at any
+ * other one.
+ *
+ * The size comes from `width`/`height` when they are absolute, and from the
+ * `viewBox` otherwise — a file carrying only a viewBox is completely ordinary,
+ * and is exactly the case a browser declines to measure. A percentage counts
+ * as absent, because a percentage of nothing is nothing.
+ */
+export const readSvg = async (file) => {
+  const markup = await file.text();
+  const parsed = new DOMParser().parseFromString(markup, 'image/svg+xml');
+  const root = parsed.documentElement;
+
+  if (!root || root.nodeName === 'parsererror' || parsed.querySelector('parsererror')) {
+    throw new Error('That file could not be read as SVG.');
+  }
+
+  const box = (root.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+  const hasBox = box.length === 4 && box.every(Number.isFinite) && box[2] > 0 && box[3] > 0;
+
+  const width = svgLength(root.getAttribute('width')) || (hasBox ? box[2] : 0) || SVG_FALLBACK.width;
+  const height = svgLength(root.getAttribute('height')) || (hasBox ? box[3] : 0) || SVG_FALLBACK.height;
+
+  const renderAt = async (targetWidth, targetHeight) => {
+    const clone = root.cloneNode(true);
+
+    // Without a viewBox the drawing does not scale with the element: it is
+    // handed a bigger canvas and sits in the corner of it at original size.
+    if (!hasBox) clone.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    clone.setAttribute('width', String(targetWidth));
+    clone.setAttribute('height', String(targetHeight));
+    clone.setAttribute('preserveAspectRatio', root.getAttribute('preserveAspectRatio') || 'xMidYMid meet');
+
+    // An SVG lifted out of an HTML page often carries no xmlns, because inside
+    // HTML it does not need one. Serialised back out and handed to an <img> it
+    // does: without this the browser loads it as unknown XML and draws nothing.
+    if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const blob = new Blob([new XMLSerializer().serializeToString(clone)], {
+      type: 'image/svg+xml;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+    image.src = url;
+
+    try {
+      // decode() rather than onload: it resolves only once there are pixels to
+      // draw, so revoking the URL straight after cannot race the render.
+      if (image.decode) await image.decode();
+      else await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; });
+    } catch {
+      URL.revokeObjectURL(url);
+      throw new Error('That SVG could not be rendered. Check it for syntax errors or missing fonts.');
+    }
+
+    URL.revokeObjectURL(url);
+    return image;
+  };
+
+  return { width, height, renderAt };
+};
 
 /** Draw `image` into a fresh canvas at the given size, optionally flattened. */
 const rasterise = (image, width, height, background) => {
@@ -98,26 +185,39 @@ const buildIco = (entries) => {
   return new Blob([buffer], { type: 'image/x-icon' });
 };
 
-const toIco = async (image, requestedSize) => {
+/*
+ * `renderAt` is how a vector source gets a say in each size it is asked for.
+ * A raster source has none, and falls back to scaling its one decoded image.
+ */
+const sourceAt = (image, renderAt, width, height) => (
+  renderAt ? renderAt(width, height) : Promise.resolve(image)
+);
+
+const toIco = async (image, renderAt, requestedSize) => {
   const largest = Math.min(requestedSize, ICO_MAX);
   const sizes = ICO_SIZES.filter((size) => size <= largest);
   // Always emit something, even for a source smaller than the smallest preset.
   if (!sizes.length) sizes.push(largest);
 
   const entries = await Promise.all(sizes.map(async (size) => {
-    const blob = await canvasToBlob(rasterise(image, size, size, null), 'image/png');
+    // Every size is taken from the source, which for an SVG means each icon in
+    // the file is drawn at its own resolution rather than downsampled from the
+    // largest one. The difference is plainly visible at 16px.
+    const drawn = await sourceAt(image, renderAt, size, size);
+    const blob = await canvasToBlob(rasterise(drawn, size, size, null), 'image/png');
     return { size, bytes: new Uint8Array(await blob.arrayBuffer()) };
   }));
 
   return buildIco(entries);
 };
 
-const toGif = async (image, width, height, background) => {
+const toGif = async (image, renderAt, width, height, background) => {
   // Lazily loaded, and by absolute URL from /public — @vite-ignore keeps the
   // bundler from trying to resolve it at build time.
   const { GIFEncoder, quantize, applyPalette } = await import(/* @vite-ignore */ GIFENC_URL);
 
-  const canvas = rasterise(image, width, height, background);
+  const drawn = await sourceAt(image, renderAt, width, height);
+  const canvas = rasterise(drawn, width, height, background);
   const { data } = canvas.getContext('2d').getImageData(0, 0, width, height);
 
   // GIF carries 1-bit transparency, which needs a palette format that keeps an
@@ -138,15 +238,17 @@ const toGif = async (image, width, height, background) => {
 /**
  * Convert a decoded image to one of IMAGE_FORMATS.
  *
- * @param image       a loaded HTMLImageElement
- * @param format      one of IMAGE_FORMATS[].value
+ * @param image        a loaded HTMLImageElement
+ * @param renderAt     optional (w, h) => Promise<image>, for vector sources
+ * @param format       one of IMAGE_FORMATS[].value
  * @param width/height target size in pixels
- * @param quality     0..1, JPG only
- * @param background  CSS colour to flatten onto; null keeps transparency
+ * @param quality      0..1, JPG only
+ * @param background   CSS colour to flatten onto; null keeps transparency
  * @returns {Promise<Blob>}
  */
 export const convertImage = async ({
   image,
+  renderAt = null,
   format,
   width,
   height,
@@ -158,38 +260,74 @@ export const convertImage = async ({
 
   switch (format) {
     case 'png':
-      return canvasToBlob(rasterise(image, outWidth, outHeight, null), 'image/png');
+      return canvasToBlob(
+        rasterise(await sourceAt(image, renderAt, outWidth, outHeight), outWidth, outHeight, null),
+        'image/png',
+      );
 
     case 'jpg':
       // background is never null here: JPG cannot represent transparency.
       return canvasToBlob(
-        rasterise(image, outWidth, outHeight, background || '#ffffff'),
+        rasterise(
+          await sourceAt(image, renderAt, outWidth, outHeight),
+          outWidth,
+          outHeight,
+          background || '#ffffff',
+        ),
         'image/jpeg',
         quality,
       );
 
     case 'ico':
       // Icons are square by definition; the longer side decides the size.
-      return toIco(image, Math.max(outWidth, outHeight));
+      return toIco(image, renderAt, Math.max(outWidth, outHeight));
 
     case 'gif':
-      return toGif(image, outWidth, outHeight, background);
+      return toGif(image, renderAt, outWidth, outHeight, background);
 
     default:
       throw new Error(`Unknown output format "${format}".`);
   }
 };
 
-/** Decode a File into an HTMLImageElement, with its object URL for preview. */
-export const loadImageFile = (file) => new Promise((resolve, reject) => {
-  const url = URL.createObjectURL(file);
-  const image = new Image();
+/**
+ * Decode a File into an HTMLImageElement, with its object URL for preview.
+ *
+ * An SVG also comes back with `renderAt`, which the converter uses in place of
+ * scaling: the vector is re-drawn at each output size it is asked for.
+ */
+export const loadImageFile = async (file) => {
+  if (isSvgFile(file)) {
+    const { width, height, renderAt } = await readSvg(file);
+    return {
+      image: await renderAt(width, height),
+      // The preview shows the original file, so the panel displays the vector
+      // itself rather than a raster of it.
+      url: URL.createObjectURL(file),
+      width,
+      height,
+      renderAt,
+      vector: true,
+    };
+  }
 
-  image.onload = () => resolve({ image, url, width: image.naturalWidth, height: image.naturalHeight });
-  image.onerror = () => {
-    URL.revokeObjectURL(url);
-    reject(new Error('That file could not be decoded as an image.'));
-  };
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
 
-  image.src = url;
-});
+    image.onload = () => resolve({
+      image,
+      url,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      renderAt: null,
+      vector: false,
+    });
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('That file could not be decoded as an image.'));
+    };
+
+    image.src = url;
+  });
+};

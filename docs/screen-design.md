@@ -358,7 +358,7 @@ of the measured series. Nothing on this page is simulated.
 | Camera Management / Camera Wall | Card grid of cameras with a preview or a "no preview" placeholder, status badge, protocol chip and per-card actions (Edit and Delete only with the permission); a wall of live tiles; a single-camera view with fullscreen and object detection. |
 | Schedule | Month view with an entry dialog and an upcoming list. |
 | Contacts (My Page tab) | Searchable list with favourite toggle and a contact dialog. |
-| Tools | One page per tool: LVGL, Converting, YOLO, Transformers, Keras. |
+| Tools | One page per tool: LVGL, Converting, YOLO, Transformers, Keras. Both image tools — Converting and the LVGL image tab — take SVG as well as raster input, and render the vector at each output size rather than scaling one decode of it. The LVGL tab emits the v9 `lv_image_dsc_t` form and says so on the output card. |
 
 ## 4. Interaction rules
 

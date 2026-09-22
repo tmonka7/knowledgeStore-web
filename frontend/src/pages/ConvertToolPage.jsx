@@ -92,6 +92,10 @@ function ImageConverter() {
       const chosen = IMAGE_FORMATS.find((option) => option.value === format);
       const blob = await convertImage({
         image: source.image,
+        // Present only for SVG. With it, the output is drawn from the vector at
+        // the requested size instead of being scaled up from the preview, so
+        // enlarging an icon gains detail rather than blur.
+        renderAt: source.renderAt,
         format,
         width: width || source.width,
         height: height || source.height,
@@ -213,6 +217,15 @@ function ImageConverter() {
               <Text type="secondary">
                 {t('sourceDimensions', { width: source.width, height: source.height, name: source.name })}
               </Text>
+              {/* An SVG has no true size, so the figures above are only where
+                  the output starts. Saying so is what stops the width box from
+                  looking like a limit it is not. */}
+              {source.vector && (
+                <>
+                  <br />
+                  <Text type="secondary">{t('vectorSourceNote')}</Text>
+                </>
+              )}
             </>
           ) : (
             <Alert type="info" showIcon message={t('uploadImageToConvert')} />

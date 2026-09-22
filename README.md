@@ -815,6 +815,23 @@ Not implemented: `RAW`/`RAW_ALPHA` passthrough, RLE and LZ4 compression
 (`LV_IMAGE_FLAGS_COMPRESSED`), premultiplied alpha, and custom stride
 alignment. `.flags` is always `0`.
 
+**Vector input.** An SVG is not decoded once and then scaled: it is re-rendered
+from the markup at whatever output size is asked for, so a 32×32 icon and a
+128×128 one are each drawn at their own resolution. The size is read from the
+markup too — from `width`/`height` when those are absolute, and from the
+`viewBox` otherwise, which is the case a browser declines to measure and
+reports as nothing at all. The figures shown for a vector are therefore a
+starting point rather than a limit.
+
+The one thing that does not work is an SVG that pulls a picture in from another
+site. That taints the canvas and the pixels cannot be read back at all, so the
+converter says so rather than emitting an empty array.
+
+**Why the output card says "LVGL v9".** It used to be labelled "Generated
+lv_img_conv output", which named the v8 tool this deliberately does not use —
+the file underneath was always v9, but anyone reading the heading had every
+reason to believe otherwise.
+
 ### Font converter and LVGL v9
 
 `lv_font_conv` output is version-guarded rather than v8-only: the generated C
