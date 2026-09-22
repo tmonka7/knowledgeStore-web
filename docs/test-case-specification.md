@@ -240,6 +240,12 @@ two sessions.
 | TC-MTG-22 | FR-MTG-09 | While USER2 is in a call, kill their browser (do not leave cleanly). Wait a minute. | USER2 disappears from the roster and the list. **Regression guard:** occupancy must not survive a socket that was never closed politely. |
 | TC-MTG-23 | FR-MTG-09 | Restart the API while a meeting shows as live, then reload the list. | No meeting claims to be in progress; nothing is left occupied by nobody. |
 | TC-MTG-24 | FR-USR-12 | On a database whose accounts predate Meetings, restart the API and sign in as a non-administrator. | Meetings is in their sidebar, and `app_migrations` has a marker for the meetings backfill. |
+| TC-MTG-25 | FR-MTG-05 | USER1 joins an empty meeting and starts sharing a screen. USER2 then joins. | USER2 sees the screen. **Regression guard:** connections built during a share carried the camera, so a presenter who started before anyone arrived was never seen by anybody. |
+| TC-MTG-26 | FR-MTG-05 | With USER1 already sharing to USER2, a third account joins. | The third account sees the screen too, not USER1's camera. |
+| TC-MTG-27 | FR-MTG-05 | Share a tall or unusually shaped window rather than a whole 16:9 screen. | The whole window is visible, letterboxed inside the tile. **Regression guard:** it was cropped to fill the tile, silently cutting off the edges of what was being presented. |
+| TC-MTG-28 | FR-MTG-05, FR-MTG-07 | Start recording, then start sharing a screen, then stop both and play the recording back. | The recording switches to the screen when the share starts and shows it whole, not cropped. **Regression guard:** the recording kept painting the camera for the whole presentation. |
+| TC-MTG-29 | FR-MTG-05 | Start sharing, then end it with the browser's own "Stop sharing" bar rather than the button. | The tile returns to the camera for everyone, the share button stops looking active, and the screen icon leaves the tile. |
+| TC-MTG-30 | FR-MTG-05 | Press the share button and cancel the picker without choosing anything. | Nothing changes: no error, and the button is not left looking active. |
 
 ## 8. Database management *(destructive)*
 
@@ -290,10 +296,12 @@ would let data leak if they regressed), TC-CHT-14 … 18 (header messages),
 TC-MSG-01 … 15 (mail delivery, open tracking and the header icon — TC-MSG-10
 is the privacy guard), TC-PST-01 … 13 (posts, the notification count and the
 permission backfill — TC-PST-11 is the one that failed in the field),
-TC-CAM-02 … 05 (camera permissions and the edit dialog), TC-MTG-01 … 24
+TC-CAM-02 … 05 (camera permissions and the edit dialog), TC-MTG-01 … 30
 (meetings — TC-MTG-15 is the access guard, TC-MTG-22 and TC-MTG-23 are the two
-that would leave a room occupied by nobody, and TC-MTG-09 is the one that keeps
-recording visible to the people being recorded), TC-AUTH-01 … 22 (the two
+that would leave a room occupied by nobody, TC-MTG-09 is the one that keeps
+recording visible to the people being recorded, and **TC-MTG-25 is the one that
+failed in the field**: a screen share reached nobody at all when the presenter
+started before anyone else arrived), TC-AUTH-01 … 22 (the two
 sign-in methods and account approval — **TC-AUTH-20 and TC-AUTH-22 come first**,
 because both describe ways an upgrade can lock every account out of the
 installation), TC-USR-13 … 29 (approval and account deletion — TC-USR-25 and

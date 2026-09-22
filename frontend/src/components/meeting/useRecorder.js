@@ -30,13 +30,21 @@ const pickMimeType = () => {
   return CANDIDATE_TYPES.find((type) => MediaRecorder.isTypeSupported?.(type)) || '';
 };
 
-/** Fits a source frame into a cell without stretching it — CSS `object-fit: cover`. */
-const drawCover = (ctx, video, x, y, width, height) => {
+/**
+ * Fits a source frame into a cell without stretching it.
+ *
+ * `cover` fills the cell and crops the overflow, which is right for a face.
+ * `contain` fits the whole frame and leaves bars, which is right for a shared
+ * screen: cropping a presentation silently removes the edges of whatever
+ * somebody is presenting, and they have no way of knowing it happened.
+ */
+const drawFitted = (ctx, video, x, y, width, height, mode = 'cover') => {
   const sourceWidth = video.videoWidth;
   const sourceHeight = video.videoHeight;
   if (!sourceWidth || !sourceHeight) return false;
 
-  const scale = Math.max(width / sourceWidth, height / sourceHeight);
+  const fit = mode === 'contain' ? Math.min : Math.max;
+  const scale = fit(width / sourceWidth, height / sourceHeight);
   const drawWidth = sourceWidth * scale;
   const drawHeight = sourceHeight * scale;
 
@@ -68,16 +76,26 @@ const syncSources = (session) => {
     if (!tile.stream) continue;
     wanted.add(tile.key);
 
-    if (!session.videos.has(tile.key)) {
-      const video = document.createElement('video');
-      video.srcObject = tile.stream;
+    let video = session.videos.get(tile.key);
+    if (!video) {
+      video = document.createElement('video');
       video.autoplay = true;
       video.playsInline = true;
       // Muted, always: this element exists to be painted, and letting it play
       // audio would put every remote voice into the room twice.
       video.muted = true;
-      video.play().catch(() => {});
       session.videos.set(tile.key, video);
+    }
+
+    /*
+     * Rebound whenever the tile's stream changes, not only when the element is
+     * created. A tile keeps its key across a screen share — your own is always
+     * 'self' — so checking only for the key's presence left the recording
+     * painting your camera for the whole of your presentation.
+     */
+    if (video.srcObject !== tile.stream) {
+      video.srcObject = tile.stream;
+      video.play().catch(() => {});
     }
 
     // Audio can come from a different stream than the picture. While you are
@@ -132,7 +150,15 @@ const paint = (session) => {
     ctx.clip();
 
     const video = session.videos.get(tile.key);
-    const painted = video && drawCover(ctx, video, x + 2, y + 2, cellWidth - 4, cellHeight - 4);
+    const painted = video && drawFitted(
+      ctx,
+      video,
+      x + 2,
+      y + 2,
+      cellWidth - 4,
+      cellHeight - 4,
+      tile.sharing ? 'contain' : 'cover',
+    );
     if (!painted) {
       // Camera off, or the first frame has not arrived: a filled cell with the
       // name in it reads as "present, not on camera" rather than as a glitch.
