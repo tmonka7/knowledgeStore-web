@@ -49,6 +49,7 @@ import ChatPage from './ChatPage';
 import MailPage from './MailPage';
 import { useLanguage } from '../i18n';
 import CamerasPage from './CamerasPage';
+import AttendancePage from './AttendancePage';
 import SchedulePage from './SchedulePage';
 import useScheduleReminders from '../components/schedule/useScheduleReminders';
 import LvglToolPage from './LvglToolPage';
@@ -386,7 +387,20 @@ export default function DashboardPage({
     { key: 'overview', icon: <DashboardOutlined />, label: t('overview') },
     { key: 'users', icon: <TeamOutlined />, label: t('users') },
     { key: 'records', icon: <DatabaseOutlined />, label: t('data') },
-    { key: 'cameras', icon: <CameraOutlined />, label: t('cameraManagement') },
+    /*
+     * Camera Management became a submenu when automatic attendance was added.
+     * The child keeps the key 'cameras', so anything that remembers a selected
+     * page — including a session already open — still lands on the same page.
+     */
+    {
+      key: 'camera-group',
+      icon: <CameraOutlined />,
+      label: t('cameraManagement'),
+      children: [
+        { key: 'cameras', label: t('cameraList') },
+        { key: 'attendance', label: t('automaticAttendance') },
+      ],
+    },
     { key: 'projects', icon: <ProjectOutlined />, label: t('projectManagement') },
     { key: 'schedule', icon: <CalendarOutlined />, label: t('schedule') },
     {
@@ -752,6 +766,8 @@ export default function DashboardPage({
           )}
 
           {effectiveKey === 'cameras' && <CamerasPage user={user} cameras={cameras} setCameras={setCameras} />}
+
+          {effectiveKey === 'attendance' && <AttendancePage user={user} />}
 
           {effectiveKey === 'schedule' && (
             <SchedulePage

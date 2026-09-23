@@ -6,6 +6,7 @@ export const PERMISSION_CATALOG = [
   { key: 'records', label: 'Data', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'categories', label: 'Category', actions: ['view', 'create', 'delete'] },
   { key: 'cameras', label: 'Camera Management', actions: ['view', 'create', 'edit', 'delete'] },
+  { key: 'attendance', label: 'Camera Management / Automatic Attendance', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'chat', label: 'Chat', actions: ['view', 'create'] },
   { key: 'mail', label: 'Mail', actions: ['view', 'create', 'delete'] },
   { key: 'meetings', label: 'Meetings', actions: ['view', 'create', 'edit', 'delete'] },
@@ -68,6 +69,11 @@ export const DEFAULT_USER_PERMISSIONS = [
   'tts:view',
   'transformers:view',
   'keras:view',
+  // 'attendance:*' is deliberately absent, exactly as 'cameras:*' is. A sweep
+  // turns a camera by remote control and writes a biometric record of
+  // everyone standing in front of it, and the lists it produces say where
+  // named people were and when. An administrator grants it per account, so
+  // there is also nothing for permissionBackfill.js to hand out.
 ];
 
 export const sanitizePermissions = (values) => {

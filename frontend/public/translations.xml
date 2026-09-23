@@ -546,4 +546,83 @@
   <text id="clearEveryTranscript" en="Clear every transcript" es="Borrar todas las transcripciones" zh="清除所有转写文本" jp="すべての文字起こしを消去" />
   <text id="clearTranscriptsTitle" en="Clear every transcript?" es="Borrar todas las transcripciones?" zh="清除所有转写文本？" jp="すべての文字起こしを消去しますか？" />
   <text id="clearTranscriptsBody" en="All {count} transcripts will be removed. The audio files are untouched. This cannot be undone." es="Se eliminaran las {count} transcripciones. Los archivos de audio no se modifican. Esto no se puede deshacer." zh="将删除全部 {count} 条转写文本。音频文件不受影响，且此操作无法撤销。" jp="{count} 件の文字起こしをすべて削除します。音声ファイルはそのままですが、元に戻せません。" />
+  <text id="automaticAttendance" en="Automatic Attendance" es="Asistencia automatica" zh="自动考勤" jp="自動出欠確認" />
+  <text id="automaticAttendanceHint" en="Sweep {name} across the room and record everyone it recognises." es="Recorrer {name} por la sala y registrar a todos los reconocidos." zh="用 {name} 扫描房间并记录识别到的所有人。" jp="{name} で室内を走査し、認識した全員を記録します。" />
+  <text id="attendanceTitle" en="Automatic Attendance" es="Asistencia automatica" zh="自动考勤" jp="自動出欠確認" />
+  <text id="attendanceSubtitle" en="Camera sweeps and the faces they recorded" es="Recorridos de camara y los rostros registrados" zh="摄像头扫描记录与已登记的人脸" jp="カメラの走査記録と登録された顔" />
+  <text id="attendanceArc" en="Sweep width" es="Amplitud del recorrido" zh="扫描范围" jp="走査範囲" />
+  <text id="attendanceArc90" en="90° — one wall" es="90° — una pared" zh="90° — 单面墙" jp="90° — 壁一面" />
+  <text id="attendanceArc180" en="180° — the room in front" es="180° — la sala de enfrente" zh="180° — 正前方房间" jp="180° — 正面の室内" />
+  <text id="attendanceArc360" en="360° — all the way round" es="360° — vuelta completa" zh="360° — 环绕一周" jp="360° — 全周" />
+  <text id="attendanceZoom" en="Zoom" es="Zoom" zh="变焦" jp="ズーム" />
+  <text id="attendanceZoomHint" en="More zoom reaches faces further away, but needs more positions to cover the same arc." es="Mas zoom alcanza rostros mas lejanos, pero necesita mas posiciones para cubrir el mismo arco." zh="变焦越大越能拍到远处人脸，但覆盖同样范围需要更多机位。" jp="ズームを上げると遠くの顔まで届きますが、同じ範囲を覆うのに必要な位置が増えます。" />
+  <text id="startAttendanceSweep" en="Start sweep" es="Iniciar recorrido" zh="开始扫描" jp="走査を開始" />
+  <text id="attendanceScanning" en="Position {current} of {total}" es="Posicion {current} de {total}" zh="第 {current} / {total} 个机位" jp="位置 {current} / {total}" />
+  <text id="attendanceSweepFinished" en="Finished — {total} positions" es="Terminado — {total} posiciones" zh="已完成 — 共 {total} 个机位" jp="完了 — {total} 箇所" />
+  <text id="attendanceWaitingForFrame" en="Waiting for the first frame..." es="Esperando el primer fotograma..." zh="正在等待第一帧……" jp="最初のフレームを待っています..." />
+  <text id="attendanceRecognised" en="Recognised" es="Reconocidos" zh="已识别" jp="識別済み" />
+  <text id="attendanceUnknownFaces" en="Unknown faces" es="Rostros desconocidos" zh="未知人脸" jp="未登録の顔" />
+  <text id="attendanceUnknownPerson" en="Not in the database" es="No esta en la base de datos" zh="不在数据库中" jp="データベースに未登録" />
+  <text id="attendanceMatchDistance" en="Match distance {distance}" es="Distancia de coincidencia {distance}" zh="匹配距离 {distance}" jp="一致距離 {distance}" />
+  <text id="attendanceSeenTimes" en="Seen {count} time(s)" es="Visto {count} vez(ces)" zh="出现 {count} 次" jp="{count} 回検出" />
+  <text id="attendanceNobodyFound" en="No faces were found in this sweep." es="No se encontraron rostros en este recorrido." zh="本次扫描未发现人脸。" jp="この走査では顔が見つかりませんでした。" />
+  <text id="attendancePartialCoverage" en="This sweep covered {degrees}° rather than the full arc. Zoom out to cover more." es="Este recorrido cubrio {degrees}° en lugar del arco completo. Reduzca el zoom para cubrir mas." zh="本次扫描仅覆盖 {degrees}°，未覆盖完整范围。请缩小变焦以扩大覆盖。" jp="この走査は全範囲ではなく {degrees}° を覆いました。ズームを下げると範囲が広がります。" />
+  <text id="attendanceRunAgain" en="Run again" es="Ejecutar de nuevo" zh="再次运行" jp="再実行" />
+  <text id="attendanceNameThem" en="Name the unknown faces on the Attendance page." es="Nombre los rostros desconocidos en la pagina de Asistencia." zh="请在考勤页面为未知人脸命名。" jp="未登録の顔には出欠確認ページで名前を付けられます。" />
+  <text id="attendanceNameThemHint" en="Unknown faces are kept so the same person is recognised next time and can be given a name." es="Los rostros desconocidos se conservan para reconocer a la misma persona la proxima vez y poder nombrarla." zh="未知人脸会被保留，以便下次识别同一个人并为其命名。" jp="未登録の顔は保存され、次回同じ人物を識別して名前を付けられます。" />
+  <text id="attendanceSweeps" en="Sweeps" es="Recorridos" zh="扫描记录" jp="走査履歴" />
+  <text id="attendanceFacesOnFile" en="Faces on file" es="Rostros archivados" zh="已存人脸" jp="保存された顔" />
+  <text id="attendanceNamedCount" en="{count} named" es="{count} con nombre" zh="已命名 {count} 个" jp="{count} 件に名前あり" />
+  <text id="attendanceLastRecognised" en="Recognised last sweep" es="Reconocidos en el ultimo recorrido" zh="上次扫描识别数" jp="前回の走査での識別数" />
+  <text id="attendanceCoverage" en="Coverage" es="Cobertura" zh="覆盖范围" jp="カバー範囲" />
+  <text id="attendancePartial" en="partial" es="parcial" zh="部分" jp="一部" />
+  <text id="attendanceNoFaces" en="No unidentified faces have been recorded." es="No se han registrado rostros sin identificar." zh="尚未记录任何未识别人脸。" jp="未識別の顔はまだ記録されていません。" />
+  <text id="attendanceNamePlaceholder" en="Give this face a name" es="Asignar un nombre a este rostro" zh="为该人脸命名" jp="この顔に名前を付ける" />
+  <text id="attendanceLinkToUser" en="Link to an account" es="Vincular a una cuenta" zh="关联到账户" jp="アカウントに紐付け" />
+  <text id="attendanceForget" en="Forget" es="Olvidar" zh="删除" jp="削除" />
+  <text id="attendanceForgetFaceQuestion" en="Forget this face?" es="¿Olvidar este rostro?" zh="删除该人脸？" jp="この顔を削除しますか？" />
+  <text id="attendanceForgetFaceHint" en="The face is deleted. Past attendance rows stay, without a picture." es="El rostro se elimina. Los registros de asistencia anteriores permanecen, sin imagen." zh="人脸将被删除。过往考勤记录会保留，但不再显示照片。" jp="顔を削除します。過去の出欠記録は写真なしで残ります。" />
+  <text id="attendanceFaceForgotten" en="Face deleted." es="Rostro eliminado." zh="人脸已删除。" jp="顔を削除しました。" />
+  <text id="attendanceSweepAt" en="{camera} — {when}" es="{camera} — {when}" zh="{camera} — {when}" jp="{camera} — {when}" />
+  <text id="attendanceLoadFailed" en="Attendance could not be loaded." es="No se pudo cargar la asistencia." zh="无法加载考勤数据。" jp="出欠情報を読み込めませんでした。" />
+  <text id="attendanceSaveFailed" en="That change could not be saved." es="No se pudo guardar ese cambio." zh="无法保存该修改。" jp="変更を保存できませんでした。" />
+  <text id="attendanceDeleteFailed" en="That face could not be deleted." es="No se pudo eliminar ese rostro." zh="无法删除该人脸。" jp="その顔を削除できませんでした。" />
+  <text id="cameraFrame" en="Camera frame" es="Fotograma de la camara" zh="摄像头画面" jp="カメラ画像" />
+  <text id="cameraList" en="Cameras" es="Camaras" zh="摄像头" jp="カメラ" />
+  <text id="camera" en="Camera" es="Camara" zh="摄像头" jp="カメラ" />
+  <text id="startedBy" en="Started by" es="Iniciado por" zh="发起人" jp="実行者" />
+  <text id="refresh" en="Refresh" es="Actualizar" zh="刷新" jp="更新" />
+  <text id="saved" en="Saved." es="Guardado." zh="已保存。" jp="保存しました。" />
+  <text id="done" en="Done" es="Listo" zh="完成" jp="完了" />
+  <text id="stop" en="Stop" es="Detener" zh="停止" jp="停止" />
+  <text id="zoom" en="Zoom" es="Zoom" zh="变焦" jp="ズーム" />
+  <text id="ptzControl" en="PTZ control" es="Control PTZ" zh="云台控制" jp="PTZ 操作" />
+  <text id="ptzAndAttendance" en="PTZ and automatic attendance" es="PTZ y asistencia automatica" zh="云台与自动考勤" jp="PTZ と自動出欠確認" />
+  <text id="ptzEnable" en="Enable PTZ control" es="Activar control PTZ" zh="启用云台控制" jp="PTZ 操作を有効にする" />
+  <text id="ptzDeviceUrl" en="ONVIF service address" es="Direccion del servicio ONVIF" zh="ONVIF 服务地址" jp="ONVIF サービスアドレス" />
+  <text id="ptzDeviceUrlHint" en="Usually http://camera-address/onvif/device_service. This is the control channel, not the video stream." es="Normalmente http://direccion-camara/onvif/device_service. Es el canal de control, no el video." zh="通常为 http://摄像头地址/onvif/device_service。这是控制通道，不是视频流。" jp="通常は http://カメラのアドレス/onvif/device_service です。映像ではなく制御用の経路です。" />
+  <text id="ptzUsername" en="PTZ username" es="Usuario PTZ" zh="云台用户名" jp="PTZ ユーザー名" />
+  <text id="ptzPassword" en="PTZ password" es="Contrasena PTZ" zh="云台密码" jp="PTZ パスワード" />
+  <text id="ptzPasswordHint" en="Leave blank to keep the stored password. It is never sent back to the browser." es="Dejar vacio para conservar la contrasena guardada. Nunca se envia al navegador." zh="留空表示保留已保存的密码。密码不会回传到浏览器。" jp="空欄のままにすると保存済みのパスワードを維持します。ブラウザーには返されません。" />
+  <text id="ptzProfile" en="Media profile" es="Perfil de medios" zh="媒体配置" jp="メディアプロファイル" />
+  <text id="ptzRunDetect" en="Run Detect to list profiles" es="Pulse Detectar para listar perfiles" zh="点击“检测”以列出配置" jp="「検出」を押すとプロファイルが一覧表示されます" />
+  <text id="ptzDetect" en="Detect" es="Detectar" zh="检测" jp="検出" />
+  <text id="ptzDetected" en="Found {count} profile(s)." es="Se encontraron {count} perfil(es)." zh="找到 {count} 个配置。" jp="{count} 件のプロファイルが見つかりました。" />
+  <text id="ptzFixed" en="no PTZ" es="sin PTZ" zh="无云台" jp="PTZ なし" />
+  <text id="ptzNoMovableProfile" en="This camera answered, but none of its profiles can be moved — it is a fixed camera." es="La camara respondio, pero ninguno de sus perfiles se puede mover: es una camara fija." zh="摄像头有响应，但其配置均不支持转动——这是一台固定摄像头。" jp="カメラは応答しましたが、どのプロファイルも動かせません。固定カメラです。" />
+  <text id="ptzProbeFailed" en="The camera could not be contacted." es="No se pudo contactar con la camara." zh="无法连接到摄像头。" jp="カメラに接続できませんでした。" />
+  <text id="ptzSaveFirst" en="Save the camera first, then reopen it to detect its profiles." es="Guarde la camara primero y vuelva a abrirla para detectar sus perfiles." zh="请先保存摄像头，再重新打开以检测其配置。" jp="先にカメラを保存し、開き直してからプロファイルを検出してください。" />
+  <text id="ptzSnapshotUrl" en="Snapshot URL (optional)" es="URL de captura (opcional)" zh="抓拍地址（可选）" jp="スナップショット URL（任意）" />
+  <text id="ptzSnapshotUrlHint" en="Only needed if the camera does not offer an ONVIF snapshot address." es="Solo necesario si la camara no ofrece una direccion de captura ONVIF." zh="仅当摄像头未提供 ONVIF 抓拍地址时才需要填写。" jp="カメラが ONVIF のスナップショットアドレスを持たない場合のみ必要です。" />
+  <text id="ptzOpticsNote" en="These describe the lens and the mount. The sweep uses them to work out how many positions cover the arc, so a wrong field of view leaves gaps." es="Describen la lente y el montaje. El recorrido los usa para calcular cuantas posiciones cubren el arco, por lo que un campo de vision incorrecto deja huecos." zh="以下为镜头与安装参数。扫描据此计算覆盖范围所需的机位数，视场角填错会留下盲区。" jp="レンズと取り付けに関する値です。走査はこれを使って範囲を覆う位置数を決めるため、画角が誤っていると死角が生じます。" />
+  <text id="ptzHfov" en="Field of view (degrees)" es="Campo de vision (grados)" zh="视场角（度）" jp="画角（度）" />
+  <text id="ptzHfovHint" en="Horizontal, fully zoomed out. Typically 55-70 on a PTZ dome." es="Horizontal, sin zoom. Normalmente 55-70 en un domo PTZ." zh="水平方向、完全广角时的数值。云台球机通常为 55-70。" jp="広角端での水平画角。PTZ ドームでは通常 55〜70 です。" />
+  <text id="ptzPanRange" en="Pan range (degrees)" es="Rango de giro (grados)" zh="水平转动范围（度）" jp="パン可動範囲（度）" />
+  <text id="ptzMaxZoom" en="Optical zoom (x)" es="Zoom optico (x)" zh="光学变焦倍数" jp="光学ズーム倍率" />
+  <text id="ptzHome" en="Centre of sweep (degrees)" es="Centro del recorrido (grados)" zh="扫描中心（度）" jp="走査の中心（度）" />
+  <text id="ptzHomeHint" en="The middle of the arc, so a wall-mounted camera sweeps the room rather than the wall." es="El centro del arco, para que una camara en pared recorra la sala y no la pared." zh="扫描范围的中心，使壁装摄像头扫描房间而非墙面。" jp="走査範囲の中心です。壁付けカメラが壁ではなく室内を走査するように設定します。" />
+  <text id="ptzSettle" en="Settle time (ms)" es="Tiempo de estabilizacion (ms)" zh="稳定等待时间（毫秒）" jp="静止待ち時間（ミリ秒）" />
+  <text id="ptzSettleHint" en="How long the camera is given to stop moving before a frame is taken." es="Cuanto se espera a que la camara deje de moverse antes de tomar un fotograma." zh="取帧前等待摄像头停稳的时间。" jp="フレームを取得する前にカメラが静止するのを待つ時間です。" />
+  <text id="ptzSpeed" en="Speed" es="Velocidad" zh="速度" jp="速度" />
+  <text id="ptzMoveFailed" en="The camera did not accept that movement." es="La camara no acepto ese movimiento." zh="摄像头未接受该操作。" jp="カメラがその操作を受け付けませんでした。" />
 </translations>

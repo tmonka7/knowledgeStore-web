@@ -28,8 +28,10 @@ import projectRoutes from './routes/projectRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import meetingRoutes from './routes/meetingRoutes.js';
+import attendanceRoutes from './routes/attendanceRoutes.js';
 import { ensureSeedAdmin, ensureSeedCategories } from './models/store.js';
 import { startChatRetention } from './helpers/chatRetention.js';
+import { startVisitorRetention } from './helpers/visitorRetention.js';
 import { backfillDefaultPermissions } from './helpers/permissionBackfill.js';
 import { backfillAccountStatus } from './helpers/accountStatusBackfill.js';
 import { attachMeetingSignaling } from './helpers/meetingSignaling.js';
@@ -147,6 +149,7 @@ app.use('/api', projectRoutes);
 app.use('/api', contactRoutes);
 app.use('/api', postRoutes);
 app.use('/api', meetingRoutes);
+app.use('/api', attendanceRoutes);
 
 // Without this, CORS/body-parser failures return an HTML error page that the
 // frontend cannot read, so every failure looks the same to the user.
@@ -175,6 +178,8 @@ const startServer = async () => {
     // Chat files last a week. Swept at boot as well as hourly, so a server
     // that was down over the expiry still clears them on the way back up.
     startChatRetention();
+    // Unidentified faces from attendance sweeps expire; see visitorRetention.js.
+    startVisitorRetention();
 
     /*
      * An explicit server object rather than app.listen(), because the meeting

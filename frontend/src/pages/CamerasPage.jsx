@@ -12,6 +12,7 @@ import {
 import api from '../api';
 import { can } from '../permissions';
 import CameraCard from '../components/CameraCard';
+import PtzSettings from '../components/camera/PtzSettings';
 import FilterBar from '../components/ui/FilterBar';
 import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
@@ -123,7 +124,7 @@ export default function CamerasPage({ user, cameras, setCameras }) {
 
   if (viewingCamera) {
     const currentCamera = cameras.find((camera) => camera.id === viewingCamera.id) || viewingCamera;
-    return <CameraViewPage camera={currentCamera} onBack={() => setViewingCamera(null)} />;
+    return <CameraViewPage user={user} camera={currentCamera} onBack={() => setViewingCamera(null)} />;
   }
 
   if (showCameraWall) {
@@ -253,7 +254,16 @@ export default function CamerasPage({ user, cameras, setCameras }) {
           layout="vertical"
           onFinish={saveCamera}
           preserve={false}
-          initialValues={editingCamera || { status: 'offline' }}
+          /*
+           * A new camera gets the same PTZ defaults the schema would give it,
+           * so the optics fields open with numbers rather than blanks — an
+           * empty "field of view" box invites a guess, and a wrong field of
+           * view is what leaves gaps in a sweep.
+           */
+          initialValues={editingCamera || {
+            status: 'offline',
+            ptz: { enabled: false, panRangeDegrees: 360, hfovDegrees: 65, maxZoomFactor: 20, homeDegrees: 0, settleMs: 900 },
+          }}
         >
           <Form.Item name="name" label={t('cameraName')} rules={[{ required: true, message: t('enterCameraName') }]}>
             <Input placeholder={t('frontEntrance')} />
@@ -270,6 +280,7 @@ export default function CamerasPage({ user, cameras, setCameras }) {
           <Form.Item name="notes" label={t('notes')}>
             <Input.TextArea rows={3} placeholder={t('optionalNotes')} />
           </Form.Item>
+          <PtzSettings form={form} cameraId={editingCamera?.id} />
           <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
             <Button onClick={() => setModalOpen(false)}>{t('cancel')}</Button>
             <Button type="primary" className="vision-btn-primary" htmlType="submit" loading={saving}>{t('saveCamera')}</Button>

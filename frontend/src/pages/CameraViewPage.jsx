@@ -7,6 +7,7 @@ import {
   FullscreenOutlined,
   LinkOutlined,
   ScanOutlined,
+  TeamOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import PageHeader from '../components/ui/PageHeader';
@@ -14,7 +15,10 @@ import StatusBadge, { cameraTone } from '../components/ui/StatusBadge';
 import { canPreviewInBrowser, streamProtocol } from '../components/CameraCard';
 import DetectionOverlay from '../components/camera/DetectionOverlay';
 import StreamSurface from '../components/camera/StreamSurface';
+import AutoAttendanceModal from '../components/camera/AutoAttendanceModal';
+import PtzPad from '../components/camera/PtzPad';
 import useObjectDetection from '../components/camera/useObjectDetection';
+import { can } from '../permissions';
 import {
   DETECTION_STATUS,
   SECURITY_CLASSES,
@@ -26,7 +30,7 @@ import { useLanguage } from '../i18n';
 
 const SECURITY_CLASS_IDS = classIdsFor(SECURITY_CLASSES);
 
-export default function CameraViewPage({ camera, onBack }) {
+export default function CameraViewPage({ user, camera, onBack }) {
   const { t } = useLanguage();
   const stageRef = useRef(null);
   const sourceRef = useRef(null);
@@ -35,6 +39,13 @@ export default function CameraViewPage({ camera, onBack }) {
   const [securityOnly, setSecurityOnly] = useState(true);
   const [sourceReady, setSourceReady] = useState(false);
   const [sourceFailed, setSourceFailed] = useState(false);
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
+
+  // PTZ is only offered when the camera is actually set up for it. Showing the
+  // pad on a fixed camera would mean every button answers with an error.
+  const ptzEnabled = Boolean(camera.ptz?.enabled && camera.ptz?.profileToken);
+  const canDrive = ptzEnabled && can(user, 'cameras', 'edit');
+  const canTakeAttendance = ptzEnabled && can(user, 'attendance', 'create');
 
   const preview = canPreviewInBrowser(camera);
   const tone = cameraTone(camera.status);
@@ -103,6 +114,15 @@ export default function CameraViewPage({ camera, onBack }) {
                 </Button>
               </span>
             </Tooltip>
+            {canTakeAttendance && (
+              <Button
+                className="vision-btn-ghost"
+                icon={<TeamOutlined />}
+                onClick={() => setAttendanceOpen(true)}
+              >
+                {t('automaticAttendance')}
+              </Button>
+            )}
             <Button className="vision-btn-ghost" icon={<FullscreenOutlined />} onClick={goFullscreen}>
               {t('fullscreen')}
             </Button>
@@ -192,6 +212,21 @@ export default function CameraViewPage({ camera, onBack }) {
           className="vision-detect-alert"
           message={detectionProblem.title}
           description={detectionProblem.hint}
+        />
+      )}
+
+      {canDrive && (
+        <div className="vision-panel">
+          <h2 className="vision-section-title">{t('ptzControl')}</h2>
+          <PtzPad camera={camera} />
+        </div>
+      )}
+
+      {canTakeAttendance && (
+        <AutoAttendanceModal
+          open={attendanceOpen}
+          camera={camera}
+          onClose={() => setAttendanceOpen(false)}
         />
       )}
 

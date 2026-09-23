@@ -752,6 +752,178 @@ Enterprise licence. If that licence is acquired, `yolo26n.onnx` drops in behind
 the same interface — note it exports NMS-free, so such an engine skips the
 `decodeYolox()` / `nonMaxSuppression()` steps entirely.
 
+## PTZ control and automatic attendance
+
+**Cameras -> View -> Automatic Attendance** turns a PTZ camera through an arc,
+recognises every face it finds, and writes an attendance list. Faces that match
+nobody are kept so the same person is recognised next time and can be given a
+name.
+
+### Why the camera is driven from the server
+
+None of the control path can run in the browser, and it is worth being explicit
+about why, because the obvious implementation does not work:
+
+- Cameras send no `Access-Control-Allow-Origin`, so `fetch` cannot read their
+  responses and a canvas drawn from their stream is tainted — the same wall the
+  object-detection overlay already hits.
+- They authenticate with **HTTP Digest**, which `fetch` does not implement.
+  `backend/src/helpers/ptz/httpAuth.js` implements it, in about sixty lines,
+  because there is no dependency installed that would.
+- Doing it client-side would hand the camera's administrative password to every
+  operator's browser.
+
+So the server owns the camera: it moves the head, it fetches frames, and it
+holds the credentials. `GET /api/cameras/:id/frame` proxies a still through this
+origin, which is what makes the pixels readable to the page at all.
+
+The page still does the *recognition*, because face-api runs there and there is
+no equivalent on the server. It submits descriptors; the server decides whose
+they are. The browser never sees the roster and never decides who was present.
+
+### ONVIF, spoken directly
+
+`backend/src/helpers/ptz/onvif.js` writes the SOAP envelopes itself rather than
+pulling in a SOAP client for six calls. Two details in it are the difference
+between working and a permanent, mystifying `NotAuthorized`:
+
+- The WS-Security password digest is SHA1 over the raw nonce **bytes** followed
+  by the created timestamp and the password. Hashing the base64 text of the
+  nonce instead is the classic way to fail with entirely correct credentials.
+- A camera's `GetCapabilities` reports service URLs containing the IP address it
+  *believes* it has. Behind a NAT, a port forward or on a second subnet that is
+  wrong, so only the path is kept and it is reached at the address that
+  demonstrably answers.
+
+Responses are read with regular expressions rather than an XML parser. That is
+normally a bad idea; it is tolerable here because every field read is one
+well-known element or attribute in a machine-generated document.
+
+### Planning the sweep
+
+`backend/src/helpers/ptz/sweep.js` decides where the camera stops. The naive
+plan — divide 180 by the field of view and turn that many times — misses people
+*silently*, which is the worst property an attendance system can have. Two
+corrections:
+
+1. A camera at pan angle P sees from `P - fov/2` to `P + fov/2`, so the
+   outermost stops sit **half a frame inside** the arc's edges. The stops span
+   `arc - fov`, not `arc`. Planning across the full arc leaves two blind wedges
+   just inside its edges.
+2. Frames **overlap** by a quarter of their width. A face on the seam between
+   two abutting frames is cut in half in both and recognised in neither, so the
+   sweep would report everyone except the person standing at the join.
+
+If the requested zoom makes the field of view so narrow that the arc needs more
+stops than the budget allows, the sweep covers a **smaller arc properly** rather
+than scattering the same few stops across the full one. A narrower arc is
+reported and can be argued with; a hole between frames cannot.
+
+This maths needs the optics, which ONVIF does not report usefully, so the camera
+form carries them. **Field of view is the one to get right** — it is precisely
+what decides whether the frames overlap or leave gaps.
+
+### Waiting for the head to stop
+
+`AbsoluteMove` returns when the camera *accepts* the command, not when the lens
+arrives. Grabbing a frame immediately afterwards photographs the previous angle,
+consistently enough that the result looks like a working sweep with a
+mysteriously poor hit rate. The server polls ONVIF `GetStatus` for `MoveStatus`
+and then waits a fixed settle time as well, because plenty of cameras report
+`IDLE` while the head is still visibly ringing.
+
+### Who the faces belong to
+
+Matching uses the same function and the same thresholds as face sign-in —
+`backend/src/helpers/faceMatch.js`, extracted from `authController` for exactly
+this reason. If attendance called two people the same at a distance sign-in
+would reject, the list would name people the system refuses to let in.
+
+Every submitted face ends in one of five outcomes, and the page is told which,
+because "we saw eleven faces and recorded nine people" is only answerable if the
+other two are accounted for:
+
+| Outcome | Meaning |
+| --- | --- |
+| `user` | matched an enrolled account |
+| `visitor` | matched a face seen before that has no name yet |
+| `registered` | nobody has seen this face before; it is now on file |
+| `ambiguous` | too close to two enrolled people to say which |
+| `rejected` | too small or too uncertain to be worth matching |
+
+`ambiguous` deliberately does **not** fall through to registering a visitor. The
+person is on the roster; creating a nameless record for them would lose the
+attendance row *and* add a duplicate biometric record for somebody already
+enrolled.
+
+### A face is never a credential
+
+Registering an unknown face creates a row in `visitorFaces`, **not a user
+account**. Face sign-in identifies against every enrolled account with no
+password at all, so minting an account from a face that walked past a camera
+would let anyone who stands in front of it become a user of this system.
+
+Linking a visitor to an account, on the Attendance page, records the association
+for attendance and nothing else. The descriptor is never copied into the
+account's `faceDescriptor`, and `getFaceCandidates` never reads this collection.
+
+### Retention
+
+Unidentified faces are deleted after **30 days** without a sighting
+(`VISITOR_FACE_RETENTION_DAYS`, swept every six hours by
+`helpers/visitorRetention.js`). Faces that have been named or linked are kept.
+
+This is not housekeeping. A face descriptor is biometric data about an
+identifiable person, and this collection holds descriptors for people who were
+never asked — anyone who walked in front of a camera. Without an expiry it grows
+into a permanent biometric record of every passer-by, which is a liability to
+hold and, in a good many jurisdictions, unlawful to hold indefinitely without a
+reason. Setting the variable to `0` keeps them forever, and should be a
+deliberate decision.
+
+### Permissions
+
+`attendance:*` is **deliberately absent from the defaults**, exactly as
+`cameras:*` is. A sweep turns a camera by remote control and writes a biometric
+record of everyone in front of it, and the lists it produces say where named
+people were and when. An administrator grants it per account — which also means
+there is nothing in `permissionBackfill.js` to hand out.
+
+Moving a camera needs `cameras:edit` rather than `cameras:view`: it is not a way
+of looking at a camera, it changes where the camera points for everybody
+watching it, and it can be used to point one away from whatever it was installed
+to watch.
+
+### Setting a camera up
+
+1. **Cameras -> Edit -> PTZ and automatic attendance**.
+2. Enter the ONVIF service address — usually
+   `http://camera-address/onvif/device_service`. This is the control channel,
+   not the video stream.
+3. Enter the PTZ username and password, and **Save**.
+4. Reopen the camera and press **Detect**. Probing asks the *server* to contact
+   the camera, so it needs a saved camera to hang the request on; a camera being
+   created has no id yet.
+5. Pick a movable profile, check the optics, and enable PTZ.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `FACE_MATCH_MAX` | `0.5` | distance below which two descriptors are the same person |
+| `FACE_MATCH_MARGIN` | `0.05` | how much closer the best match must be than the runner-up |
+| `FACE_SAME_SIGHTING` | `0.38` | distance at which two detections in one frame are one face |
+| `VISITOR_FACE_RETENTION_DAYS` | `30` | how long an unidentified face is kept |
+
+### Limitations
+
+- **ONVIF only.** Vendor CGI APIs (Hikvision ISAPI, Dahua, Axis VAPIX) are not
+  implemented. The driver sits behind one interface in `helpers/ptz/index.js`,
+  so adding one is a new module rather than a change to the sweep.
+- **A still image source is required.** The ONVIF snapshot URI is used when the
+  camera offers one, an MJPEG stream is read for a single frame otherwise, and
+  an `rtsp://` address alone cannot be read at all — set a snapshot URL.
+- **No liveness check.** A sweep recognises a photograph of a face as readily as
+  a face, and nothing here detects the difference.
+
 ## Converting images to SVG
 
 **Tools -> Converting** outputs PNG, JPG, ICO, GIF and SVG. The first four are

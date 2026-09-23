@@ -18,7 +18,8 @@ Every signed-in screen sits inside one shell:
 └──────────────┴───────────────────────────────────────────────┘
 ```
 
-**Sidebar order:** Overview · Users · Data · Camera Management · Project
+**Sidebar order:** Overview · Users · Data · Camera Management (a group holding
+Cameras and Automatic Attendance) · Project
 Management · Schedule · Tools (LVGL, Converting, and an **AI** group holding
 YOLO, TTS, Transformers and Keras) ·
 Chat · Mail · Meetings · Posts · Database Management · System Monitoring ·
@@ -341,6 +342,58 @@ microphone is amber, an active share or open chat is blue, a running recording
 is red — because the state worth noticing should not look like every other
 button on the bar. Leaving while recording asks first, and saves the recording.
 
+### 3.7d Automatic Attendance
+
+**PTZ pad (camera view).** A three-by-three of circular buttons with the arrows
+where they point and Home in the middle, a zoom pair, and a speed slider. It
+appears only on a camera actually configured for PTZ and only for an account
+with `cameras:edit` — a pad on a fixed camera would be a grid of buttons that
+all answer with an error.
+
+Direction buttons travel while held and stop on release. Because a stop that
+never arrives leaves a camera turning for ever, the stop is sent from
+pointer-up, pointer-leave, pointer-cancel **and** unmount, with a four-second
+timer behind all of them.
+
+**Sweep dialog.** Opened from **Automatic Attendance** in the camera view, in
+two states.
+
+*Setup:* sweep width (90° / 180° / 360°), a zoom slider with a note that more
+zoom reaches further but needs more positions, and Start.
+
+*Running:* a progress bar reading "Position 3 of 6", a Stop button, and the
+frame the camera is looking at **right now** with a box drawn round every face
+in it. That live frame is not decoration — a sweep that finds nobody is either
+an empty room or a camera pointing at a wall, and those two are identical in a
+list of results. Under it, the people found so far as a grid of face
+thumbnails, enrolled ones edged green and unidentified ones amber, each with
+either the match distance or how many frames they appeared in.
+
+Warnings appear inline as they happen rather than at the end: a position the
+camera could not reach, a frame that never arrived, a face too similar to two
+enrolled people to identify. A sweep that covered less than the requested arc
+says so both here and afterwards in the sweep list.
+
+**Attendance page.** Three stat cards — sweeps, recognised last sweep, faces on
+file — over two tabs.
+
+*Sweeps* is a table: when, which camera, who ran it, recognised and unknown
+counts, coverage, status. Coverage is a tag that turns amber when the sweep
+covered less than it was asked to, because a short list is most often explained
+by a short sweep. A row opens the full attendance list for that sweep.
+
+*Faces on file* is the part that needs a person. Each unidentified face is a
+card with its picture, a name box, a dropdown to link it to an account, when it
+was last seen, and Forget. The dropdown is absent — rather than broken — for an
+operator without `users:view`, since reading the account list needs that
+permission and naming a face does not.
+
+Naming a face updates every past attendance row it appears in, so putting a
+name to somebody fixes the record rather than only the next sweep. Forgetting
+one deletes the face but **keeps** the attendance rows: that somebody
+unidentified was present remains true whether or not their face is still on
+file.
+
 ### 3.8 Database Management
 
 Four panels: Initialization (safe or reset, the latter requiring the word
@@ -359,7 +412,7 @@ of the measured series. Nothing on this page is simulated.
 |---|---|
 | Data | Filter bar (text, category, mode, date range), table, record detail drawer with Word export, add/edit modal with a rich-text editor, attachments and the sharing control below them. |
 | Category | Tree with add and delete. |
-| Camera Management / Camera Wall | Card grid of cameras with a preview or a "no preview" placeholder, status badge, protocol chip and per-card actions (Edit and Delete only with the permission); a wall of live tiles; a single-camera view with fullscreen and object detection. |
+| Camera Management / Camera Wall | Card grid of cameras with a preview or a "no preview" placeholder, status badge, protocol chip and per-card actions (Edit and Delete only with the permission); a wall of live tiles; a single-camera view with fullscreen, object detection, a PTZ pad and Automatic Attendance. The camera dialog carries a folded **PTZ and automatic attendance** section: ONVIF address, credentials, a **Detect** button that fills the profile dropdown from the camera itself, and the optics the sweep planner needs. |
 | Schedule | Month view with an entry dialog and an upcoming list. |
 | Contacts (My Page tab) | Searchable list with favourite toggle and a contact dialog. |
 | Tools | LVGL and Converting sit directly under Tools; YOLO, TTS, Transformers and Keras sit in an **AI** group beneath them, since those are about models where the other two are file converters. Both image tools — Converting and the LVGL image tab — take SVG as well as raster input, and render the vector at each output size rather than scaling one decode of it. Converting also emits SVG, by tracing. The LVGL tab emits the v9 `lv_image_dsc_t` form and says so on the output card. YOLO has a Labelling tab: a folder picker on the left with the class list, the image on a canvas in the middle, and the shape list and exports on the right. TTS mirrors that shape for audio: folder picker, rejected-file list and exports on the left; the player and transcript box in the middle; the text history on the right, ticking off clips as they are done. |

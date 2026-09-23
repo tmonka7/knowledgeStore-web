@@ -3,6 +3,7 @@ import { createToken, sanitizeUser } from '../helpers/auth.js';
 import { readProfileFields } from '../helpers/userProfile.js';
 import { isUsableAccount, statusRefusal } from '../helpers/accountStatus.js';
 import { User, createUser, getFaceCandidates, getUserByUsername } from '../models/store.js';
+import { FACE_MATCH_MARGIN, FACE_MATCH_MAX, faceDistance, isFaceDescriptor, isFaceImage } from '../helpers/faceMatch.js';
 
 /*
  * Two ways in, and they are alternatives rather than steps.
@@ -20,33 +21,10 @@ import { User, createUser, getFaceCandidates, getUserByUsername } from '../model
  * which is not all the way.
  */
 
-// Distance below which two descriptors are considered the same person. Looser
-// than this and a stranger starts matching; tighter and the same person in
-// different light stops matching.
-const FACE_MATCH_MAX = Number(process.env.FACE_MATCH_MAX) || 0.5;
+// The thresholds, the distance function and the two validators now live in
+// helpers/faceMatch.js, because automatic attendance compares faces as well
+// and the two features must not drift apart. See the note there.
 
-/*
- * How much closer the best match must be than the runner-up.
- *
- * Signing in by face is a search over every account, not a check against one,
- * so the risk that grows with the number of users is not "is this close
- * enough" but "is this closer to the right person than to somebody else". If
- * two accounts are near-equally close, the honest answer is that the system
- * does not know which, and it refuses rather than picking the smaller number.
- */
-const FACE_MATCH_MARGIN = Number(process.env.FACE_MATCH_MARGIN) || 0.05;
-
-const isFaceDescriptor = (descriptor) => Array.isArray(descriptor)
-  && descriptor.length === 128
-  && descriptor.every((value) => Number.isFinite(Number(value)));
-
-const isFaceImage = (image) => typeof image === 'string'
-  && /^data:image\/(jpeg|jpg|png);base64,/.test(image)
-  && image.length <= 2_000_000;
-
-const faceDistance = (left, right) => Math.sqrt(
-  left.reduce((sum, value, index) => sum + ((Number(value) - Number(right[index])) ** 2), 0),
-);
 
 const signedInResponse = (res, user) => {
   const plain = user.toObject ? user.toObject() : user;

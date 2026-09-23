@@ -3274,3 +3274,283 @@
   border: 1.5px solid var(--v-border);
   border-radius: 50%;
 }
+
+/* ---------------------------------------------------------------------------
+   Automatic attendance
+   --------------------------------------------------------------------------- */
+
+.attendance-setup {
+  display: grid;
+  gap: 18px;
+  padding: 8px 0 4px;
+}
+
+.attendance-field {
+  display: grid;
+  gap: 6px;
+}
+
+.attendance-field > span {
+  font-weight: 600;
+  color: var(--v-text);
+}
+
+.attendance-field small {
+  color: var(--v-text-soft);
+  line-height: 1.5;
+}
+
+.attendance-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.attendance-progress .ant-progress {
+  flex: 1;
+  margin: 0;
+}
+
+.attendance-progress > span {
+  white-space: nowrap;
+  color: var(--v-text-soft);
+}
+
+/* The live frame.
+
+   The stage is only a dark backdrop with a maximum height; the picture sizes
+   itself inside it, and .attendance-frame shrink-wraps that picture exactly.
+   That wrapper is what the face boxes are positioned against, because they are
+   expressed as percentages of the IMAGE. Positioning them against a stage of
+   fixed proportions would put every box off by the height of the letterbox
+   bars on any camera that is not the same shape as the stage — on the one view
+   whose whole job is to show that the boxes are on the right people. */
+.attendance-stage {
+  position: relative;
+  width: 100%;
+  max-height: 58vh;
+  overflow: hidden;
+  border-radius: var(--v-radius-lg);
+  background: #0b1220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+
+.attendance-frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 58vh;
+  line-height: 0;
+}
+
+.attendance-frame img {
+  display: block;
+  max-width: 100%;
+  max-height: 58vh;
+  width: auto;
+  height: auto;
+}
+
+.attendance-face-box {
+  position: absolute;
+  border: 2px solid var(--v-success);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.attendance-results {
+  margin-top: 16px;
+}
+
+.attendance-result-head {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.attendance-result-head h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--v-text-soft);
+}
+
+.attendance-people {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+}
+
+.attendance-person {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: var(--v-surface);
+}
+
+/* Enrolled and unidentified are told apart by the edge colour as well as by
+   the caption: a grid of faces is scanned, not read. */
+.attendance-person.is-user {
+  border-color: color-mix(in srgb, var(--v-success) 55%, var(--v-border));
+}
+
+.attendance-person.is-visitor,
+.attendance-person.is-registered {
+  border-color: color-mix(in srgb, var(--v-warning) 55%, var(--v-border));
+}
+
+.attendance-person img,
+.attendance-person-blank {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 50%;
+  background: var(--v-surface-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: var(--v-text-soft);
+}
+
+.attendance-person strong {
+  font-size: 13px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.attendance-person small {
+  font-size: 11px;
+  color: var(--v-text-soft);
+}
+
+.attendance-empty {
+  color: var(--v-text-soft);
+  margin: 8px 0 0;
+}
+
+.attendance-visitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  padding-top: 8px;
+}
+
+.attendance-visitor {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg);
+  background: var(--v-surface);
+  box-shadow: var(--v-shadow-xs);
+}
+
+.attendance-visitor img,
+.attendance-visitor .attendance-person-blank {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.attendance-visitor .ant-input,
+.attendance-visitor .ant-select {
+  width: 100%;
+}
+
+.attendance-visitor small {
+  color: var(--v-text-soft);
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------------
+   PTZ control pad
+   --------------------------------------------------------------------------- */
+
+.ptz-pad {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+/* A three-by-three so the arrows sit where they point, with Home in the
+   middle — the shape people expect from a camera control, and the reason the
+   buttons are placed by grid-area rather than by source order. */
+.ptz-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-rows: repeat(3, 40px);
+  gap: 6px;
+}
+
+.ptz-up { grid-area: 1 / 2; }
+.ptz-left { grid-area: 2 / 1; }
+.ptz-home { grid-area: 2 / 2; }
+.ptz-right { grid-area: 2 / 3; }
+.ptz-down { grid-area: 3 / 2; }
+
+.ptz-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--v-text-soft);
+}
+
+.ptz-speed {
+  display: grid;
+  gap: 4px;
+  min-width: 180px;
+  color: var(--v-text-soft);
+}
+
+.ptz-settings .ant-collapse-header {
+  padding-left: 0 !important;
+  font-weight: 600;
+}
+
+.ptz-settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: end;
+}
+
+.ptz-settings-row .ant-form-item {
+  margin-bottom: 12px;
+}
+
+.ptz-detect {
+  margin-bottom: 12px;
+}
+
+.ptz-optics-note {
+  color: var(--v-text-soft);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 4px 0 12px;
+}
+
+@media (max-width: 640px) {
+  .ptz-settings-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ptz-pad {
+    gap: 18px;
+  }
+}

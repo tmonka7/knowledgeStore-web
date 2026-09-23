@@ -75,3 +75,53 @@ const faceapiImage = (file) => new Promise((resolve, reject) => {
   };
   image.src = url;
 });
+
+/**
+ * Every face in one frame, with a descriptor for each.
+ *
+ * descriptorFromImage above answers "whose face is this", which is the
+ * question a sign-in or an enrolment asks. Attendance asks a different one —
+ * "who is in this room" — and needs detectAllFaces, plus the position and
+ * confidence of each detection so the caller can crop a thumbnail and throw
+ * away the ones too small to trust.
+ *
+ * inputSize matters more here than it does for a portrait. The tiny detector
+ * works on a square of this many pixels, so a face occupying 4% of a wide
+ * frame is about twelve pixels across at 320 and misses entirely; 512 is the
+ * smallest size that reliably finds people standing across a room, and the
+ * cost is a slower pass over each frame — paid once per sweep stop, which is
+ * a bargain compared with missing half the room.
+ *
+ * Boxes come back NORMALISED to 0..1, like everything else in faceDetector.
+ */
+export const descriptorsFromImage = async (image, { inputSize = 512, scoreThreshold = 0.45 } = {}) => {
+  const faceapi = getFaceApi();
+  await loadFaceModels();
+
+  const results = await faceapi
+    .detectAllFaces(image, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold }))
+    .withFaceLandmarks()
+    .withFaceDescriptors();
+
+  const width = image?.naturalWidth || image?.videoWidth || image?.width || 0;
+  const height = image?.naturalHeight || image?.videoHeight || image?.height || 0;
+  if (!width || !height) return [];
+
+  return results.map((result) => {
+    const box = result.detection.box;
+    return {
+      descriptor: Array.from(result.descriptor),
+      score: Number(result.detection.score) || 0,
+      box: {
+        x: box.x / width,
+        y: box.y / height,
+        width: box.width / width,
+        height: box.height / height,
+      },
+      // Face width as a fraction of the frame. This is the honest measure of
+      // "how far away were they", and the server uses it to refuse sightings
+      // too small to have produced a meaningful descriptor.
+      ratio: box.width / width,
+    };
+  });
+};
