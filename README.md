@@ -752,6 +752,54 @@ Enterprise licence. If that licence is acquired, `yolo26n.onnx` drops in behind
 the same interface — note it exports NMS-free, so such an engine skips the
 `decodeYolox()` / `nonMaxSuppression()` steps entirely.
 
+## Converting images to SVG
+
+**Tools -> Converting** outputs PNG, JPG, ICO, GIF and SVG. The first four are
+pixels; SVG is not, and that difference is the whole feature.
+
+Plenty of "convert to SVG" tools hand back a PNG wrapped in an `<svg>` element.
+The file has the right extension and none of the properties anyone wanted one
+for: it does not scale, it cannot be recoloured, and it is bigger than what
+went in. `frontend/src/lib/imageTrace.js` traces outlines instead:
+
+1. reduce the image to a small palette (gifenc, already vendored for GIF),
+2. for each colour, walk the boundary between its pixels and everything else,
+   which gives closed polygons on the pixel grid,
+3. drop the points that do not change the shape (Ramer-Douglas-Peucker),
+4. emit one `<path>` per colour.
+
+Two controls: **Colours** (2-32) and **Detail** (0-100, the simplification
+tolerance inverted). The result is previewed beside the source, because those
+two settings have no right value in the abstract — only for the picture in
+front of you, and tuning them by downloading each attempt is not tuning them.
+
+**It suits flat artwork and not photographs.** Tracing follows areas of one
+colour, so logos, icons, screenshots and line art come out well. A photograph
+has no flat areas; it traces into thousands of blotches, larger than the file
+it came from and worse to look at. The panel says so before the conversion
+rather than after it.
+
+Three details that are easy to get wrong:
+
+- **The winding does the holes.** Each pixel contributes the sides facing a
+  different colour, wound clockwise, so chaining them gives outer boundaries
+  clockwise and holes anticlockwise — which is exactly what `fill-rule="evenodd"`
+  needs. The letter O comes out with a hole in it and no special case.
+- **The dominant colour becomes a `<rect>`,** when nothing is transparent. It
+  is the single biggest saving in the file, and it removes the hairline seams:
+  neighbouring paths share an edge exactly, but each is anti-aliased
+  independently, so the two halves of a boundary pixel blend to less than full
+  coverage and a pale line shows through. A solid layer underneath leaves
+  nothing to show through.
+- **Tracing is capped at 800px** regardless of the output size. Past that,
+  extra pixels stop adding shape and start adding noise along every edge: more
+  points, a bigger file, no more detail. The SVG carries a `viewBox`, so the
+  result still scales to whatever size was asked for.
+
+An SVG converted *to* SVG is resized, not traced. Rasterising a drawing that is
+already made of shapes and then guessing those shapes back would lose every one
+of them.
+
 ## YOLO labelling
 
 The Labelling tab on the YOLO page turns a folder of images into a YOLO

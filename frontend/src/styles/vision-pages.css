@@ -3219,3 +3219,15 @@
   background: var(--v-surface-muted);
   box-shadow: inset 2px 0 0 var(--v-primary);
 }
+
+/* The converted file, shown under the source so the two can be compared
+   without scrolling between them. */
+.convert-result {
+  margin-top: var(--v-space-4);
+  padding-top: var(--v-space-3);
+  border-top: 1px solid var(--v-border);
+}
+
+.convert-result .convert-preview {
+  margin-top: var(--v-space-2);
+}

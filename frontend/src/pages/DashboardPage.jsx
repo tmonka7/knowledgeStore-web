@@ -395,9 +395,17 @@ export default function DashboardPage({
       children: [
         { key: 'lvgl-tool', label: 'LVGL' },
         { key: 'convert-tool', label: 'Converting' },
-        { key: 'yolo', label: 'YOLO' },
-        { key: 'transformers', label: 'Transformers' },
-        { key: 'keras', label: 'Keras' },
+        // The three model tools group together: they are about training and
+        // inference, where the two above are file converters.
+        {
+          key: 'tools-ai',
+          label: 'AI',
+          children: [
+            { key: 'yolo', label: 'YOLO' },
+            { key: 'transformers', label: 'Transformers' },
+            { key: 'keras', label: 'Keras' },
+          ],
+        },
       ],
     },
     {
@@ -426,24 +434,36 @@ export default function DashboardPage({
     },
   ];
 
-  // A parent stays only if at least one of its children survives the filter.
-  const menuItems = allMenuItems
+  /*
+   * A parent stays only if at least one of its children survives the filter.
+   *
+   * Recursive rather than one level deep, because the menu is: Tools has an AI
+   * group inside it. Flat logic checked `can(user, 'tools-ai')` — a grouping
+   * label, never a page and so never a permission — and dropped every tool
+   * underneath it. Only leaves are permission-checked; a group is judged
+   * entirely by what survives inside it.
+   */
+  const filterMenu = (items) => items
     .map((item) => {
       if (!item.children) return can(user, item.key) ? item : null;
-      const children = item.children.filter((child) => can(user, child.key));
+      const children = filterMenu(item.children);
       return children.length ? { ...item, children } : null;
     })
     .filter(Boolean);
 
-  const visiblePageKeys = new Set(
-    menuItems.flatMap((item) => (item.children ? item.children.map((child) => child.key) : [item.key])),
-  );
+  const leafKeys = (items) => items.flatMap((item) => (
+    item.children ? leafKeys(item.children) : [item.key]
+  ));
+
+  const menuItems = filterMenu(allMenuItems);
+
+  const visiblePageKeys = new Set(leafKeys(menuItems));
   // My Page is reached from the user menu rather than the sidebar, and is
   // always your own account, so it needs no page permission to open.
   const canViewActivePage = visiblePageKeys.has(activeKey) || activeKey === 'my-page';
-  const firstVisiblePage = menuItems.length
-    ? (menuItems[0].children ? menuItems[0].children[0].key : menuItems[0].key)
-    : null;
+  // The first actual page, not the first entry — the first entry may now be a
+  // group whose own key renders nothing.
+  const [firstVisiblePage = null] = leafKeys(menuItems);
 
   // Rendering off effectiveKey rather than activeKey means a revoked page is
   // never painted, not even for the frame before the effect below corrects it.

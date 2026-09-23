@@ -29,6 +29,16 @@ export const IMAGE_FORMATS = [
   { value: 'jpg', label: 'JPG', extension: 'jpg', mime: 'image/jpeg', hint: 'Lossy, no transparency — flattened onto the background colour.' },
   { value: 'ico', label: 'ICO', extension: 'ico', mime: 'image/x-icon', hint: 'Windows icon. Packs every standard size up to 256px into one file.' },
   { value: 'gif', label: 'GIF', extension: 'gif', mime: 'image/gif', hint: '256 colours, 1-bit transparency.' },
+  {
+    value: 'svg',
+    label: 'SVG',
+    extension: 'svg',
+    mime: 'image/svg+xml',
+    hint: 'Traced to real outlines that scale. Suits logos, icons and line art; a photograph traces badly.',
+    // The only format here whose output is shapes rather than pixels, so it is
+    // the only one with settings of its own.
+    traced: true,
+  },
 ];
 
 /** The sizes a favicon or app icon is actually asked for. */
@@ -75,7 +85,8 @@ export const readSvg = async (file) => {
   const width = svgLength(root.getAttribute('width')) || (hasBox ? box[2] : 0) || SVG_FALLBACK.width;
   const height = svgLength(root.getAttribute('height')) || (hasBox ? box[3] : 0) || SVG_FALLBACK.height;
 
-  const renderAt = async (targetWidth, targetHeight) => {
+  /** The same markup, resized — what an SVG-to-SVG conversion should return. */
+  const markupAt = (targetWidth, targetHeight) => {
     const clone = root.cloneNode(true);
 
     // Without a viewBox the drawing does not scale with the element: it is
@@ -90,7 +101,11 @@ export const readSvg = async (file) => {
     // does: without this the browser loads it as unknown XML and draws nothing.
     if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 
-    const blob = new Blob([new XMLSerializer().serializeToString(clone)], {
+    return new XMLSerializer().serializeToString(clone);
+  };
+
+  const renderAt = async (targetWidth, targetHeight) => {
+    const blob = new Blob([markupAt(targetWidth, targetHeight)], {
       type: 'image/svg+xml;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);
@@ -111,7 +126,7 @@ export const readSvg = async (file) => {
     return image;
   };
 
-  return { width, height, renderAt };
+  return { width, height, renderAt, markupAt };
 };
 
 /** Draw `image` into a fresh canvas at the given size, optionally flattened. */
@@ -249,11 +264,13 @@ const toGif = async (image, renderAt, width, height, background) => {
 export const convertImage = async ({
   image,
   renderAt = null,
+  markupAt = null,
   format,
   width,
   height,
   quality = 0.92,
   background = '#ffffff',
+  trace = {},
 }) => {
   const outWidth = Math.max(1, Math.round(width));
   const outHeight = Math.max(1, Math.round(height));
@@ -285,6 +302,27 @@ export const convertImage = async ({
     case 'gif':
       return toGif(image, renderAt, outWidth, outHeight, background);
 
+    case 'svg': {
+      // An SVG asked to become an SVG is a resize, not a trace. Tracing one
+      // would rasterise a drawing that is already made of shapes and then
+      // guess those shapes back, losing every one of them on the way.
+      if (markupAt) {
+        return new Blob([markupAt(outWidth, outHeight)], { type: 'image/svg+xml;charset=utf-8' });
+      }
+
+      // Imported here so the tracer and gifenc load only for the one format
+      // that needs them.
+      const { traceToSvg } = await import('./imageTrace');
+      const { markup } = await traceToSvg({
+        image,
+        width: outWidth,
+        height: outHeight,
+        background,
+        ...trace,
+      });
+      return new Blob([markup], { type: 'image/svg+xml;charset=utf-8' });
+    }
+
     default:
       throw new Error(`Unknown output format "${format}".`);
   }
@@ -298,7 +336,7 @@ export const convertImage = async ({
  */
 export const loadImageFile = async (file) => {
   if (isSvgFile(file)) {
-    const { width, height, renderAt } = await readSvg(file);
+    const { width, height, renderAt, markupAt } = await readSvg(file);
     return {
       image: await renderAt(width, height),
       // The preview shows the original file, so the panel displays the vector
@@ -307,6 +345,7 @@ export const loadImageFile = async (file) => {
       width,
       height,
       renderAt,
+      markupAt,
       vector: true,
     };
   }
@@ -321,6 +360,7 @@ export const loadImageFile = async (file) => {
       width: image.naturalWidth,
       height: image.naturalHeight,
       renderAt: null,
+      markupAt: null,
       vector: false,
     });
     image.onerror = () => {

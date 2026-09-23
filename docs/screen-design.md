@@ -19,7 +19,8 @@ Every signed-in screen sits inside one shell:
 ```
 
 **Sidebar order:** Overview · Users · Data · Camera Management · Project
-Management · Schedule · Tools (LVGL, Converting, YOLO, Transformers, Keras) ·
+Management · Schedule · Tools (LVGL, Converting, and an **AI** group holding
+YOLO, Transformers and Keras) ·
 Chat · Mail · Meetings · Posts · Database Management · System Monitoring ·
 Basic Data (Category).
 
@@ -94,8 +95,11 @@ other, with a switch between Login and Register.
   out before filling anything in. On success the card returns to the Login
   side, because there is nothing more to do here until an administrator acts.
 
-The five personal fields are optional and carry no asterisk; the face capture
-panel refuses to submit without a photo.
+The five personal fields are optional and carry no asterisk. So is the face
+capture panel: it says "optional" under its heading, its status line reads
+"Face not registered — optional" against an information icon rather than a
+warning one, and once a photo is taken a **Remove** button appears beside
+Change Face. Nothing on the panel blocks the form.
 
 ### 3.2 Overview
 
@@ -358,7 +362,7 @@ of the measured series. Nothing on this page is simulated.
 | Camera Management / Camera Wall | Card grid of cameras with a preview or a "no preview" placeholder, status badge, protocol chip and per-card actions (Edit and Delete only with the permission); a wall of live tiles; a single-camera view with fullscreen and object detection. |
 | Schedule | Month view with an entry dialog and an upcoming list. |
 | Contacts (My Page tab) | Searchable list with favourite toggle and a contact dialog. |
-| Tools | One page per tool: LVGL, Converting, YOLO, Transformers, Keras. Both image tools — Converting and the LVGL image tab — take SVG as well as raster input, and render the vector at each output size rather than scaling one decode of it. The LVGL tab emits the v9 `lv_image_dsc_t` form and says so on the output card. YOLO has a Labelling tab: a folder picker on the left with the class list, the image on a canvas in the middle, and the shape list and exports on the right. |
+| Tools | LVGL and Converting sit directly under Tools; YOLO, Transformers and Keras sit in an **AI** group beneath them, since those three are about models where the other two are file converters. Both image tools — Converting and the LVGL image tab — take SVG as well as raster input, and render the vector at each output size rather than scaling one decode of it. Converting also emits SVG, by tracing. The LVGL tab emits the v9 `lv_image_dsc_t` form and says so on the output card. YOLO has a Labelling tab: a folder picker on the left with the class list, the image on a canvas in the middle, and the shape list and exports on the right. |
 
 ## 4. Interaction rules
 

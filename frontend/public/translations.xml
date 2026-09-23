@@ -518,4 +518,8 @@
   <text id="faceOptional" en="Face not registered — optional" es="Rostro no registrado — opcional" zh="未注册人脸 — 可选" jp="顔は未登録です — 任意" />
   <text id="faceOptionalHelp" en="Optional. Add one to sign in by face as well as by password; an administrator can add it later instead." es="Opcional. Anadalo para iniciar sesion con el rostro ademas de con la contrasena; un administrador puede anadirlo mas tarde." zh="可选。添加后即可使用人脸登录（密码登录同样可用）；也可以稍后由管理员添加。" jp="任意です。登録するとパスワードに加えて顔でもログインできます。後から管理者が登録することもできます。" />
   <text id="removeFace" en="Remove" es="Quitar" zh="移除" jp="削除" />
+  <text id="traceColours" en="Colours: {count}" es="Colores: {count}" zh="颜色数：{count}" jp="色数: {count}" />
+  <text id="traceDetail" en="Detail: {percent}%" es="Detalle: {percent}%" zh="细节：{percent}%" jp="ディテール: {percent}%" />
+  <text id="tracePhotoWarning" en="Tracing follows flat areas of colour, so logos, icons and line art come out well. A photograph has none, and traces into thousands of blotches that are larger than the original file." es="El trazado sigue las areas planas de color, por lo que logotipos, iconos y dibujos lineales salen bien. Una fotografia no las tiene y se convierte en miles de manchas mas pesadas que el archivo original." zh="描摹依赖大片平坦的色块，因此徽标、图标和线稿效果良好。照片没有这样的色块，会被描摹成上千个色斑，文件反而比原图更大。" jp="トレースは平坦な色面をたどるため、ロゴ・アイコン・線画はきれいに変換できます。写真には平坦な面がなく、元のファイルより大きな数千個の斑点になります。" />
+  <text id="svgAlreadyVector" en="This file is already vector. It will be resized rather than traced, so nothing is lost." es="Este archivo ya es vectorial. Se redimensionara en lugar de trazarse, asi que no se pierde nada." zh="该文件本身就是矢量图，将直接调整尺寸而不进行描摹，因此不会有任何损失。" jp="このファイルは既にベクターです。トレースではなくサイズ変更のみ行うため、情報は失われません。" />
 </translations>

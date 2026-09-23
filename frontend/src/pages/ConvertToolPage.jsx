@@ -38,6 +38,11 @@ function ImageConverter() {
   const [lockRatio, setLockRatio] = useState(true);
   const [quality, setQuality] = useState(92);
   const [background, setBackground] = useState('#ffffff');
+  // Tracing settings, used only by SVG. Twelve colours and a middling detail
+  // level is a reasonable first attempt at a logo without being so fine that
+  // the first result takes a noticeable time to appear.
+  const [colours, setColours] = useState(12);
+  const [detail, setDetail] = useState(60);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
@@ -46,6 +51,22 @@ function ImageConverter() {
   useEffect(() => () => {
     if (currentUrl.current) URL.revokeObjectURL(currentUrl.current);
   }, []);
+
+  // A preview of the output, torn down with the result it belongs to so a long
+  // session of trial conversions does not accumulate object URLs.
+  const [resultUrl, setResultUrl] = useState('');
+  const [previewBroken, setPreviewBroken] = useState(false);
+  useEffect(() => setPreviewBroken(false), [resultUrl]);
+
+  useEffect(() => {
+    if (!result?.blob) {
+      setResultUrl('');
+      return undefined;
+    }
+    const url = URL.createObjectURL(result.blob);
+    setResultUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [result]);
 
   const pickFile = async (file) => {
     if (!file) return;
@@ -96,6 +117,10 @@ function ImageConverter() {
         // the requested size instead of being scaled up from the preview, so
         // enlarging an icon gains detail rather than blur.
         renderAt: source.renderAt,
+        // Present only for SVG sources, and only consulted when SVG is also
+        // the target — that pairing is a resize, not a trace.
+        markupAt: source.markupAt,
+        trace: { colours, detail },
         format,
         width: width || source.width,
         height: height || source.height,
@@ -167,6 +192,26 @@ function ImageConverter() {
               />
             )}
 
+            {format === 'svg' && !source?.vector && (
+              <>
+                <div>
+                  <Text type="secondary">{t('traceColours', { count: colours })}</Text>
+                  <Slider min={2} max={32} value={colours} onChange={setColours} />
+                </div>
+                <div>
+                  <Text type="secondary">{t('traceDetail', { percent: detail })}</Text>
+                  <Slider min={0} max={100} value={detail} onChange={setDetail} />
+                </div>
+                {/* Said before the conversion, not after a two-minute wait and a
+                    file larger than the original. */}
+                <Alert type="info" showIcon message={t('tracePhotoWarning')} />
+              </>
+            )}
+
+            {format === 'svg' && source?.vector && (
+              <Alert type="info" showIcon message={t('svgAlreadyVector')} />
+            )}
+
             {format === 'jpg' && (
               <>
                 <div>
@@ -225,6 +270,25 @@ function ImageConverter() {
                   <br />
                   <Text type="secondary">{t('vectorSourceNote')}</Text>
                 </>
+              )}
+
+              {/* The converted file, shown rather than only offered. Tracing
+                  has two settings whose right values depend entirely on the
+                  picture, and tuning them by downloading each attempt is not
+                  tuning them. */}
+              {resultUrl && !previewBroken && (
+                <div className="convert-result">
+                  <Text strong>{t('result')}</Text>
+                  <img
+                    src={resultUrl}
+                    alt={t('result')}
+                    className="convert-preview"
+                    /* ICO is the one output a browser may decline to render,
+                       and a broken-image glyph would read as a conversion that
+                       failed when the file is perfectly good. */
+                    onError={() => setPreviewBroken(true)}
+                  />
+                </div>
               )}
             </>
           ) : (
