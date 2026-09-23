@@ -1,5 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { AudioMutedOutlined, DesktopOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import {
+  AudioMutedOutlined,
+  CompressOutlined,
+  DesktopOutlined,
+  ExpandOutlined,
+  VideoCameraOutlined,
+} from '@ant-design/icons';
+import { useLanguage } from '../../i18n';
 
 const initialsOf = (name) => String(name || '?')
   .trim()
@@ -24,7 +31,10 @@ export default function VideoTile({
   sharing = false,
   recording = false,
   connecting = false,
+  spotlit = false,
+  onToggleSpotlight,
 }) {
+  const { t } = useLanguage();
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -38,8 +48,24 @@ export default function VideoTile({
   const cameraOff = isSelf ? state.cameraOff : Boolean(state.cameraOff);
   const blank = !stream || (cameraOff && !sharing);
 
+  const person = `${label}${isSelf ? ' (you)' : ''}`;
+  const spotlightLabel = spotlit
+    ? t('exitSpotlightNamed', { name: person })
+    : t('spotlightNamed', { name: person });
+
   return (
-    <div className={`meeting-tile${isSelf ? ' is-self' : ''}${sharing ? ' is-sharing' : ''}`}>
+    <div
+      className={[
+        'meeting-tile',
+        isSelf ? 'is-self' : '',
+        sharing ? 'is-sharing' : '',
+        spotlit ? 'is-spotlit' : '',
+      ].filter(Boolean).join(' ')}
+      // Double-click is the gesture people already expect from every other
+      // call app, but it is invisible and unreachable from a keyboard — hence
+      // the button in the bar, which is the same action with a label on it.
+      onDoubleClick={onToggleSpotlight}
+    >
       <video
         ref={videoRef}
         className={blank ? 'meeting-tile-video is-hidden' : 'meeting-tile-video'}
@@ -63,6 +89,23 @@ export default function VideoTile({
           {sharing && <DesktopOutlined title="Sharing their screen" />}
           {state.muted && <AudioMutedOutlined title="Microphone off" />}
           {cameraOff && !sharing && <VideoCameraOutlined className="is-off" title="Camera off" />}
+
+          {onToggleSpotlight && (
+            <button
+              type="button"
+              className="meeting-tile-spot"
+              title={spotlightLabel}
+              aria-label={spotlightLabel}
+              aria-pressed={spotlit}
+              onClick={onToggleSpotlight}
+              // The tile below is listening for double-clicks, and two quick
+              // presses of this button would otherwise be one of them —
+              // spotlighting and then immediately undoing it.
+              onDoubleClick={(event) => event.stopPropagation()}
+            >
+              {spotlit ? <CompressOutlined /> : <ExpandOutlined />}
+            </button>
+          )}
         </span>
       </div>
 

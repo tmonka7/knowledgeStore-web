@@ -564,6 +564,8 @@
   <text id="meetingUpdated" en="Meeting updated." es="Reunión actualizada." zh="会议已更新。" jp="会議を更新しました。" />
   <text id="meetingCreated" en="Meeting created." es="Reunión creada." zh="会议已创建。" jp="会議を作成しました。" />
   <text id="unableToSaveMeeting" en="Unable to save the meeting." es="No se pudo guardar la reunión." zh="无法保存会议。" jp="会議を保存できません。" />
+  <text id="spotlightNamed" en="Show {name} large" es="Ver a {name} en grande" zh="放大显示 {name}" jp="{name} を大きく表示" />
+  <text id="exitSpotlightNamed" en="Stop showing {name} large" es="Dejar de ver a {name} en grande" zh="取消放大显示 {name}" jp="{name} の拡大表示をやめる" />
   <text id="whiteboard" en="Whiteboard" es="Pizarra" zh="白板" jp="ホワイトボード" />
   <text id="openWhiteboard" en="Open the whiteboard" es="Abrir la pizarra" zh="打开白板" jp="ホワイトボードを開く" />
   <text id="closeWhiteboard" en="Close the whiteboard" es="Cerrar la pizarra" zh="关闭白板" jp="ホワイトボードを閉じる" />

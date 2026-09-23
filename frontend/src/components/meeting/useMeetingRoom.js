@@ -69,6 +69,9 @@ export default function useMeetingRoom({ meetingId, active }) {
   const [streams, setStreams] = useState({});
   const [chat, setChat] = useState([]);
   const [strokes, setStrokes] = useState([]);
+  // Bumped every time the board is wiped, so a pen that is mid-stroke when it
+  // happens can be told to let go of the line it is holding.
+  const [boardEpoch, setBoardEpoch] = useState(0);
   const [localStream, setLocalStream] = useState(null);
   // Held apart from the camera stream so your own tile can show what everyone
   // else is being sent while you share, without disturbing the camera track.
@@ -305,9 +308,18 @@ export default function useMeetingRoom({ meetingId, active }) {
        * arrive this way belong to somebody else.
        */
       case 'board':
+        // Counted outside the updater, which React may run more than once.
+        // Anyone drawing when this arrives has to drop the line under their
+        // pen: the server wiped it along with everything else, so keeping it
+        // would leave a stroke that exists on one screen and nowhere else.
+        if (message.op === 'clear') setBoardEpoch((count) => count + 1);
+
         setStrokes((list) => {
           switch (message.op) {
             case 'begin':
+              // A malformed frame must not throw in here — a failed state
+              // updater would take the whole call down, not just the board.
+              if (!message.stroke?.id) return list;
               return list.some((stroke) => stroke.id === message.stroke.id)
                 ? list
                 : [...list, message.stroke];
@@ -664,12 +676,13 @@ export default function useMeetingRoom({ meetingId, active }) {
 
   const whiteboard = useMemo(() => ({
     strokes,
+    epoch: boardEpoch,
     begin: boardBegin,
     append: boardAppend,
     commit: boardCommit,
     undo: boardUndo,
     clear: boardClear,
-  }), [strokes, boardBegin, boardAppend, boardCommit, boardUndo, boardClear]);
+  }), [strokes, boardEpoch, boardBegin, boardAppend, boardCommit, boardUndo, boardClear]);
 
   /** Tells the room a recording has started or stopped. Never optional. */
   const setRecording = useCallback((value) => {

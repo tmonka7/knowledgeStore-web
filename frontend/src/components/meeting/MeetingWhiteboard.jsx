@@ -97,7 +97,7 @@ export default function MeetingWhiteboard({ whiteboard, onClose }) {
   const sentRef = useRef(0);
   const lastSendRef = useRef(0);
 
-  const { strokes } = whiteboard;
+  const { strokes, epoch } = whiteboard;
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -141,10 +141,30 @@ export default function MeetingWhiteboard({ whiteboard, onClose }) {
   useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
 
   /*
+   * Somebody cleared the board while this pen was down.
+   *
+   * The stroke in progress was wiped on the server along with everything else,
+   * so it has to be let go of here too — carrying on would finish a line that
+   * this browser is alone in having, and it would sit there until the next
+   * clear. The pointer handlers all bail on a null live stroke, so releasing it
+   * is enough; nothing else has to know.
+   */
+  useEffect(() => {
+    liveRef.current = null;
+    requestRedraw();
+  }, [epoch, requestRedraw]);
+
+  /*
    * The canvas is sized in device pixels and laid out in CSS pixels. Without
    * this the browser stretches one to the other and every line on a high-DPI
    * screen — which is most of them — comes out soft.
    */
+  // Read through a ref by the resize effect below, so that effect can depend on
+  // nothing and subscribe once. Depending on `redraw` there would tear down and
+  // rebuild the observer on every stroke anyone in the room draws.
+  const redrawRef = useRef(redraw);
+  redrawRef.current = redraw;
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
@@ -159,14 +179,14 @@ export default function MeetingWhiteboard({ whiteboard, onClose }) {
       // painted again afterwards — hence the redraw rather than a bare resize.
       canvas.width = width;
       canvas.height = height;
-      redraw();
+      redrawRef.current();
     };
 
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [redraw]);
+  }, []);
 
   const toBoard = (event) => {
     const rect = canvasRef.current.getBoundingClientRect();

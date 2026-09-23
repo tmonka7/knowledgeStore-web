@@ -37,6 +37,10 @@ export default function MeetingRoom({ user, meeting, onLeave, onMeetingChanged }
   const [chatOpen, setChatOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [seenChat, setSeenChat] = useState(0);
+  // Who is on the big tile. Held as a key rather than as the tile itself, so a
+  // participant who leaves takes the spotlight with them instead of freezing a
+  // stale copy of their last frame on the stage.
+  const [spotlitKey, setSpotlitKey] = useState(null);
 
   const tiles = useMemo(() => [
     {
@@ -79,6 +83,40 @@ export default function MeetingRoom({ user, meeting, onLeave, onMeetingChanged }
 
   const unreadChat = Math.max(0, room.chat.length - seenChat);
   const someoneElseRecording = room.peers.some((peer) => peer.state?.recording);
+
+  /*
+   * The spotlight, resolved fresh each render.
+   *
+   * Looked up in `tiles` rather than trusted from state: the person on the big
+   * tile can leave the call, and a key that no longer matches anybody simply
+   * finds nothing and drops the room back to the grid on its own.
+   *
+   * While the whiteboard is up the stage belongs to the board and the faces are
+   * a strip along the bottom, so the layout is not applied — but the choice is
+   * remembered, the tile still shows as picked, and it takes effect the moment
+   * the board is closed.
+   */
+  const spotlit = boardOpen ? null : tiles.find((tile) => tile.key === spotlitKey) || null;
+  const others = spotlit ? tiles.filter((tile) => tile.key !== spotlit.key) : tiles;
+
+  const toggleSpotlight = (key) => {
+    setSpotlitKey((current) => (current === key ? null : key));
+  };
+
+  const renderTile = (tile) => (
+    <VideoTile
+      key={tile.key}
+      stream={tile.stream}
+      label={tile.label}
+      isSelf={tile.isSelf}
+      state={tile.state}
+      sharing={tile.sharing}
+      recording={tile.recording}
+      connecting={tile.connecting}
+      spotlit={tile.key === spotlitKey}
+      onToggleSpotlight={() => toggleSpotlight(tile.key)}
+    />
+  );
 
   const leave = () => {
     if (recorder.recording) recorder.stop();
@@ -160,21 +198,17 @@ export default function MeetingRoom({ user, meeting, onLeave, onMeetingChanged }
             <MeetingWhiteboard whiteboard={room.whiteboard} onClose={() => setBoardOpen(false)} />
           )}
 
-          <div className={`meeting-grid count-${Math.min(tiles.length, 9)}`}>
-            {room.phase === 'connecting' && !tiles.length && <Spin />}
-            {tiles.map((tile) => (
-              <VideoTile
-                key={tile.key}
-                stream={tile.stream}
-                label={tile.label}
-                isSelf={tile.isSelf}
-                state={tile.state}
-                sharing={tile.sharing}
-                recording={tile.recording}
-                connecting={tile.connecting}
-              />
-            ))}
-          </div>
+          {spotlit ? (
+            <div className="meeting-spotlight-layout">
+              <div className="meeting-spotlight">{renderTile(spotlit)}</div>
+              {others.length > 0 && <div className="meeting-rail">{others.map(renderTile)}</div>}
+            </div>
+          ) : (
+            <div className={`meeting-grid count-${Math.min(tiles.length, 9)}`}>
+              {room.phase === 'connecting' && !tiles.length && <Spin />}
+              {tiles.map(renderTile)}
+            </div>
+          )}
         </div>
 
         {chatOpen && (

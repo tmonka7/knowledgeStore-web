@@ -2906,6 +2906,9 @@
   border-radius: var(--v-radius-lg);
   overflow: hidden;
   border: 1px solid var(--v-border);
+  /* Double-click picks the tile, and without this it also selects the name in
+     the bar and leaves it highlighted. */
+  user-select: none;
 }
 
 .meeting-tile.is-sharing {
@@ -3059,6 +3062,89 @@
   display: flex;
   flex-direction: column;
   gap: var(--v-space-2);
+}
+
+/* ------------------------------------------------- one person, made large */
+
+/* Double-clicking a tile puts that person on the stage and moves everybody
+   else into a column beside them. The rail keeps a fixed width so the big tile
+   does not resize every time somebody joins or leaves. */
+.meeting-spotlight-layout {
+  flex: 1;
+  display: flex;
+  gap: var(--v-space-3);
+  min-height: 0;
+}
+
+.meeting-spotlight {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+/* A tile normally holds its own 16:9 box. On the stage it takes the height
+   that is going instead, or a tall window leaves a band of dead space under
+   the person everybody is looking at. */
+.meeting-spotlight .meeting-tile {
+  flex: 1;
+  aspect-ratio: auto;
+  min-height: 320px;
+}
+
+.meeting-rail {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  /* The rail scrolls on its own, so a full room does not push the stage off
+     the bottom of the screen. */
+  overflow-y: auto;
+}
+
+/* No grow and no shrink: each thumbnail takes the height its 16:9 box asks
+   for. Left to stretch, a rail holding one person would be a second full-size
+   tile rather than a thumbnail. */
+.meeting-rail .meeting-tile {
+  flex: 0 0 auto;
+}
+
+/* The ring is a shadow rather than a border so that picking a tile does not
+   change its size and shuffle everything beside it by a pixel. */
+.meeting-tile.is-spotlit {
+  border-color: var(--v-primary);
+  box-shadow: 0 0 0 2px var(--v-primary);
+}
+
+.meeting-tile-spot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  /* Hidden until wanted: it sits on somebody's face, and the double-click is
+     the gesture most people will use. It stays put once the tile is picked, so
+     there is always a visible way back to the grid. */
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.meeting-tile:hover .meeting-tile-spot,
+.meeting-tile:focus-within .meeting-tile-spot,
+.meeting-tile.is-spotlit .meeting-tile-spot {
+  opacity: 1;
+}
+
+/* Keyboard users never trigger :hover, so the button has to be visible the
+   moment it is tabbed to rather than only once a pointer is over the tile. */
+.meeting-tile-spot:focus-visible {
+  opacity: 1;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* ------------------------------------------------- the shared whiteboard */
@@ -3268,6 +3354,27 @@
 
   .meeting-grid.count-2 {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* A column of thumbnails beside the stage leaves neither of them wide enough
+     on a phone, so the rail goes underneath and scrolls sideways instead. */
+  .meeting-spotlight-layout {
+    flex-direction: column;
+  }
+
+  .meeting-rail {
+    flex: 0 0 auto;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .meeting-rail .meeting-tile {
+    width: 160px;
+  }
+
+  .meeting-spotlight .meeting-tile {
+    min-height: 220px;
   }
 }
 
