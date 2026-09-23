@@ -402,7 +402,7 @@ export default function UsersPage({
     ? [
       ...userTableColumns,
       {
-        title: 'Status',
+        title: t('status'),
         key: 'status',
         width: 120,
         render: (_, record) => {
@@ -415,14 +415,14 @@ export default function UsersPage({
         },
       },
       {
-        title: 'Access',
+        title: t('access'),
         key: 'access',
         render: (_, record) => (record.role === 'admin'
-          ? <StatusBadge tone="amber">Full access</StatusBadge>
-          : <StatusBadge tone="grey">{(record.permissions || []).length} permissions</StatusBadge>),
+          ? <StatusBadge tone="amber">{t('fullAccess')}</StatusBadge>
+          : <StatusBadge tone="grey">{(record.permissions || []).length} {t('permissions')}</StatusBadge>),
       },
       {
-        title: 'Actions',
+        title: t('actions'),
         key: 'actions',
         width: 210,
         render: (_, record) => {
@@ -431,16 +431,16 @@ export default function UsersPage({
           return (
             <div className="vision-row-actions">
               {status !== 'allowed' && (
-                <Tooltip title={status === 'pending' ? 'Approve this account' : 'Allow this account again'}>
+                <Tooltip title={status === 'pending' ? t('approveThisAccount') : t('allowThisAccountAgain')}>
                   <Button
                     size="small"
                     type="primary"
                     className="vision-btn-primary"
                     loading={busyId === record.id}
                     onClick={() => changeStatus(record, 'allowed')}
-                    aria-label={`Allow ${record.fullName}`}
+                    aria-label={`${t('allow')} ${record.fullName}`}
                   >
-                    Allow
+                    {t('allow')}
                   </Button>
                 </Tooltip>
               )}
@@ -449,36 +449,36 @@ export default function UsersPage({
                    API blocks it either way, and offering a button that can
                    only fail is not a choice. */
                 !self && (
-                  <Tooltip title="Refuse this account access">
+                  <Tooltip title={t('refuseThisAccountAccess')}>
                     <Button
                       size="small"
                       danger
                       loading={busyId === record.id}
                       onClick={() => changeStatus(record, 'denied')}
-                      aria-label={`Deny ${record.fullName}`}
+                      aria-label={`${t('deny')} ${record.fullName}`}
                     >
-                      Deny
+                      {t('deny')}
                     </Button>
                   </Tooltip>
                 )
               )}
-              <Tooltip title="Edit">
+              <Tooltip title={t('edit')}>
                 <Button
                   type="text"
                   icon={<EditOutlined />}
                   onClick={() => openEditor(record)}
-                  aria-label={`Edit ${record.fullName}`}
+                  aria-label={`${t('edit')} ${record.fullName}`}
                 />
               </Tooltip>
               {!self && (
-                <Tooltip title="Delete this account and all of its data">
+                <Tooltip title={t('deleteThisAccountData')}>
                   <Button
                     type="text"
                     danger
                     icon={<DeleteOutlined />}
                     loading={busyId === record.id}
                     onClick={() => confirmDelete(record)}
-                    aria-label={`Delete ${record.fullName}`}
+                    aria-label={`${t('delete')} ${record.fullName}`}
                   />
                 </Tooltip>
               )}
@@ -544,9 +544,9 @@ export default function UsersPage({
         <StatCard
           tone={pendingCount ? 'amber' : 'grey'}
           icon={<ExclamationCircleFilled />}
-          label="Waiting for approval"
+          label={t('waitingForApproval')}
           value={pendingCount}
-          meta={deniedCount ? `${deniedCount} denied` : 'Nobody denied'}
+          meta={deniedCount ? `${deniedCount} ${t('denied')}` : t('noOneDenied')}
         />
       </div>
 
@@ -596,7 +596,7 @@ export default function UsersPage({
           value={statusDraft}
           onChange={setStatusDraft}
           options={[
-            { value: 'all', label: 'All statuses' },
+            { value: 'all', label: t('allStatuses') },
             { value: 'pending', label: STATUS_LABEL.pending },
             { value: 'allowed', label: STATUS_LABEL.allowed },
             { value: 'denied', label: STATUS_LABEL.denied },
@@ -606,8 +606,8 @@ export default function UsersPage({
 
       <div className="vision-toolbar">
         <span className="vision-toolbar-meta">
-          Total {filteredUsers.length} {filteredUsers.length === 1 ? 'record' : 'records'}
-          {filteredUsers.length !== users.length && ` (filtered from ${users.length})`}
+          {t('totalUsersLabel', { count: filteredUsers.length })}
+          {filteredUsers.length !== users.length && ` (${t('filteredFrom', { count: users.length })})`}
         </span>
       </div>
 

@@ -15,7 +15,56 @@
   <text id="mail" en="Mail" es="Correo" zh="邮件" jp="メール" />
   <text id="meetings" en="Meetings" es="Reuniones" zh="会议" jp="会議" />
   <text id="systemMonitoring" en="System Monitoring" es="Monitoreo del sistema" zh="系统监控" jp="システム監視" />
+  <text id="tools" en="Tools" es="Herramientas" zh="工具" jp="ツール" />
+  <text id="ai" en="AI" es="IA" zh="AI" jp="AI" />
   <text id="basicData" en="Basic Data" es="Datos basicos" zh="基础数据" jp="基本データ" />
+  <text id="pending" en="Pending" es="Pendiente" zh="待审批" jp="保留中" />
+  <text id="allowed" en="Allowed" es="Permitido" zh="已允许" jp="許可済み" />
+  <text id="denied" en="Denied" es="Denegado" zh="已拒绝" jp="拒否" />
+  <text id="fullAccess" en="Full access" es="Acceso completo" zh="完全访问" jp="完全アクセス" />
+  <text id="waitingForApproval" en="Waiting for approval" es="Esperando aprobacion" zh="待审批" jp="承認待ち" />
+  <text id="noOneDenied" en="Nobody denied" es="Nadie ha sido denegado" zh="没有人被拒绝" jp="拒否者はいません" />
+  <text id="allStatuses" en="All statuses" es="Todos los estados" zh="所有状态" jp="すべてのステータス" />
+  <text id="totalUsersLabel" en="Total {count} user(s)" es="Total {count} usuario(s)" zh="共 {count} 位用户" jp="合計 {count} 人" />
+  <text id="filteredFrom" en="filtered from {count}" es="filtrado de {count}" zh="从 {count} 个筛选" jp="{count} 件から絞り込み" />
+  <text id="approveThisAccount" en="Approve this account" es="Aprobar esta cuenta" zh="批准此账户" jp="このアカウントを承認" />
+  <text id="allowThisAccountAgain" en="Allow this account again" es="Permitir esta cuenta nuevamente" zh="再次允许此账户" jp="このアカウントを再度許可" />
+  <text id="refuseThisAccountAccess" en="Refuse this account access" es="Rechazar el acceso a esta cuenta" zh="拒绝此账户访问" jp="このアカウントへのアクセスを拒否" />
+  <text id="deleteThisAccountData" en="Delete this account and all of its data" es="Eliminar esta cuenta y todos sus datos" zh="删除此账户及其所有数据" jp="このアカウントとすべてのデータを削除" />
+  <text id="access" en="Access" es="Acceso" zh="访问" jp="アクセス" />
+  <text id="status" en="Status" es="Estado" zh="状态" jp="ステータス" />
+  <text id="allow" en="Allow" es="Permitir" zh="允许" jp="許可" />
+  <text id="deny" en="Deny" es="Denegar" zh="拒绝" jp="拒否" />
+  <text id="basicInfo" en="Basic Info" es="Información básica" zh="基本信息" jp="基本情報" />
+  <text id="permissions" en="Permissions" es="Permisos" zh="权限" jp="権限" />
+  <text id="logs" en="Logs" es="Registros" zh="日志" jp="ログ" />
+  <text id="pagePermissions" en="Page permissions" es="Permisos de página" zh="页面权限" jp="ページ権限" />
+  <text id="selectPagesGrantAccess" en="Select the pages you want to grant access to this user." es="Seleccione las páginas a las que desea dar acceso a este usuario." zh="选择要授予此用户访问权限的页面。" jp="このユーザーに許可するページを選択してください。" />
+  <text id="adminsBypassPermissions" en="Admins bypass permissions and can reach every page." es="Los administradores ignoran los permisos y pueden acceder a todas las páginas." zh="管理员绕过权限并可访问所有页面。" jp="管理者は権限を無視してすべてのページにアクセスできます。" />
+  <text id="permissionCatalogUnavailable" en="Permission catalog unavailable." es="Catálogo de permisos no disponible." zh="权限目录不可用。" jp="権限カタログを利用できません。" />
+  <text id="grantAll" en="Grant all" es="Conceder todo" zh="全部授予" jp="すべて付与" />
+  <text id="clearAll" en="Clear all" es="Limpiar todo" zh="全部清除" jp="すべてクリア" />
+  <text id="page" en="Page" es="Página" zh="页面" jp="ページ" />
+  <text id="registeredFace" en="Registered face" es="Rostro registrado" zh="已注册人脸" jp="登録済み顔" />
+  <text id="noFaceRegistered" en="No face registered" es="No hay rostro registrado" zh="未注册人脸" jp="顔未登録" />
+  <text id="faceRecognized" en="Face Recognized" es="Rostro reconocido" zh="已识别人脸" jp="顔認識済み" />
+  <text id="awaitingPhoto" en="Awaiting photo" es="Esperando foto" zh="等待照片" jp="写真待ち" />
+  <text id="changeFacePhoto" en="Change face photo" es="Cambiar foto facial" zh="更换人脸照片" jp="顔写真を変更" />
+  <text id="chooseFile" en="Choose File" es="Elegir archivo" zh="选择文件" jp="ファイルを選択" />
+  <text id="noFileChosen" en="No file chosen" es="Ningún archivo seleccionado" zh="未选择文件" jp="ファイル未選択" />
+  <text id="accountDetails" en="Account details" es="Detalles de la cuenta" zh="账户详情" jp="アカウント詳細" />
+  <text id="whatThisAccountRecords" en="What the system currently records for this account." es="Lo que el sistema registra actualmente para esta cuenta." zh="系统当前记录此账户的内容。" jp="このアカウントに対してシステムが現在記録している内容。" />
+  <text id="usernameShort" en="Username" es="Nombre de usuario" zh="用户名" jp="ユーザー名" />
+  <text id="accountCreated" en="Account created" es="Cuenta creada" zh="账户创建时间" jp="アカウント作成日" />
+  <text id="roleStatus" en="Role" es="Rol" zh="角色" jp="ロール" />
+  <text id="facePhotoStatus" en="Face photo" es="Foto facial" zh="人脸照片" jp="顔写真" />
+  <text id="permissionsGranted" en="Permissions granted" es="Permisos concedidos" zh="已授予权限" jp="付与済み権限" />
+  <text id="signInHistoryNotRecorded" en="Sign-in and activity history is not recorded yet." es="El historial de inicio de sesión y actividad aún no se registra." zh="登录和活动历史尚未记录。" jp="ログインとアクティビティの履歴はまだ記録されていません。" />
+  <text id="saveChanges" en="Save changes" es="Guardar cambios" zh="保存更改" jp="変更を保存" />
+  <text id="allPagesAdmin" en="All pages (admin)" es="Todas las páginas (admin)" zh="所有页面（管理员）" jp="すべてのページ（管理者）" />
+  <text id="ofTotalPermissions" en="{count} of {total}" es="{count} de {total}" zh="{count}/{total}" jp="{count}/{total}" />
+  <text id="userEditorTitle" en="Edit User" es="Editar usuario" zh="编辑用户" jp="ユーザーを編集" />
+  <text id="userEditorSubtitle" en="Update user information and permissions" es="Actualice la información y permisos del usuario" zh="更新用户信息和权限" jp="ユーザー情報と権限を更新" />
   <text id="category" en="Category" es="Categoria" zh="分类" jp="カテゴリ" />
   <text id="settings" en="Settings" es="Configuracion" zh="设置" jp="設定" />
   <text id="logout" en="Logout" es="Cerrar sesion" zh="退出登录" jp="ログアウト" />
