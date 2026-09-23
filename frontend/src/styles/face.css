@@ -37,6 +37,15 @@
   text-transform: uppercase;
 }
 
+/* Sits directly under the title, so the section reads as optional before
+   anyone works out that nothing is stopping them from skipping it. */
+.face-section-hint {
+  display: block;
+  margin: -10px 0 14px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 /* ----------------------------------------------------- circular preview */
 
 .face-circle-wrap {

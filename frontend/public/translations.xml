@@ -305,7 +305,6 @@
   <text id="passwordMinLength" en="Password must be at least 6 characters." es="La contrasena debe tener al menos 6 caracteres." zh="密码至少需要6个字符。" jp="パスワードは6文字以上必要です。" />
   <text id="confirmYourPassword" en="Please confirm your password." es="Confirme su contrasena." zh="请确认密码。" jp="パスワードを確認してください。" />
   <text id="passwordsDoNotMatch" en="Passwords do not match." es="Las contrasenas no coinciden." zh="密码不匹配。" jp="パスワードが一致しません。" />
-  <text id="faceRequiredForRegistration" en="Please take or upload a clear face photo before registering." es="Tome o cargue una foto clara del rostro antes de registrarse." zh="注册前请拍摄或上传清晰的人脸照片。" jp="登録前に鮮明な顔写真を撮影またはアップロードしてください。" />
   <text id="chatSubtitle" en="Conversations with your team and the VisionAI assistant." es="Conversaciones con su equipo y el asistente VisionAI." zh="与团队和 VisionAI 助手的会话。" jp="チームやVisionAIアシスタントとの会話。" />
   <text id="mailSubtitle" en="Read, reply to and send platform messages." es="Lea, responda y envíe mensajes de la plataforma." zh="阅读、回复和发送平台消息。" jp="プラットフォームのメッセージを読んだり返信・送信したりします。" />
   <text id="untitledMessage" en="Untitled message" es="Mensaje sin título" zh="无标题消息" jp="無題のメッセージ" />
@@ -481,4 +480,42 @@
   <text id="noMailYet" en="No mail yet" es="Aun no hay correo" zh="暂无邮件" jp="メールはありません" />
   <text id="openMail" en="Open Mail" es="Abrir correo" zh="打开邮件" jp="メールを開く" />
   <text id="registrationNeedsApproval" en="New accounts need an administrator to approve them. You will be able to sign in once yours is approved." es="Las cuentas nuevas necesitan la aprobacion de un administrador. Podra iniciar sesion cuando la suya sea aprobada." zh="新账户需要管理员批准。获批后即可登录。" jp="新しいアカウントは管理者の承認が必要です。承認されるとログインできます。" />
+  <text id="labelling" en="Labelling" es="Etiquetado" zh="标注" jp="ラベリング" />
+  <text id="imageFolder" en="Image folder" es="Carpeta de imagenes" zh="图像文件夹" jp="画像フォルダ" />
+  <text id="chooseFolder" en="Choose a folder" es="Elegir una carpeta" zh="选择文件夹" jp="フォルダを選択" />
+  <text id="chooseImagesInstead" en="Choose individual images" es="Elegir imagenes sueltas" zh="改为选择单个图像" jp="画像を個別に選択" />
+  <text id="folderLoaded" en="{name} — {count} images" es="{name} — {count} imagenes" zh="{name} — {count} 张图像" jp="{name} — {count} 枚の画像" />
+  <text id="annotationTask" en="Annotation task" es="Tarea de anotacion" zh="标注任务" jp="アノテーションの種類" />
+  <text id="classes" en="Classes" es="Clases" zh="类别" jp="クラス" />
+  <text id="newClassName" en="New class name" es="Nombre de la nueva clase" zh="新类别名称" jp="新しいクラス名" />
+  <text id="add" en="Add" es="Anadir" zh="添加" jp="追加" />
+  <text id="removeClassAria" en="Remove the class {name}" es="Eliminar la clase {name}" zh="删除类别 {name}" jp="クラス {name} を削除" />
+  <text id="removeClassTitle" en="Remove the class {name}?" es="Eliminar la clase {name}?" zh="删除类别 {name}？" jp="クラス {name} を削除しますか？" />
+  <text id="removeClassBody" en="{count} shapes use it and will be deleted with it." es="{count} formas la usan y se eliminaran con ella." zh="有 {count} 个标注使用该类别，将一并删除。" jp="{count} 個の図形がこのクラスを使用しており、一緒に削除されます。" />
+  <text id="classAlreadyExists" en="That class already exists." es="Esa clase ya existe." zh="该类别已存在。" jp="そのクラスは既に存在します。" />
+  <text id="noImageLoaded" en="No image loaded" es="Ninguna imagen cargada" zh="未加载图像" jp="画像が読み込まれていません" />
+  <text id="chooseFolderToBegin" en="Choose a folder of images to begin." es="Elija una carpeta de imagenes para empezar." zh="请选择图像文件夹以开始。" jp="画像フォルダを選択して開始してください。" />
+  <text id="noImagesInFolder" en="No images were found in that folder." es="No se encontraron imagenes en esa carpeta." zh="该文件夹中没有找到图像。" jp="そのフォルダに画像が見つかりませんでした。" />
+  <text id="selectedFiles" en="Selected files" es="Archivos seleccionados" zh="所选文件" jp="選択したファイル" />
+  <text id="restoredLabels" en="Restored labels for {count} images." es="Se restauraron las etiquetas de {count} imagenes." zh="已恢复 {count} 张图像的标注。" jp="{count} 枚の画像のラベルを復元しました。" />
+  <text id="undoLastShape" en="Undo the last shape" es="Deshacer la ultima forma" zh="撤销最后一个标注" jp="最後の図形を取り消す" />
+  <text id="clearThisImage" en="Clear this image" es="Limpiar esta imagen" zh="清除此图像" jp="この画像を消去" />
+  <text id="boxHelp" en="Drag to draw a box. Click one to select it, drag a corner to resize, and press Delete to remove it." es="Arrastre para dibujar un rectangulo. Haga clic para seleccionarlo, arrastre una esquina para redimensionar y pulse Suprimir para eliminarlo." zh="拖动以绘制矩形。单击可选中，拖动角点可调整大小，按 Delete 键删除。" jp="ドラッグで矩形を描きます。クリックで選択、角をドラッグでサイズ変更、Delete キーで削除します。" />
+  <text id="polygonHelp" en="Click to place points. Click the first point again, or press Enter, to close the shape. Backspace removes the last point." es="Haga clic para colocar puntos. Haga clic de nuevo en el primer punto, o pulse Intro, para cerrar la forma. Retroceso elimina el ultimo punto." zh="单击以放置顶点。再次单击第一个点或按 Enter 闭合图形。Backspace 删除最后一个点。" jp="クリックで頂点を追加します。最初の点をもう一度クリックするか Enter で図形を閉じます。Backspace で直前の点を削除します。" />
+  <text id="shapesOnThisImage" en="Shapes on this image" es="Formas en esta imagen" zh="本图中的标注" jp="この画像の図形" />
+  <text id="nothingOnThisImage" en="Nothing marked on this image yet." es="Todavia no hay nada marcado en esta imagen." zh="此图像尚未标注任何内容。" jp="この画像にはまだ何も記録されていません。" />
+  <text id="removeShapeAria" en="Remove shape {number}" es="Eliminar la forma {number}" zh="删除第 {number} 个标注" jp="図形 {number} を削除" />
+  <text id="box" en="Box" es="Rectangulo" zh="矩形" jp="矩形" />
+  <text id="polygonPoints" en="Polygon, {count} points" es="Poligono, {count} puntos" zh="多边形，{count} 个点" jp="多角形・{count} 点" />
+  <text id="export" en="Export" es="Exportar" zh="导出" jp="エクスポート" />
+  <text id="labellingProgress" en="{visited} of {total} reviewed · {labelled} with labels · {shapes} shapes" es="{visited} de {total} revisadas · {labelled} con etiquetas · {shapes} formas" zh="已查看 {visited}/{total} · 已标注 {labelled} · 共 {shapes} 个图形" jp="{total} 枚中 {visited} 枚を確認 · ラベルあり {labelled} 枚 · 図形 {shapes} 個" />
+  <text id="yoloLabelsZip" en="YOLO labels (.zip)" es="Etiquetas YOLO (.zip)" zh="YOLO 标签 (.zip)" jp="YOLOラベル (.zip)" />
+  <text id="clearEveryLabel" en="Clear every label" es="Borrar todas las etiquetas" zh="清除所有标注" jp="すべてのラベルを消去" />
+  <text id="datasetCsvSaved" en="dataset.csv saved." es="dataset.csv guardado." zh="已保存 dataset.csv。" jp="dataset.csv を保存しました。" />
+  <text id="yoloLabelsSaved" en="YOLO label files saved." es="Archivos de etiquetas YOLO guardados." zh="已保存 YOLO 标签文件。" jp="YOLOラベルファイルを保存しました。" />
+  <text id="clearAllLabelsTitle" en="Clear every label?" es="Borrar todas las etiquetas?" zh="清除所有标注？" jp="すべてのラベルを消去しますか？" />
+  <text id="clearAllLabelsBody" en="All {count} shapes across every image will be removed. This cannot be undone." es="Se eliminaran las {count} formas de todas las imagenes. Esto no se puede deshacer." zh="所有图像中的 {count} 个标注都将被删除，且无法撤销。" jp="すべての画像にある {count} 個の図形が削除されます。元に戻せません。" />
+  <text id="faceOptional" en="Face not registered — optional" es="Rostro no registrado — opcional" zh="未注册人脸 — 可选" jp="顔は未登録です — 任意" />
+  <text id="faceOptionalHelp" en="Optional. Add one to sign in by face as well as by password; an administrator can add it later instead." es="Opcional. Anadalo para iniciar sesion con el rostro ademas de con la contrasena; un administrador puede anadirlo mas tarde." zh="可选。添加后即可使用人脸登录（密码登录同样可用）；也可以稍后由管理员添加。" jp="任意です。登録するとパスワードに加えて顔でもログインできます。後から管理者が登録することもできます。" />
+  <text id="removeFace" en="Remove" es="Quitar" zh="移除" jp="削除" />
 </translations>

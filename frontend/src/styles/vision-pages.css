@@ -3167,3 +3167,55 @@
   color: var(--v-danger);
   font-weight: 600;
 }
+
+/* --- YOLO labelling ---------------------------------------------------- */
+
+/*
+ * The stage is a fixed-height box and the canvas fills it. The image is
+ * letterboxed inside by the canvas itself rather than by CSS, because the
+ * same letterbox has to be available to hit testing — a click has to map back
+ * to a point on the image, not on the element.
+ */
+.yolo-stage {
+  height: min(62vh, 640px);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-md);
+  background: #0f172a;
+  overflow: hidden;
+}
+
+.yolo-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Crosshair reads as "this surface is for drawing on". */
+  cursor: crosshair;
+  /* Stops a drag on a touchscreen from scrolling the page out from under it. */
+  touch-action: none;
+}
+
+.yolo-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(15, 23, 42, 0.25);
+}
+
+.yolo-class,
+.yolo-shape {
+  cursor: pointer;
+  border-radius: var(--v-radius-sm);
+  padding-inline: var(--v-space-2);
+}
+
+.yolo-class:hover,
+.yolo-shape:hover {
+  background: var(--v-surface-muted);
+}
+
+.yolo-class.is-active,
+.yolo-shape.is-active {
+  background: var(--v-surface-muted);
+  box-shadow: inset 2px 0 0 var(--v-primary);
+}

@@ -205,7 +205,7 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
   );
 }
 
-function RegisterForm({ loading, faceError, onFaceDescriptor, onSubmit }) {
+function RegisterForm({ loading, onFaceDescriptor, onSubmit }) {
   const { t } = useLanguage();
   const [registerForm] = Form.useForm();
 
@@ -290,7 +290,7 @@ function RegisterForm({ loading, faceError, onFaceDescriptor, onSubmit }) {
       <Form.Item name="address" rules={[{ max: 200, message: t('addressTooLong') }]}>
         <Input prefix={<HomeOutlined />} autoComplete="street-address" placeholder={t('address')} />
       </Form.Item>
-      <FaceRegistration onChange={onFaceDescriptor} error={faceError} />
+      <FaceRegistration onChange={onFaceDescriptor} optional />
       <Button type="primary" htmlType="submit" block loading={loading}>{t('register')}</Button>
     </Form>
   );
@@ -309,13 +309,11 @@ export default function AuthPage({
   const [remember, setRemember] = useState(Boolean(rememberedUsername));
   const [faceLoginOpen, setFaceLoginOpen] = useState(false);
   const [registerFaceData, setRegisterFaceData] = useState(null);
-  const [faceError, setFaceError] = useState('');
   const [mode, setMode] = useState('login');
   const isLogin = mode === 'login';
 
   const switchMode = (nextMode) => {
     setRegisterFaceData(null);
-    setFaceError('');
     setMode(nextMode);
   };
 
@@ -345,23 +343,28 @@ export default function AuthPage({
     handleFaceLogin(data.descriptor);
   };
 
+  // Clearing the face is now a legitimate thing to do, so `null` is a state
+  // rather than a mistake and carries no error with it.
   const handleRegisterFace = (data) => {
     setRegisterFaceData(data);
-    setFaceError(data ? '' : t('faceRequiredForRegistration'));
   };
 
   const submitRegistration = async ({ confirmPassword, ...values }) => {
-    if (!registerFaceData) {
-      setFaceError(t('faceRequiredForRegistration'));
-      return;
-    }
     const created = await handleRegister({
       ...values,
       // The picker hands back a dayjs; the API stores a calendar day.
       birthday: values.birthday ? values.birthday.format('YYYY-MM-DD') : '',
       gender: values.gender || '',
-      faceDescriptor: registerFaceData.descriptor,
-      faceImage: registerFaceData.faceImage,
+      /*
+       * Only sent when there is one. The face is one of two ways to sign in,
+       * not a second factor, so an account without one is complete — it signs
+       * in with its password, and an administrator can enrol a face for it
+       * later from the Users page.
+       */
+      ...(registerFaceData ? {
+        faceDescriptor: registerFaceData.descriptor,
+        faceImage: registerFaceData.faceImage,
+      } : {}),
     });
 
     // Registering no longer signs you in — the account is created and waits
@@ -444,7 +447,7 @@ export default function AuthPage({
                   className="auth-pending-note"
                   message={t('registrationNeedsApproval')}
                 />
-                <RegisterForm loading={loading} faceError={faceError} onFaceDescriptor={handleRegisterFace} onSubmit={submitRegistration} />
+                <RegisterForm loading={loading} onFaceDescriptor={handleRegisterFace} onSubmit={submitRegistration} />
                 <div className="auth-switch">{t('alreadyHaveAccount')} <button type="button" onClick={() => switchMode('login')}>{t('login')}</button></div>
               </>
             )}

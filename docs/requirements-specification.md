@@ -37,9 +37,9 @@ polled), mobile applications, and single sign-on.
 
 | ID | Requirement |
 |---|---|
-| FR-AUTH-01 | A visitor can register with full name, username, email, password and a face photo. All five are mandatory. |
+| FR-AUTH-01 | A visitor can register with full name, username, email and password. All four are mandatory. A face photo may be added at the same time but is not required. |
 | FR-AUTH-02 | Registration must reject a username or email already in use, a password under 6 characters, and a malformed email address. |
-| FR-AUTH-03 | Registration must capture a 128-value face descriptor from the photo. An account cannot be created without one. |
+| FR-AUTH-03 | A face photo offered at registration must yield a 128-value descriptor and be stored with the photo it came from; a photo that cannot be read is rejected rather than stored. An account created without a face is complete and signs in by password. An administrator can enrol a face for it later on the Users page. |
 | FR-AUTH-04 | Registration may also record gender, birthday, phone number, address and job. Each is optional and an account is complete without them. |
 | FR-AUTH-05 | A user signs in by **either** of two methods. They are alternatives, not steps: (1) username and password, (2) facial recognition on its own. |
 | FR-AUTH-05a | Face sign-in supplies no username. The captured descriptor is compared against every approved account, and the closest match is accepted only if it is within the distance threshold **and** clearly closer than the next nearest account. |

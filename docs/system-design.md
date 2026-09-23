@@ -92,7 +92,13 @@ a locked door with the key inside.
 **Face recognition as a way in.** The browser computes a 128-float descriptor
 with `frontend/src/lib/faceRecognition`, stored on the account with
 `select: false` so an ordinary read never returns it. The photo is kept as a
-data URL for display only.
+data URL for display only. Enrolment is optional: a face is stored only when
+one is offered, and `getFaceCandidates` selects on `faceDescriptor: { $ne: null }`,
+so accounts without one are simply not among those a face sign-in can match.
+Offered and unreadable is a different case from not offered, and is refused —
+storing a photo with no descriptor would enrol a face nothing could match, and
+a descriptor with no photo would leave the Users page showing an enrolled
+account with nothing to look at.
 
 What changed is what the descriptor now buys. Previously it was a *second*
 factor: the password was required and, for any account with a face on file, so

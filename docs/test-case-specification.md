@@ -28,7 +28,10 @@ All three need a face photo, since registration requires one.
 | TC-AUTH-01 | FR-AUTH-01, FR-AUTH-09 | Register with all mandatory fields and a face photo. | Account created. **Not** signed in: the card returns to Login with a message that an administrator must approve it. |
 | TC-AUTH-02 | FR-AUTH-02 | Register reusing an existing username. | 409 and "That username is already registered." No account created. |
 | TC-AUTH-03 | FR-AUTH-02 | Register with a 5-character password. | Rejected before submission by the form; if forced via the API, 400. |
-| TC-AUTH-04 | FR-AUTH-03 | Attempt to register without capturing a face photo. | Submission refused with a message about the face photo. |
+| TC-AUTH-04 | FR-AUTH-03 | Register without capturing a face photo. | Account created and waiting for approval, exactly as with one. The face section shows as optional and blocks nothing. |
+| TC-AUTH-04a | FR-AUTH-03 | Sign in with the password of an account registered without a face. | Signs in normally once approved. |
+| TC-AUTH-04b | FR-AUTH-03 | Attempt face sign-in as an account that has no face on file. | Refused with the same single message any other failed face sign-in gives. |
+| TC-AUTH-04c | FR-AUTH-03 | Register offering a photo with no detectable face in it. | Rejected with a message about the photo; the account is not created. |
 | TC-AUTH-05 | FR-AUTH-04 | Register filling gender, birthday, phone, address and job. | Account created; the same values appear on My Page. |
 | TC-AUTH-06 | FR-AUTH-04 | Register leaving all five personal fields empty. | Account created; My Page shows "—" for each. |
 | TC-AUTH-07 | FR-AUTH-06 | Set a birthday in the future through the API. | 400 "Birthday cannot be in the future." |

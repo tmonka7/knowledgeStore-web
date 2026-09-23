@@ -1,8 +1,14 @@
-import { CheckCircleFilled, ExclamationCircleFilled, LoadingOutlined } from '@ant-design/icons';
+import {
+  CheckCircleFilled, ExclamationCircleFilled, InfoCircleFilled, LoadingOutlined,
+} from '@ant-design/icons';
 import { useLanguage } from '../../i18n';
 
 const STATES = {
   empty: { tone: 'idle', icon: <ExclamationCircleFilled />, key: 'faceNotRegistered' },
+  // Distinct from `empty` on purpose. Where a face is optional, a warning
+  // triangle over "not registered" reads as something left undone, and people
+  // go looking for the step they missed.
+  optional: { tone: 'idle', icon: <InfoCircleFilled />, key: 'faceOptional' },
   working: { tone: 'idle', icon: <LoadingOutlined />, key: 'preparingFace' },
   ready: { tone: 'ready', icon: <CheckCircleFilled />, key: 'faceReady' },
   captured: { tone: 'ready', icon: <CheckCircleFilled />, key: 'faceCaptured' },

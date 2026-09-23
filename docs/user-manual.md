@@ -17,7 +17,11 @@ to verify you at sign-in.
 3. Fill in as much of the personal section as you wish — **gender, birthday,
    phone number, job and address**. All of it is optional, and you can add or
    change it later on My Page.
-4. Capture or upload your face photo.
+4. Capture or upload a face photo if you want one. This step is **optional**.
+   A face is a second way to sign in, not an extra check on top of your
+   password, so an account without one works exactly the same — it just signs
+   in with the password. If you skip it and change your mind, an administrator
+   adds it for you on the Users page.
 5. Choose **Register**.
 
 **You are not signed in yet.** A new account is created with the status
@@ -460,8 +464,10 @@ You cannot delete your own account.
 
 ### Accounts are created by registration
 
-There is no "create user" form. Ask the person to register themselves, so they
-enrol their own face photo, and then set their role and permissions here.
+There is no "create user" form. Ask the person to register themselves, then set
+their role and permissions here. Registering no longer obliges them to enrol a
+face, so some accounts will have none; the list filters on who has one, and you
+can add a photo for them from the same dialog you edit them in.
 
 ## 11. Troubleshooting
 

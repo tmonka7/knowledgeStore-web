@@ -88,10 +88,23 @@ necessary, along with a second certificate exception.
 2. `POST /auth/login/face` — a descriptor, and nothing else.
 
 The previous build required the password *and*, for any account with a face on
-file, the face as well. Since registration always enrols a face, that meant
-everybody answered two challenges and "Login with Face" was unusable by anyone
-who did not already know their password. The face button no longer validates
-the login form first and sends no username at all.
+file, the face as well. Since registration enrolled a face for everybody, that
+meant all users answered two challenges and "Login with Face" was unusable by
+anyone who did not already know their password. The face button no longer
+validates the login form first and sends no username at all.
+
+**Enrolling a face is optional.** It is one of two ways in, not a second
+factor, so an account without one is complete — it signs in with its password.
+Requiring it at sign-up turned an alternative into a toll gate and shut out
+anyone with no camera to hand, or unwilling to hand a photograph to an account
+they had not been approved for yet. A face offered at sign-up is still
+validated: both the descriptor and the photo must arrive and be readable, or
+the registration is refused rather than half-stored.
+
+An administrator can enrol a face afterwards from the Users page, which already
+filters on who has one and who does not. There is no way for users to add their
+own face after signing up — the same is true of their name and email, which
+that page also owns.
 
 ### What face sign-in now costs
 
@@ -738,6 +751,83 @@ would oblige you to release the app's own source or buy an Ultralytics
 Enterprise licence. If that licence is acquired, `yolo26n.onnx` drops in behind
 the same interface — note it exports NMS-free, so such an engine skips the
 `decodeYolox()` / `nonMaxSuppression()` steps entirely.
+
+## YOLO labelling
+
+The Labelling tab on the YOLO page turns a folder of images into a YOLO
+dataset. It runs entirely in the browser: the images are read from a folder you
+pick and are never uploaded, which is the only sane arrangement when a dataset
+is routinely thousands of files and many gigabytes.
+
+Two tasks, matching the two models asked for:
+
+| Task | Shape | Label line |
+| --- | --- | --- |
+| Detection — YOLO26n | Rectangle, dragged | `class cx cy w h` |
+| Segmentation — YOLO26-seg | Polygon, clicked point by point | `class x1 y1 x2 y2 …` |
+
+**Pose (`YOLO26n-pos`) and its line/keypoint shape are not implemented.** The
+brief listed lines alongside the other two and then said only YOLO26n and
+YOLO26-seg are supported, so the shape that belongs solely to the third model
+was left out rather than half-built.
+
+Drawing: drag for a rectangle; for a polygon, click each point and close it by
+clicking the first point again or pressing Enter, with Backspace undoing a
+point. Click a shape to select it, drag it to move it, drag a corner of a box
+to resize it, Delete to remove it. Arrow keys move between images and the
+number keys pick a class. Per-vertex editing of an existing polygon is the one
+obvious omission — a polygon is moved or redrawn, not reshaped.
+
+Every coordinate is stored normalised to the image (0..1), never in pixels. The
+canvas is whatever size the window allows and the same image may be labelled at
+two different zooms in one session, so a pixel value would depend on the
+monitor it was drawn on. It is also what both YOLO formats want, which makes
+the export a formatting step rather than a conversion.
+
+### What comes out
+
+`dataset.csv` is the complete record — one row per shape, both shape kinds
+written exactly as drawn whatever the task is selected:
+
+```
+image,image_width,image_height,class_id,class_name,shape,points
+bus.jpg,810,1080,0,person,box,0.481481 0.508333 0.187654 0.201852
+bus.jpg,810,1080,1,bus,polygon,0.1 0.2 0.3 0.4 0.5 0.6
+empty.jpg,640,480,,,none,
+```
+
+An image you opened and deliberately left empty gets a `none` row. That is not
+padding: an empty image is a legitimate background sample, and the row is the
+only thing distinguishing it from an image nobody has reached yet.
+
+The second button writes `labels/<image>.txt` plus `data.yaml` as a `.zip`,
+which is the layout Ultralytics trains from. The images are deliberately not in
+the archive — they are already in a folder on your machine, and copying them
+through the browser to hand them straight back is not a service. `data.yaml`
+points `train` and `val` at the same folder and says so in a comment; split
+them before training or the numbers will flatter you.
+
+A shape that does not match the chosen task is converted rather than dropped: a
+polygon exported for detection becomes its bounding box, and a box exported for
+segmentation becomes its four corners. Silently losing labels at export is the
+worst thing a labelling tool can do.
+
+### Two things worth knowing
+
+**Labels survive a reload, images do not.** The labels are mirrored into
+`localStorage` and matched back by path when you reopen the same folder. A
+browser cannot hold a directory handle across a reload without the File System
+Access API, so you do have to pick the folder again.
+
+**The path inside the folder is the identity, not the file name.** A dataset
+split into `train/` and `val/` subfolders very often holds the same file name
+in both, and keying on the name alone would merge their labels and then write
+two entries to the same path in the archive.
+
+The zip is assembled by `frontend/src/lib/zipWriter.js`, a stored-only
+(uncompressed) ZIP writer — there is no zip dependency in this project and
+label files are a few hundred bytes of digits each, so a deflate
+implementation would be carried for nothing. Every unzip tool reads method 0.
 
 ## LVGL converters
 

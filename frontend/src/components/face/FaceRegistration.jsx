@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Typography } from 'antd';
-import { CameraOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CameraOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import CameraRegistrationModal from './CameraRegistrationModal';
 import FacePreview from './FacePreview';
 import FaceStatus from './FaceStatus';
@@ -16,7 +16,7 @@ const { Text } = Typography;
  * Owns the captured face for the form and opens the capture dialog in either
  * camera or upload mode. `onChange` receives { descriptor, faceImage } or null.
  */
-export default function FaceRegistration({ onChange, error }) {
+export default function FaceRegistration({ onChange, error, optional = false }) {
   const { t } = useLanguage();
   const [face, setFace] = useState(null);
   const [modal, setModal] = useState(null); // { mode, imageSrc }
@@ -59,12 +59,21 @@ export default function FaceRegistration({ onChange, error }) {
     closeModal();
   };
 
+  const clear = () => {
+    setFace(null);
+    setUploadError('');
+    onChange(null);
+  };
+
   const registered = Boolean(face);
   const problem = uploadError || error;
 
   return (
     <section className={`face-section${problem ? ' has-error' : ''}`} aria-labelledby="face-section-title">
       <h3 className="face-section-title" id="face-section-title">{t('facePhoto')}</h3>
+      {optional && (
+        <Text type="secondary" className="face-section-hint">{t('faceOptionalHelp')}</Text>
+      )}
 
       <FacePreview
         image={face?.faceImage}
@@ -73,7 +82,13 @@ export default function FaceRegistration({ onChange, error }) {
         onOpenCamera={openCamera}
       />
 
-      <FaceStatus state={preparing ? 'working' : registered ? 'registered' : 'empty'} />
+      <FaceStatus
+        state={(() => {
+          if (preparing) return 'working';
+          if (registered) return 'registered';
+          return optional ? 'optional' : 'empty';
+        })()}
+      />
 
       <div className="face-section-actions">
         <button type="button" className="face-action-btn" onClick={openCamera} disabled={preparing}>
@@ -81,6 +96,15 @@ export default function FaceRegistration({ onChange, error }) {
           {registered ? t('changeFace') : t('registerFace')}
         </button>
         <FaceUpload onFile={openUpload} onError={setUploadError} disabled={preparing} />
+        {/* Offered only once there is something to remove, and only where the
+            face is optional — elsewhere removing it would leave the form in a
+            state it will not submit from. */}
+        {optional && registered && (
+          <button type="button" className="face-action-btn" onClick={clear} disabled={preparing}>
+            <DeleteOutlined />
+            {t('removeFace')}
+          </button>
+        )}
       </div>
 
       {problem && <Text type="danger" className="face-section-error">{problem}</Text>}

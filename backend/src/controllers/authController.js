@@ -76,11 +76,27 @@ export const register = async (req, res) => {
     return res.status(400).json({ message: 'Password must be at least 6 characters.' });
   }
 
-  if (!isFaceDescriptor(faceDescriptor)) {
-    return res.status(400).json({ message: 'A face photo is required to create an account. Capture or upload one and try again.' });
+  /*
+   * The face is optional.
+   *
+   * It is one of two ways to sign in, not a second factor, so an account
+   * without one is complete — it simply signs in with its password. Requiring
+   * it at sign-up turned an alternative into a toll gate, and shut out anyone
+   * without a camera to hand, or unwilling to give a photograph to an account
+   * they have not been approved for yet.
+   *
+   * Optional is not the same as unchecked: a face that is offered is still
+   * validated, and both halves must arrive together. A descriptor with no
+   * photo would enrol a face nobody could see on the Users page, and a photo
+   * with no descriptor could never be matched against.
+   */
+  const offersFace = Boolean(faceDescriptor) || Boolean(faceImage);
+
+  if (offersFace && !isFaceDescriptor(faceDescriptor)) {
+    return res.status(400).json({ message: 'That face photo could not be read. Capture or upload a clearer one, or leave it out.' });
   }
 
-  if (!isFaceImage(faceImage)) {
+  if (offersFace && !isFaceImage(faceImage)) {
     return res.status(400).json({ message: 'The face photo is invalid or too large. Please use a different photo.' });
   }
 
@@ -99,7 +115,19 @@ export const register = async (req, res) => {
       return res.status(409).json({ message: `That ${field} is already registered.` });
     }
 
-    const newUser = await createUser({ username, email, fullName, password, role: 'user', faceDescriptor, faceImage, profile });
+    const newUser = await createUser({
+      username,
+      email,
+      fullName,
+      password,
+      role: 'user',
+      // Left undefined rather than passed through when no face was offered, so
+      // the schema default (null) applies — which is what getFaceCandidates
+      // filters on when deciding who can be matched by face at all.
+      faceDescriptor: offersFace ? faceDescriptor : undefined,
+      faceImage: offersFace ? faceImage : undefined,
+      profile,
+    });
 
     /*
      * No token. The account exists but is 'pending', so a token would only buy
