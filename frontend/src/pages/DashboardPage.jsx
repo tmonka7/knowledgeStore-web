@@ -406,15 +406,15 @@ export default function DashboardPage({
     {
       key: 'tools',
       icon: <ToolOutlined />,
-      label: 'Tools',
+      label: t('tools'),
       children: [
         { key: 'lvgl-tool', label: 'LVGL' },
-        { key: 'convert-tool', label: 'Converting' },
+        { key: 'convert-tool', label: t('toolsConverting') },
         // The three model tools group together: they are about training and
         // inference, where the two above are file converters.
         {
           key: 'tools-ai',
-          label: 'AI',
+          label: t('ai'),
           children: [
             { key: 'yolo', label: 'YOLO' },
             { key: 'tts', label: 'TTS' },
