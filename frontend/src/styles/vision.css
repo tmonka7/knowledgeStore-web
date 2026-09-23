@@ -494,8 +494,8 @@ body {
   display: flex;
   overflow: hidden;
   align-items: center;
-  gap: var(--v-space-3);
-  padding: 18px;
+  gap: var(--v-space-2);
+  padding: 14px 16px;
   border: 1px solid var(--v-border);
   border-radius: var(--v-radius-lg);
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.92));
@@ -505,35 +505,35 @@ body {
 
 .vision-stat-card::after {
   position: absolute;
-  top: -40px;
-  right: -40px;
-  width: 120px;
-  height: 120px;
+  top: -28px;
+  right: -30px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   background: var(--stat-tint, var(--v-tint-blue));
   content: '';
-  opacity: 0.5;
+  opacity: 0.42;
   pointer-events: none;
 }
 
 .vision-stat-card:hover {
   border-color: #d4e4fb;
   box-shadow: var(--v-shadow-md);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .vision-stat-icon {
   position: relative;
   z-index: 1;
   display: grid;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   flex: none;
   place-items: center;
-  border-radius: 13px;
+  border-radius: 12px;
   background: var(--stat-tint, var(--v-tint-blue));
   color: var(--stat-color, var(--v-primary));
-  font-size: 21px;
+  font-size: 18px;
 }
 
 .vision-stat-body {
@@ -544,21 +544,23 @@ body {
 
 .vision-stat-label {
   color: var(--v-text-soft);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
+  line-height: 1.4;
 }
 
 .vision-stat-value {
   color: var(--v-text);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.5px;
-  line-height: 1.25;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
 }
 
 .vision-stat-meta {
   color: #8aa0ba;
-  font-size: 11.5px;
+  font-size: 10.5px;
+  line-height: 1.4;
 }
 
 .vision-stat-meta.is-up {
@@ -702,6 +704,7 @@ body {
 }
 
 .vision-btn-ai.ant-btn:not(:disabled):hover {
+  background: linear-gradient(120deg, #5c4fe3, #7c66ff 50%, #43b7d8);
   color: #fff;
   box-shadow: 0 8px 20px rgba(108, 92, 231, 0.34);
   transform: translateY(-1px);
@@ -720,6 +723,25 @@ body {
 .vision-btn-ghost.ant-btn:not(:disabled):hover {
   border-color: var(--v-primary);
   color: var(--v-primary);
+  transform: translateY(-1px);
+}
+
+.vision-meeting-join-button.ant-btn {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.28);
+  color: #fff;
+  font-size: 16px;
+}
+
+.vision-meeting-join-button.ant-btn:not(:disabled):hover {
+  background: linear-gradient(135deg, #1d4ed8, #6d28d9);
+  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.34);
   transform: translateY(-1px);
 }
 
@@ -935,25 +957,30 @@ body {
   align-items: center;
   gap: var(--v-space-3);
   min-width: 0;
+  width: 100%;
 }
 
 .vision-file-icon {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  flex: none;
-  place-items: center;
-  border-radius: var(--v-radius-sm);
-  background: var(--v-tint-amber);
-  color: #d97706;
-  font-size: 15px;
+  display: none;
+}
+
+.vision-file-text {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .vision-file-name {
+  display: inline-block;
   overflow: hidden;
-  max-width: 460px;
+  max-width: 100%;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .vision-date-range {

@@ -19,6 +19,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import MeetingFormModal from '../components/meeting/MeetingFormModal';
 import MeetingRoom from '../components/meeting/MeetingRoom';
 import { mediaSupport } from '../components/meeting/useMeetingRoom';
+import { useLanguage } from '../i18n';
 
 const apiOrigin = () => (import.meta.env.VITE_API_URL || 'http://127.0.0.1:4000/api').replace(/\/api$/, '');
 
@@ -48,11 +49,11 @@ const formatDuration = (ms) => {
   return `${minutes}:${seconds}`;
 };
 
-const describeWhen = (meeting) => {
-  if (meeting.live) return 'In progress';
-  if (meeting.status === 'ended') return `Ended ${formatMoment(meeting.endedAt)}`;
+const describeWhen = (meeting, t) => {
+  if (meeting.live) return t('inProgress');
+  if (meeting.status === 'ended') return `${t('ended')} ${formatMoment(meeting.endedAt)}`;
   if (meeting.scheduledAt) return formatMoment(meeting.scheduledAt);
-  return 'Open — start it whenever';
+  return t('openStartWhenever');
 };
 
 /**
@@ -75,6 +76,7 @@ export default function MeetingsPage({ user, directory = [] }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  const { t } = useLanguage();
   const canCreate = can(user, 'meetings', 'create');
   const support = useMemo(() => mediaSupport(), []);
 
@@ -84,7 +86,7 @@ export default function MeetingsPage({ user, directory = [] }) {
       const { data } = await api.get('/meetings');
       setMeetings(data.meetings || []);
     } catch (error) {
-      message.error(error.response?.data?.message || 'Unable to load meetings.');
+      message.error(error.response?.data?.message || t('unableToLoadMeetings'));
     } finally {
       setLoading(false);
     }
@@ -127,16 +129,16 @@ export default function MeetingsPage({ user, directory = [] }) {
     try {
       if (editing) {
         await api.put(`/meetings/${editing.id}`, values);
-        message.success('Meeting updated.');
+        message.success(t('meetingUpdated'));
       } else {
         await api.post('/meetings', values);
-        message.success('Meeting created.');
+        message.success(t('meetingCreated'));
       }
       setModalOpen(false);
       setEditing(null);
       await load();
     } catch (error) {
-      message.error(error.response?.data?.message || 'Unable to save the meeting.');
+      message.error(error.response?.data?.message || t('unableToSaveMeeting'));
     } finally {
       setSaving(false);
     }
@@ -144,19 +146,19 @@ export default function MeetingsPage({ user, directory = [] }) {
 
   const endMeeting = (meeting) => {
     Modal.confirm({
-      title: `End "${meeting.title}"?`,
+      title: t('endMeetingQuestion', { title: meeting.title }),
       content: meeting.activeCount
-        ? `${meeting.activeCount} person(s) are in the call and will be disconnected. The recordings and the attendance list are kept.`
-        : 'The recordings and the attendance list are kept.',
-      okText: 'End meeting',
+        ? t('meetingEndWarningPeople', { count: meeting.activeCount })
+        : t('meetingEndWarningSaved'),
+      okText: t('endMeeting'),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
           await api.post(`/meetings/${meeting.id}/end`);
-          message.success('Meeting ended.');
+          message.success(t('meetingEnded'));
           await load();
         } catch (error) {
-          message.error(error.response?.data?.message || 'Unable to end the meeting.');
+          message.error(error.response?.data?.message || t('unableToEndMeeting'));
         }
       },
     });
@@ -164,18 +166,18 @@ export default function MeetingsPage({ user, directory = [] }) {
 
   const removeMeeting = (meeting) => {
     Modal.confirm({
-      title: `Delete "${meeting.title}"?`,
+      title: t('deleteMeetingQuestion', { title: meeting.title }),
       content: meeting.recordings?.length
-        ? `Its ${meeting.recordings.length} recording(s) and the in-call messages are deleted too. This cannot be undone.`
-        : 'The in-call messages are deleted too. This cannot be undone.',
+        ? t('deleteMeetingWarningRecordings', { count: meeting.recordings.length })
+        : t('deleteMeetingWarningMessages'),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
           await api.delete(`/meetings/${meeting.id}`);
-          message.success('Meeting deleted.');
+          message.success(t('meetingDeleted'));
           await load();
         } catch (error) {
-          message.error(error.response?.data?.message || 'Unable to delete the meeting.');
+          message.error(error.response?.data?.message || t('unableToDeleteMeeting'));
         }
       },
     });
@@ -183,18 +185,18 @@ export default function MeetingsPage({ user, directory = [] }) {
 
   const removeRecording = (meeting, recording) => {
     Modal.confirm({
-      title: `Delete "${recording.name}"?`,
-      content: `${formatSize(recording.size)} recorded by ${recording.recordedByName || 'someone'}. The file is removed from the server and cannot be recovered.`,
-      okText: 'Delete',
+      title: t('deleteRecordingQuestion', { name: recording.name }),
+      content: t('deleteRecordingWarning', { size: formatSize(recording.size), name: recording.recordedByName || t('someone') }),
+      okText: t('delete'),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
           const { data } = await api.delete(`/meetings/${meeting.id}/recordings/${recording.id}`);
           setRecordingsFor(data.meeting);
           setMeetings((list) => list.map((row) => (row.id === data.meeting.id ? data.meeting : row)));
-          message.success('Recording deleted.');
+          message.success(t('recordingDeleted'));
         } catch (error) {
-          message.error(error.response?.data?.message || 'Unable to delete that recording.');
+          message.error(error.response?.data?.message || t('unableToDeleteRecording'));
         }
       },
     });
@@ -217,12 +219,12 @@ export default function MeetingsPage({ user, directory = [] }) {
   return (
     <div className="vision-page vision-stack">
       <PageHeader
-        title="Meetings"
-        subtitle="Video calls between people in this workspace. Audio and video go directly between browsers."
+        title={t('meetings')}
+        subtitle={t('meetingsSubtitle')}
         actions={(
           <>
             <Button className="vision-btn-ghost" icon={<ReloadOutlined />} loading={loading} onClick={load}>
-              Refresh
+              {t('refresh')}
             </Button>
             {canCreate && (
               <Button
@@ -231,7 +233,7 @@ export default function MeetingsPage({ user, directory = [] }) {
                 icon={<PlusOutlined />}
                 onClick={() => { setEditing(null); setModalOpen(true); }}
               >
-                New meeting
+                {t('newMeeting')}
               </Button>
             )}
           </>
@@ -243,28 +245,28 @@ export default function MeetingsPage({ user, directory = [] }) {
           everyone already in the call, is the wrong time to learn it. */}
       {!support.ok && (
         <section className="vision-panel meeting-warning">
-          <strong>Camera and microphone are unavailable on this address.</strong>
+          <strong>{t('cameraAndMicrophoneUnavailable')}</strong>
           <p className="vision-cell-muted">{support.reason}</p>
         </section>
       )}
 
       <div className="vision-stat-grid">
-        <StatCard tone="green" icon={<VideoCameraOutlined />} label="In progress" value={totals.live} meta={`${totals.inCalls} people in calls`} />
-        <StatCard tone="blue" icon={<TeamOutlined />} label="Upcoming" value={totals.upcoming} meta="Scheduled or open" />
-        <StatCard tone="violet" icon={<PlayCircleOutlined />} label="Recordings" value={totals.recordings} meta="Saved to meetings" />
-        <StatCard tone="amber" icon={<TeamOutlined />} label="Meetings" value={meetings.length} meta="You can see" />
+        <StatCard tone="green" icon={<VideoCameraOutlined />} label={t('inProgress')} value={totals.live} meta={t('peopleInCalls', { count: totals.inCalls })} />
+        <StatCard tone="blue" icon={<TeamOutlined />} label={t('upcoming')} value={totals.upcoming} meta={t('scheduledOrOpen')} />
+        <StatCard tone="violet" icon={<PlayCircleOutlined />} label={t('recordings')} value={totals.recordings} meta={t('savedToMeetings')} />
+        <StatCard tone="amber" icon={<TeamOutlined />} label={t('meetings')} value={meetings.length} meta={t('youCanSee')} />
       </div>
 
       <FilterBar
         actions={(
           <Button className="vision-btn-ghost" onClick={() => { setSearch(''); setStatusFilter('all'); }}>
-            Clear
+            {t('clear')}
           </Button>
         )}
       >
         <Input.Search
           className="vision-filter-search"
-          placeholder="Search by title, host or description"
+          placeholder={t('searchMeetings')}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           allowClear
@@ -274,10 +276,10 @@ export default function MeetingsPage({ user, directory = [] }) {
           onChange={setStatusFilter}
           className="vision-filter-select"
           options={[
-            { value: 'all', label: 'All meetings' },
-            { value: 'live', label: 'In progress' },
-            { value: 'upcoming', label: 'Upcoming' },
-            { value: 'ended', label: 'Ended' },
+            { value: 'all', label: t('allMeetings') },
+            { value: 'live', label: t('inProgress') },
+            { value: 'upcoming', label: t('upcoming') },
+            { value: 'ended', label: t('ended') },
           ]}
         />
       </FilterBar>
@@ -285,7 +287,7 @@ export default function MeetingsPage({ user, directory = [] }) {
       {!visible.length ? (
         <section className="vision-panel">
           <Empty
-            description={meetings.length ? 'No meeting matches these filters' : 'No meetings yet'}
+            description={meetings.length ? t('noMeetingMatches') : t('noMeetingsYet')}
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         </section>
@@ -299,35 +301,35 @@ export default function MeetingsPage({ user, directory = [] }) {
                   tone={meeting.live ? 'green' : (meeting.status === 'ended' ? 'grey' : 'blue')}
                   dot={meeting.live}
                 >
-                  {meeting.live ? 'Live' : (meeting.status === 'ended' ? 'Ended' : 'Scheduled')}
+                  {meeting.live ? t('live') : (meeting.status === 'ended' ? t('ended') : t('scheduled'))}
                 </StatusBadge>
               </header>
 
-              <p className="meeting-card-desc">{meeting.description || 'No description.'}</p>
+              <p className="meeting-card-desc">{meeting.description || t('noDescription')}</p>
 
               <dl className="meeting-card-facts">
-                <div><dt>Host</dt><dd>{meeting.hostName || '—'}</dd></div>
-                <div><dt>When</dt><dd>{describeWhen(meeting)}</dd></div>
+                <div><dt>{t('host')}</dt><dd>{meeting.hostName || '—'}</dd></div>
+                <div><dt>{t('when')}</dt><dd>{describeWhen(meeting, t)}</dd></div>
                 <div>
-                  <dt>Who</dt>
-                  <dd>{meeting.openToAll ? 'Everyone' : `${meeting.inviteeIds.length} invited`}</dd>
+                  <dt>{t('who')}</dt>
+                  <dd>{meeting.openToAll ? t('everyone') : t('invitedCount', { count: meeting.inviteeIds.length })}</dd>
                 </div>
               </dl>
 
               {meeting.live && (
                 <p className="meeting-card-present">
-                  In the call: {meeting.activePeople.map((person) => person.name).join(', ')}
+                  {t('peopleInCall', { names: meeting.activePeople.map((person) => person.name).join(', ') || '—' })}
                 </p>
               )}
 
               <footer className="meeting-card-foot">
                 <div className="meeting-card-links">
                   <Button type="link" size="small" onClick={() => setAttendance(meeting)}>
-                    {meeting.attendedCount} attended
+                    {t('attendedCount', { count: meeting.attendedCount })}
                   </Button>
                   {meeting.recordings.length > 0 && (
                     <Button type="link" size="small" onClick={() => setRecordingsFor(meeting)}>
-                      {meeting.recordings.length} recording{meeting.recordings.length === 1 ? '' : 's'}
+                      {t('recordingsCount', { count: meeting.recordings.length })}
                     </Button>
                   )}
                 </div>
@@ -335,7 +337,7 @@ export default function MeetingsPage({ user, directory = [] }) {
                 <div className="vision-row-actions">
                   {meeting.canManage && meeting.status !== 'ended' && (
                     <>
-                      <Tooltip title="Edit">
+                      <Tooltip title={t('edit')}>
                         <Button
                           size="small"
                           aria-label={`Edit ${meeting.title}`}
@@ -343,7 +345,7 @@ export default function MeetingsPage({ user, directory = [] }) {
                           onClick={() => { setEditing(meeting); setModalOpen(true); }}
                         />
                       </Tooltip>
-                      <Tooltip title="End meeting">
+                      <Tooltip title={t('endMeeting')}>
                         <Button
                           size="small"
                           aria-label={`End ${meeting.title}`}
@@ -354,7 +356,7 @@ export default function MeetingsPage({ user, directory = [] }) {
                     </>
                   )}
                   {meeting.canManage && (
-                    <Tooltip title="Delete">
+                    <Tooltip title={t('delete')}>
                       <Button
                         size="small"
                         danger
@@ -365,15 +367,16 @@ export default function MeetingsPage({ user, directory = [] }) {
                     </Tooltip>
                   )}
                   {meeting.status !== 'ended' && (
-                    <Button
-                      type="primary"
-                      size="small"
-                      className="vision-btn-primary"
-                      icon={<VideoCameraOutlined />}
-                      onClick={() => setJoined(meeting)}
-                    >
-                      Join
-                    </Button>
+                    <Tooltip title={t('joinMeeting')}>
+                      <Button
+                        type="primary"
+                        size="small"
+                        className="vision-btn-primary vision-meeting-join-button"
+                        icon={<VideoCameraOutlined />}
+                        onClick={() => setJoined(meeting)}
+                        aria-label={`Join ${meeting.title}`}
+                      />
+                    </Tooltip>
                   )}
                 </div>
               </footer>
@@ -393,12 +396,12 @@ export default function MeetingsPage({ user, directory = [] }) {
 
       <Modal
         open={Boolean(attendance)}
-        title={attendance ? `Who attended "${attendance.title}"` : ''}
+        title={attendance ? t('whoAttendedTitle', { title: attendance.title }) : ''}
         footer={null}
         onCancel={() => setAttendance(null)}
       >
         {!attendance?.participants?.length ? (
-          <Empty description="Nobody has joined yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <Empty description={t('nobodyHasJoinedYet')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         ) : (
           <List
             dataSource={attendance.participants}
@@ -406,7 +409,7 @@ export default function MeetingsPage({ user, directory = [] }) {
               <List.Item key={`${row.userId}-${index}`}>
                 <List.Item.Meta
                   title={row.name || 'Someone'}
-                  description={`Joined ${formatMoment(row.joinedAt)}${row.leftAt ? ` · left ${formatMoment(row.leftAt)}` : ' · still in the call'}`}
+                  description={t('joinedPresence', { joinedAt: formatMoment(row.joinedAt), leftAt: row.leftAt ? ` · ${t('leftAt', { leftAt: formatMoment(row.leftAt) })}` : ` · ${t('stillInCall')}` })}
                 />
               </List.Item>
             )}
@@ -416,7 +419,7 @@ export default function MeetingsPage({ user, directory = [] }) {
 
       <Modal
         open={Boolean(recordingsFor)}
-        title={recordingsFor ? `Recordings of "${recordingsFor.title}"` : ''}
+        title={recordingsFor ? t('recordingsOfTitle', { title: recordingsFor.title }) : ''}
         footer={null}
         width={720}
         onCancel={() => setRecordingsFor(null)}
@@ -427,8 +430,8 @@ export default function MeetingsPage({ user, directory = [] }) {
             <List.Item
               key={recording.id}
               actions={[
-                <a key="open" href={recordingUrl(recording.path)} target="_blank" rel="noreferrer">Open</a>,
-                <a key="save" href={recordingUrl(recording.path)} download={recording.name}>Download</a>,
+                <a key="open" href={recordingUrl(recording.path)} target="_blank" rel="noreferrer">{t('open')}</a>,
+                <a key="save" href={recordingUrl(recording.path)} download={recording.name}>{t('download')}</a>,
                 <Button
                   key="delete"
                   type="link"
@@ -436,14 +439,14 @@ export default function MeetingsPage({ user, directory = [] }) {
                   size="small"
                   onClick={() => removeRecording(recordingsFor, recording)}
                 >
-                  Delete
+                  {t('delete')}
                 </Button>,
               ]}
             >
               <List.Item.Meta
                 title={recording.name}
                 description={[
-                  `Recorded by ${recording.recordedByName || 'someone'}`,
+                  t('recordedBy', { name: recording.recordedByName || t('someone') }),
                   formatMoment(recording.createdAt),
                   formatDuration(recording.durationMs),
                   formatSize(recording.size),

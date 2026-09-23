@@ -1,5 +1,11 @@
 import express from 'express';
-import { createCameraRecord, deleteCamera, listCameras, updateCamera } from '../controllers/cameraController.js';
+import {
+  createCameraRecord,
+  deleteCamera,
+  discoverNetworkCameras,
+  listCameras,
+  updateCamera,
+} from '../controllers/cameraController.js';
 import { cameraFrame, movePtz, probeCamera, readPtzStatus } from '../controllers/ptzController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 
@@ -7,6 +13,13 @@ const router = express.Router();
 
 router.get('/cameras', requireAuth, requirePermission('cameras:view'), listCameras);
 router.post('/cameras', requireAuth, requirePermission('cameras:create'), createCameraRecord);
+/*
+ * Searching the network is gated on cameras:create rather than cameras:view.
+ * It is the first step of adding a camera, and it is the one call here that
+ * reaches addresses nobody has entered yet — it should be available to the
+ * people who are allowed to act on what it finds, and to nobody else.
+ */
+router.post('/cameras/discover', requireAuth, requirePermission('cameras:create'), discoverNetworkCameras);
 router.put('/cameras/:id', requireAuth, requirePermission('cameras:edit'), updateCamera);
 router.delete('/cameras/:id', requireAuth, requirePermission('cameras:delete'), deleteCamera);
 

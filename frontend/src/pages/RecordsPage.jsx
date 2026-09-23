@@ -1,4 +1,4 @@
-import { Button, Checkbox, Input, Modal, Select, TreeSelect, message } from 'antd';
+import { Button, Checkbox, Input, Modal, Select, Tag, TreeSelect, message } from 'antd';
 import * as XLSX from 'xlsx';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -14,6 +14,7 @@ import {
   FolderOutlined,
   InboxOutlined,
   SearchOutlined,
+  ShareAltOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import FilterBar from '../components/ui/FilterBar';
@@ -29,6 +30,11 @@ const CATEGORY_TONES = ['blue', 'violet', 'cyan', 'green', 'amber', 'red'];
 const categoryTone = (category = '') => {
   const seed = [...String(category)].reduce((total, char) => total + char.charCodeAt(0), 0);
   return CATEGORY_TONES[seed % CATEGORY_TONES.length];
+};
+
+const truncateTitle = (title = '', maxLength = 100) => {
+  if (!title) return '';
+  return title.length > maxLength ? `${title.slice(0, maxLength).trimEnd()}...` : title;
 };
 
 const deriveMetaFromRecord = (record, index) => {
@@ -388,10 +394,18 @@ export default function RecordsPage({
                   <td className="col-no">{String(index + 1 + (currentPage - 1) * pageSize).padStart(2, '0')}</td>
                   <td>
                     <div className="vision-file-cell">
-                      <span className="vision-file-icon">
-                        {record.attachment ? <FileTextOutlined /> : <FolderOpenOutlined />}
-                      </span>
-                      <span className="vision-file-name" title={record.name}>{record.name}</span>
+                      <div className="vision-file-text">
+                        <span className="vision-file-name" title={record.name}>
+                          {truncateTitle(record.name)}
+                        </span>
+                        <Tag
+                          icon={<ShareAltOutlined />}
+                          color={record.visibility === 'selected' ? 'blue' : 'green'}
+                          style={{ marginLeft: 8, verticalAlign: 'middle' }}
+                        >
+                          {record.visibility === 'selected' ? 'Selected' : 'Everyone'}
+                        </Tag>
+                      </div>
                     </div>
                   </td>
                   <td>

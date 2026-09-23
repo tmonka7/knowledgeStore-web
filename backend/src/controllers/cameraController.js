@@ -1,5 +1,5 @@
 import { createCamera, getCameraById, getCameraForControl, getCameras, publicCamera } from '../models/store.js';
-import { forgetSnapshotUrl } from '../helpers/ptz/index.js';
+import { discoverCameras, forgetSnapshotUrl, localSubnet } from '../helpers/ptz/index.js';
 
 const cameraFields = (body = {}) => ({
   name: String(body.name || '').trim(),
@@ -71,6 +71,66 @@ const validatePtz = (ptz) => {
 export const listCameras = async (req, res) => {
   const cameras = await getCameras();
   return res.json({ cameras: cameras.map(publicCamera) });
+};
+
+/*
+ * The host part of anything a camera might have been registered with: a bare
+ * IP, an RTSP stream URL, an ONVIF service URL. It is what decides whether a
+ * discovered device is already in the list, and comparing the raw strings
+ * would fail every time, since "192.168.1.20" and
+ * "rtsp://192.168.1.20:554/stream" are the same camera.
+ */
+const hostOf = (value) => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  try {
+    return new URL(/:\/\//.test(text) ? text : `http://${text}`).hostname.toLowerCase();
+  } catch {
+    return text.toLowerCase();
+  }
+};
+
+/**
+ * POST /cameras/discover — ask the network which cameras are on it.
+ *
+ * Nothing is created here. The answer is a list of candidates, each one
+ * already marked with whether it is a camera this system knows about, so the
+ * dialog can show an operator what is new rather than making them compare
+ * addresses by eye against the page behind it.
+ */
+export const discoverNetworkCameras = async (req, res) => {
+  const { sweep = false, subnet = '' } = req.body || {};
+
+  try {
+    const { cameras: found, sweptSubnet } = await discoverCameras({
+      sweep: Boolean(sweep),
+      subnet: String(subnet || '').trim(),
+    });
+
+    const known = new Set();
+    for (const camera of await getCameras()) {
+      const address = hostOf(camera.address);
+      const deviceUrl = hostOf(camera.ptz?.deviceUrl);
+      if (address) known.add(address);
+      if (deviceUrl) known.add(deviceUrl);
+    }
+
+    return res.json({
+      cameras: found.map((camera) => ({ ...camera, existing: known.has(camera.address.toLowerCase()) })),
+      sweptSubnet,
+      // Offered back so the dialog can show the subnet it would sweep before
+      // anybody types one.
+      defaultSubnet: localSubnet(),
+    });
+  } catch (error) {
+    // The one failure worth spelling out is a subnet this refuses to sweep;
+    // an operator can fix that by typing a different one.
+    if (/subnet/i.test(error?.message || '')) {
+      return res.status(400).json({ message: error.message });
+    }
+    console.error('Camera discovery failed:', error);
+    return res.status(500).json({ message: 'The network could not be searched.' });
+  }
 };
 
 export const createCameraRecord = async (req, res) => {

@@ -11,6 +11,7 @@ import {
 import { SWEEP_DEFAULTS, planSweep } from './sweep.js';
 
 export { PtzError, planSweep, SWEEP_DEFAULTS };
+export { discoverCameras, localSubnet } from './discovery.js';
 
 /*
  * Camera control, from the server.

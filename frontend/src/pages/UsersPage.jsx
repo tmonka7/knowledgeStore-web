@@ -433,9 +433,10 @@ export default function UsersPage({
               {status !== 'allowed' && (
                 <Tooltip title={status === 'pending' ? t('approveThisAccount') : t('allowThisAccountAgain')}>
                   <Button
-                    size="small"
+                    size="middle"
                     type="primary"
                     className="vision-btn-primary"
+                    style={{ minWidth: 92 }}
                     loading={busyId === record.id}
                     onClick={() => changeStatus(record, 'allowed')}
                     aria-label={`${t('allow')} ${record.fullName}`}
@@ -451,8 +452,9 @@ export default function UsersPage({
                 !self && (
                   <Tooltip title={t('refuseThisAccountAccess')}>
                     <Button
-                      size="small"
+                      size="middle"
                       danger
+                      style={{ minWidth: 92 }}
                       loading={busyId === record.id}
                       onClick={() => changeStatus(record, 'denied')}
                       aria-label={`${t('deny')} ${record.fullName}`}

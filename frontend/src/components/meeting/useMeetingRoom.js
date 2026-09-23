@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../api';
 
 /*
@@ -68,6 +68,7 @@ export default function useMeetingRoom({ meetingId, active }) {
   const [peers, setPeers] = useState([]);
   const [streams, setStreams] = useState({});
   const [chat, setChat] = useState([]);
+  const [strokes, setStrokes] = useState([]);
   const [localStream, setLocalStream] = useState(null);
   // Held apart from the camera stream so your own tile can show what everyone
   // else is being sent while you share, without disturbing the camera track.
@@ -260,6 +261,7 @@ export default function useMeetingRoom({ meetingId, active }) {
         setSelf(message.self);
         setPeers(message.peers || []);
         setChat(message.history || []);
+        setStrokes(message.board || []);
         setPhase('joined');
         setError('');
         // Connections to the people already here are opened now, but no offer
@@ -294,6 +296,37 @@ export default function useMeetingRoom({ meetingId, active }) {
         setChat((list) => (list.some((row) => row.id === message.message.id)
           ? list
           : [...list, message.message]));
+        return;
+
+      /*
+       * The whiteboard, one operation at a time. Nothing here is ever applied
+       * to a stroke this browser is currently drawing: the server does not echo
+       * a peer's own 'begin' or 'append' back to it, so the only strokes that
+       * arrive this way belong to somebody else.
+       */
+      case 'board':
+        setStrokes((list) => {
+          switch (message.op) {
+            case 'begin':
+              return list.some((stroke) => stroke.id === message.stroke.id)
+                ? list
+                : [...list, message.stroke];
+
+            case 'append':
+              return list.map((stroke) => (stroke.id === message.id
+                ? { ...stroke, points: [...stroke.points, ...message.points] }
+                : stroke));
+
+            case 'remove':
+              return list.filter((stroke) => stroke.id !== message.id);
+
+            case 'clear':
+              return [];
+
+            default:
+              return list;
+          }
+        });
         return;
 
       case 'ended':
@@ -594,6 +627,50 @@ export default function useMeetingRoom({ meetingId, active }) {
     post({ type: 'chat', body: text });
   }, [post]);
 
+  /*
+   * The whiteboard, from this browser's side.
+   *
+   * `begin` and `append` only go out to the room; they deliberately do not
+   * touch `strokes`. The pen you are holding is drawn straight onto the canvas
+   * from a ref, at the rate your hand moves, while the network sees batches —
+   * putting every point through React state instead would tie the smoothness of
+   * your own line to the render loop. `commit` is what files the finished
+   * stroke here, once, when the pen comes up.
+   */
+  const boardBegin = useCallback((stroke) => {
+    post({
+      type: 'board',
+      op: 'begin',
+      id: stroke.id,
+      colour: stroke.colour,
+      size: stroke.size,
+      mode: stroke.mode,
+      points: stroke.points,
+    });
+  }, [post]);
+
+  const boardAppend = useCallback((id, points) => {
+    if (points.length) post({ type: 'board', op: 'append', id, points });
+  }, [post]);
+
+  const boardCommit = useCallback((stroke) => {
+    setStrokes((list) => (list.some((other) => other.id === stroke.id) ? list : [...list, stroke]));
+  }, []);
+
+  // Both of these come back from the server rather than being applied here, so
+  // an empty board is one the whole room agrees on.
+  const boardUndo = useCallback(() => post({ type: 'board', op: 'undo' }), [post]);
+  const boardClear = useCallback(() => post({ type: 'board', op: 'clear' }), [post]);
+
+  const whiteboard = useMemo(() => ({
+    strokes,
+    begin: boardBegin,
+    append: boardAppend,
+    commit: boardCommit,
+    undo: boardUndo,
+    clear: boardClear,
+  }), [strokes, boardBegin, boardAppend, boardCommit, boardUndo, boardClear]);
+
   /** Tells the room a recording has started or stopped. Never optional. */
   const setRecording = useCallback((value) => {
     stateRef.current = { ...stateRef.current, recording: Boolean(value) };
@@ -615,6 +692,7 @@ export default function useMeetingRoom({ meetingId, active }) {
     peers,
     streams,
     chat,
+    whiteboard,
     localStream,
     screenStream,
     micOn,

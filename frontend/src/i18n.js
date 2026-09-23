@@ -52,14 +52,12 @@ const parseCatalog = (xmlText) => {
 let catalogPromise = null;
 
 const loadCatalog = () => {
-  if (!catalogPromise) {
-    catalogPromise = fetch(CATALOG_URL)
-      .then((response) => {
-        if (!response.ok) throw new Error(`${CATALOG_URL} returned HTTP ${response.status}`);
-        return response.text();
-      })
-      .then(parseCatalog);
-  }
+  catalogPromise = fetch(CATALOG_URL, { cache: 'no-store' })
+    .then((response) => {
+      if (!response.ok) throw new Error(`${CATALOG_URL} returned HTTP ${response.status}`);
+      return response.text();
+    })
+    .then(parseCatalog);
   return catalogPromise;
 };
 
@@ -68,7 +66,10 @@ const LanguageContext = createContext(null);
 const readStoredLanguage = () => {
   try {
     const stored = localStorage.getItem('language');
-    return SUPPORTED.includes(stored) ? stored : FALLBACK;
+    if (SUPPORTED.includes(stored)) return stored;
+    const htmlLang = document.documentElement.lang;
+    if (SUPPORTED.includes(htmlLang)) return htmlLang;
+    return FALLBACK;
   } catch (error) {
     // Private mode and blocked site data both throw here rather than return null.
     return FALLBACK;

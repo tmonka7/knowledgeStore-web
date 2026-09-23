@@ -6,12 +6,14 @@ import {
   CloseCircleOutlined,
   HeartOutlined,
   PlusOutlined,
+  RadarChartOutlined,
   SearchOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import api from '../api';
 import { can } from '../permissions';
 import CameraCard from '../components/CameraCard';
+import CameraDiscovery from '../components/camera/CameraDiscovery';
 import PtzSettings from '../components/camera/PtzSettings';
 import FilterBar from '../components/ui/FilterBar';
 import PageHeader from '../components/ui/PageHeader';
@@ -34,6 +36,10 @@ export default function CamerasPage({ user, cameras, setCameras }) {
   const [saving, setSaving] = useState(false);
   const [viewingCamera, setViewingCamera] = useState(null);
   const [showCameraWall, setShowCameraWall] = useState(false);
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
+  // What a discovered camera fills the Add form with. Held separately from
+  // editingCamera because it is neither an existing camera nor a blank one.
+  const [discoveredDraft, setDiscoveredDraft] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
@@ -81,9 +87,21 @@ export default function CamerasPage({ user, cameras, setCameras }) {
    * values are handed to the Form as initialValues instead, with a key so a
    * different camera remounts it.
    */
-  const openCameraForm = (camera = null) => {
+  const openCameraForm = (camera = null, draft = null) => {
     setEditingCamera(camera);
+    setDiscoveredDraft(draft);
     setModalOpen(true);
+  };
+
+  /*
+   * A camera picked out of the network search. The dialog is closed and the
+   * normal Add form opens on top of it, prefilled — the search knows the
+   * address and the ONVIF service URL, and a person still supplies the name,
+   * the location and the password.
+   */
+  const addDiscoveredCamera = (draft) => {
+    setDiscoveryOpen(false);
+    openCameraForm(null, draft);
   };
 
   const saveCamera = async (values) => {
@@ -142,6 +160,11 @@ export default function CamerasPage({ user, cameras, setCameras }) {
               {t('liveCameraView')}
             </Button>
             {canCreate && (
+              <Button className="vision-btn-ghost" icon={<RadarChartOutlined />} onClick={() => setDiscoveryOpen(true)}>
+                {t('cameraScanStart')}
+              </Button>
+            )}
+            {canCreate && (
               <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
                 {t('addCamera')}
               </Button>
@@ -185,9 +208,14 @@ export default function CamerasPage({ user, cameras, setCameras }) {
 
       <FilterBar
         actions={canCreate && (
-          <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
-            {t('addCamera')}
-          </Button>
+          <>
+            <Button className="vision-btn-ghost" icon={<RadarChartOutlined />} onClick={() => setDiscoveryOpen(true)}>
+              {t('cameraScanStart')}
+            </Button>
+            <Button type="primary" className="vision-btn-primary" icon={<PlusOutlined />} onClick={() => openCameraForm()}>
+              {t('addCamera')}
+            </Button>
+          </>
         )}
       >
         <Input
@@ -249,7 +277,7 @@ export default function CamerasPage({ user, cameras, setCameras }) {
         destroyOnClose
       >
         <Form
-          key={editingCamera?.id || 'new-camera'}
+          key={editingCamera?.id || discoveredDraft?.address || 'new-camera'}
           form={form}
           layout="vertical"
           onFinish={saveCamera}
@@ -260,7 +288,7 @@ export default function CamerasPage({ user, cameras, setCameras }) {
            * empty "field of view" box invites a guess, and a wrong field of
            * view is what leaves gaps in a sweep.
            */
-          initialValues={editingCamera || {
+          initialValues={editingCamera || discoveredDraft || {
             status: 'offline',
             ptz: { enabled: false, panRangeDegrees: 360, hfovDegrees: 65, maxZoomFactor: 20, homeDegrees: 0, settleMs: 900 },
           }}
@@ -287,6 +315,14 @@ export default function CamerasPage({ user, cameras, setCameras }) {
           </Space>
         </Form>
       </Modal>
+
+      {canCreate && (
+        <CameraDiscovery
+          open={discoveryOpen}
+          onClose={() => setDiscoveryOpen(false)}
+          onSelect={addDiscoveredCamera}
+        />
+      )}
     </div>
   );
 }

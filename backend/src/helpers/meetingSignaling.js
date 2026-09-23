@@ -45,12 +45,68 @@ const AUTH_TIMEOUT_MS = 10_000;
 const HEARTBEAT_MS = 30_000;
 const MAX_CHAT_LENGTH = 2000;
 
+/*
+ * Whiteboard limits.
+ *
+ * A board is held in memory beside its room and dies with it, so the only
+ * thing these protect is this process: a pen held down for an hour, or a
+ * client that decides to send its whole history in one frame, must not be able
+ * to grow a room without bound.
+ */
+const MAX_BOARD_STROKES = 1200;
+const MAX_STROKE_POINTS = 4000;
+const MAX_POINTS_PER_MESSAGE = 512;
+const BOARD_COLOUR = /^#[0-9a-f]{6}$/i;
+
 /** meetingId -> Map(peerId -> peer) */
 const rooms = new Map();
 
 const roomOf = (meetingId) => {
   if (!rooms.has(meetingId)) rooms.set(meetingId, new Map());
   return rooms.get(meetingId);
+};
+
+/*
+ * meetingId -> stroke[]
+ *
+ * The shared whiteboard. It lives here rather than in the database because it
+ * is something people draw on while they are talking, not a record of the
+ * meeting — the board is erased when the last person leaves, which is the same
+ * moment the room itself disappears. Anyone who wants to keep it downloads it
+ * as an image before they go.
+ *
+ * Kept beside `rooms` rather than inside it so the peer map stays exactly what
+ * every other function here already expects it to be.
+ */
+const boards = new Map();
+
+const boardOf = (meetingId) => {
+  if (!boards.has(meetingId)) boards.set(meetingId, []);
+  return boards.get(meetingId);
+};
+
+/**
+ * A flat [x, y, x, y, …] run of board coordinates, cleaned up.
+ *
+ * Coordinates are fractions of the board rather than pixels, which is what
+ * lets a line drawn on a laptop land in the same place on a phone. Anything
+ * that is not a finite number rejects the whole batch rather than being
+ * skipped: one NaN in the middle of a stroke would otherwise be stored here
+ * and then break the canvas of every client that drew it.
+ */
+const cleanPoints = (value, limit) => {
+  if (!Array.isArray(value)) return [];
+
+  const points = [];
+  for (const raw of value.slice(0, limit * 2)) {
+    const number = Number(raw);
+    if (!Number.isFinite(number)) return [];
+    points.push(Math.min(1, Math.max(0, Math.round(number * 10000) / 10000)));
+  }
+
+  // An odd length is half a coordinate; dropping the tail keeps every pair whole.
+  if (points.length % 2) points.pop();
+  return points;
 };
 
 const describePeer = (peer) => ({
@@ -126,6 +182,7 @@ export const closeRoom = (meetingId, reason = 'This meeting has ended.') => {
     }
   }
   rooms.delete(meetingId);
+  boards.delete(meetingId);
   return closed;
 };
 
@@ -135,7 +192,13 @@ const leaveRoom = async (peer) => {
   const room = rooms.get(peer.meetingId);
   if (room) {
     room.delete(peer.id);
-    if (!room.size) rooms.delete(peer.meetingId);
+    // The board goes with the room. Leaving it behind would hand it to whoever
+    // opened the same meeting next, hours later, which is not what anybody
+    // drawing on it expects.
+    if (!room.size) {
+      rooms.delete(peer.meetingId);
+      boards.delete(peer.meetingId);
+    }
   }
 
   broadcast(peer.meetingId, { type: 'peer-left', peerId: peer.id });
@@ -232,6 +295,9 @@ const handleJoin = async (peer, message) => {
       body: row.body,
       createdAt: row.createdAt,
     })),
+    // Whatever is on the board already, for the same reason the chat history is
+    // sent: arriving halfway through should not mean arriving to a blank.
+    board: boardOf(meetingId),
     maxPeers: MAX_PEERS,
   });
 
@@ -309,6 +375,110 @@ const handleChat = async (peer, message) => {
   });
 };
 
+/**
+ * The shared whiteboard.
+ *
+ * A stroke is streamed rather than sent whole: 'begin' opens it with its first
+ * point and 'append' extends it as the pen moves, so the other side watches the
+ * line being drawn instead of having it appear once the pen is lifted. There is
+ * no 'end' — a stroke that stops receiving points has simply finished, and a
+ * pen lifted at the moment a socket drops would otherwise leave a stroke the
+ * room considered permanently unfinished.
+ *
+ * Everything is relayed to the others and never echoed to the author, who
+ * already has it on screen. 'clear' and 'remove' are the exceptions: those go
+ * to everyone, so the board that ends up empty is the server's and not four
+ * separate guesses at it.
+ */
+const handleBoard = (peer, message) => {
+  if (!peer.meetingId) return;
+
+  const strokes = boardOf(peer.meetingId);
+
+  switch (message.op) {
+    case 'begin': {
+      const id = String(message.id || '').slice(0, 64);
+      const points = cleanPoints(message.points, MAX_POINTS_PER_MESSAGE);
+      // A repeated id would be extended by the wrong stroke's appends.
+      if (!id || !points.length || strokes.some((other) => other.id === id)) return;
+
+      const stroke = {
+        id,
+        by: peer.id,
+        // The person, not the socket: undo has to reach the strokes you drew in
+        // a tab you have since closed.
+        userId: peer.userId,
+        colour: BOARD_COLOUR.test(message.colour || '') ? String(message.colour) : '#111827',
+        size: Math.min(64, Math.max(1, Number(message.size) || 4)),
+        mode: message.mode === 'eraser' ? 'eraser' : 'pen',
+        points,
+      };
+
+      strokes.push(stroke);
+      // Oldest first: a board busy enough to reach the cap has almost certainly
+      // been drawn over several times already.
+      if (strokes.length > MAX_BOARD_STROKES) {
+        strokes.splice(0, strokes.length - MAX_BOARD_STROKES);
+      }
+
+      broadcast(peer.meetingId, { type: 'board', op: 'begin', stroke }, peer.id);
+      return;
+    }
+
+    case 'append': {
+      const id = String(message.id || '');
+      if (!id) return;
+
+      // From the end: the stroke being drawn right now is the last one pushed.
+      let stroke = null;
+      for (let index = strokes.length - 1; index >= 0; index -= 1) {
+        if (strokes[index].id === id) {
+          stroke = strokes[index];
+          break;
+        }
+      }
+      // Only the peer that opened a stroke may extend it, so one participant
+      // cannot draw a line and leave it signed by somebody else.
+      if (!stroke || stroke.by !== peer.id) return;
+
+      const room = MAX_STROKE_POINTS * 2 - stroke.points.length;
+      if (room <= 0) return;
+
+      const points = cleanPoints(message.points, MAX_POINTS_PER_MESSAGE).slice(0, room);
+      if (!points.length) return;
+
+      stroke.points.push(...points);
+      broadcast(peer.meetingId, { type: 'board', op: 'append', id, points }, peer.id);
+      return;
+    }
+
+    case 'undo': {
+      // Your own last stroke, wherever it sits in the order — undo should not
+      // reach across and take back somebody else's line.
+      for (let index = strokes.length - 1; index >= 0; index -= 1) {
+        if (strokes[index].userId !== peer.userId) continue;
+
+        const [removed] = strokes.splice(index, 1);
+        broadcast(peer.meetingId, { type: 'board', op: 'remove', id: removed.id });
+        return;
+      }
+      return;
+    }
+
+    case 'clear':
+      // Anyone in the call can clear it: it is one shared surface, and a board
+      // only its author could wipe would strand everyone else behind whatever
+      // they left on it. The client asks first, and the name goes out with it
+      // so the room can see who did it.
+      strokes.length = 0;
+      broadcast(peer.meetingId, { type: 'board', op: 'clear', byName: peer.name });
+      return;
+
+    default:
+      send(peer, { type: 'error', code: 'unknown', message: `Unknown board op "${message.op}".` });
+  }
+};
+
 const handleMessage = async (peer, raw) => {
   let message;
   try {
@@ -341,6 +511,7 @@ const handleMessage = async (peer, raw) => {
     case 'signal': return handleSignal(peer, message);
     case 'state': return handleState(peer, message);
     case 'chat': return handleChat(peer, message);
+    case 'board': return handleBoard(peer, message);
     case 'leave': return leaveRoom(peer);
     default:
       return send(peer, { type: 'error', code: 'unknown', message: `Unknown message "${message.type}".` });

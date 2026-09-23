@@ -4,6 +4,7 @@ import {
   AudioMutedOutlined,
   AudioOutlined,
   DesktopOutlined,
+  HighlightOutlined,
   LogoutOutlined,
   MessageOutlined,
   StopOutlined,
@@ -13,6 +14,8 @@ import useMeetingRoom from './useMeetingRoom';
 import useRecorder from './useRecorder';
 import VideoTile from './VideoTile';
 import MeetingChat from './MeetingChat';
+import MeetingWhiteboard from './MeetingWhiteboard';
+import { useLanguage } from '../../i18n';
 
 const formatDuration = (ms) => {
   const total = Math.floor(ms / 1000);
@@ -29,8 +32,10 @@ const formatDuration = (ms) => {
  * This component is the layout and the buttons.
  */
 export default function MeetingRoom({ user, meeting, onLeave, onMeetingChanged }) {
+  const { t } = useLanguage();
   const room = useMeetingRoom({ meetingId: meeting.id, active: true });
   const [chatOpen, setChatOpen] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
   const [seenChat, setSeenChat] = useState(0);
 
   const tiles = useMemo(() => [
@@ -146,21 +151,30 @@ export default function MeetingRoom({ user, meeting, onLeave, onMeetingChanged }
         <Alert type="error" showIcon closable message={recorder.error} onClose={recorder.clearError} />
       )}
 
-      <div className={`meeting-body${chatOpen ? ' with-chat' : ''}`}>
-        <div className={`meeting-grid count-${Math.min(tiles.length, 9)}`}>
-          {room.phase === 'connecting' && !tiles.length && <Spin />}
-          {tiles.map((tile) => (
-            <VideoTile
-              key={tile.key}
-              stream={tile.stream}
-              label={tile.label}
-              isSelf={tile.isSelf}
-              state={tile.state}
-              sharing={tile.sharing}
-              recording={tile.recording}
-              connecting={tile.connecting}
-            />
-          ))}
+      <div className={`meeting-body${chatOpen ? ' with-chat' : ''}${boardOpen ? ' with-board' : ''}`}>
+        {/* The board takes the stage when it is open and the faces become a
+            rail beside it: a whiteboard squeezed in next to a video grid is too
+            small to write on, which is the only thing it is for. */}
+        <div className="meeting-stage">
+          {boardOpen && (
+            <MeetingWhiteboard whiteboard={room.whiteboard} onClose={() => setBoardOpen(false)} />
+          )}
+
+          <div className={`meeting-grid count-${Math.min(tiles.length, 9)}`}>
+            {room.phase === 'connecting' && !tiles.length && <Spin />}
+            {tiles.map((tile) => (
+              <VideoTile
+                key={tile.key}
+                stream={tile.stream}
+                label={tile.label}
+                isSelf={tile.isSelf}
+                state={tile.state}
+                sharing={tile.sharing}
+                recording={tile.recording}
+                connecting={tile.connecting}
+              />
+            ))}
+          </div>
         </div>
 
         {chatOpen && (
@@ -216,6 +230,21 @@ export default function MeetingRoom({ user, meeting, onLeave, onMeetingChanged }
             icon={recorder.recording ? <StopOutlined /> : <span className="meeting-rec-dot" />}
             onClick={recorder.recording ? recorder.stop : recorder.start}
           />
+        </Tooltip>
+
+        <Tooltip title={boardOpen ? t('closeWhiteboard') : t('openWhiteboard')}>
+          {/* A dot rather than a count: the board has no unread strokes, only
+              the fact that somebody has been drawing on it while it was shut. */}
+          <Badge dot={!boardOpen && room.whiteboard.strokes.length > 0}>
+            <Button
+              shape="circle"
+              size="large"
+              aria-label={boardOpen ? t('closeWhiteboard') : t('openWhiteboard')}
+              className={boardOpen ? 'meeting-control is-active' : 'meeting-control'}
+              icon={<HighlightOutlined />}
+              onClick={() => setBoardOpen((open) => !open)}
+            />
+          </Badge>
         </Tooltip>
 
         <Tooltip title="In-call messages">

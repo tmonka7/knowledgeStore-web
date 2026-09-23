@@ -583,7 +583,7 @@ export default function DashboardPage({
             recordForm.resetFields();
           }}
           footer={null}
-          width={700}
+          width="min(1100px, calc(100vw - 48px))"
         >
           <Form key={editingRecord?.id || 'edit-record'} form={recordForm} layout="vertical" onFinish={handleUpdateRecord}>
             <Row gutter={16}>
@@ -656,7 +656,7 @@ export default function DashboardPage({
             addForm.resetFields();
           }}
           footer={null}
-          width={700}
+          width="min(1100px, calc(100vw - 48px))"
         >
           <Form form={addForm} layout="vertical" onFinish={handleSaveRecord}>
             <Row gutter={16}>

@@ -2870,6 +2870,17 @@
   min-height: 0;
 }
 
+/* Holds the whiteboard and the faces. Without it the chat panel would be a
+   sibling of both and the row would try to fit three columns. */
+.meeting-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
 .meeting-grid {
   flex: 1;
   display: grid;
@@ -3048,6 +3059,138 @@
   display: flex;
   flex-direction: column;
   gap: var(--v-space-2);
+}
+
+/* ------------------------------------------------- the shared whiteboard */
+
+.meeting-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  flex: 1;
+  min-height: 0;
+}
+
+.meeting-board-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-2);
+  flex-wrap: wrap;
+  padding: var(--v-space-2) var(--v-space-3);
+  background: var(--v-surface);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg);
+}
+
+/* Pushes undo, download, clear and close to the far end. It keeps a width of
+   its own so that when the bar wraps on a narrow screen the two groups are
+   still separated rather than butting together. */
+.meeting-board-spacer {
+  flex: 1;
+  min-width: var(--v-space-2);
+}
+
+.meeting-board-colours,
+.meeting-board-sizes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meeting-board-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--v-border);
+  cursor: pointer;
+}
+
+/* A ring outside the swatch rather than a tick inside it: the dark inks would
+   swallow a tick, and the lighter ones would swallow a white one. */
+.meeting-board-swatch.is-active {
+  border-color: var(--v-surface);
+  box-shadow: 0 0 0 2px var(--v-primary);
+}
+
+.meeting-board-size {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-sm);
+  background: var(--v-surface);
+  cursor: pointer;
+}
+
+.meeting-board-size span {
+  display: block;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.meeting-board-size.is-active {
+  border-color: var(--v-primary);
+  background: var(--v-tint-blue);
+  color: var(--v-primary);
+}
+
+.meeting-board-surface {
+  position: relative;
+  flex: 1;
+  min-height: 260px;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-lg);
+  overflow: hidden;
+  /* Deliberately light in both themes. The pens are dark inks, and a board
+     that followed a dark theme would leave most of them unreadable — and the
+     colour chosen here is the one everyone in the call is drawing on. */
+  background: #fdfdfd;
+}
+
+.meeting-board-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  /* Without this a drag on a touchscreen scrolls the page instead of drawing,
+     and the board is unusable on exactly the devices a pen suits best. */
+  touch-action: none;
+}
+
+.meeting-board-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: var(--v-space-4);
+  text-align: center;
+  /* The hint sits over the drawing surface, so it must not be the thing that
+     catches the first stroke. */
+  pointer-events: none;
+}
+
+/* With the board up the faces become a strip underneath it. A whiteboard
+   sharing a grid with four video tiles is too small to write on, which is the
+   only thing it is there for. */
+.meeting-body.with-board .meeting-grid {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--v-space-3);
+  overflow-x: auto;
+  padding-bottom: var(--v-space-1);
+}
+
+.meeting-body.with-board .meeting-grid .meeting-tile {
+  flex: 0 0 auto;
+  width: 200px;
 }
 
 .meeting-controls {

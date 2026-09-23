@@ -75,6 +75,7 @@
   <text id="toDate" en="To date" es="Fecha final" zh="结束日期" jp="終了日" />
   <text id="aiSearch" en="AI Search" es="Busqueda IA" zh="智能搜索" jp="AI検索" />
   <text id="search" en="Search" es="Buscar" zh="搜索" jp="検索" />
+  <text id="clear" en="Clear" es="Limpiar" zh="清除" jp="クリア" />
   <text id="uploadData" en="Upload Data" es="Subir datos" zh="上传数据" jp="データをアップロード" />
   <text id="exportExcel" en="Export Excel" es="Exportar Excel" zh="导出 Excel" jp="Excelをエクスポート" />
   <text id="delete" en="Delete" es="Eliminar" zh="删除" jp="削除" />
@@ -514,6 +515,79 @@
   <text id="sharePeople" en="People" es="Personas" zh="人员" jp="ユーザー" />
   <text id="sharePeoplePlaceholder" en="Choose who can see this" es="Elige quien puede verlo" zh="选择可以查看的人" jp="閲覧できる人を選択" />
   <text id="shareOnlyYou" en="Nobody selected — only you can see this record." es="Nadie seleccionado: solo tu puedes ver este registro." zh="未选择任何人，只有你可以查看此记录。" jp="誰も選択されていません。あなただけが閲覧できます。" />
+  <text id="joinedPresence" en="Joined {joinedAt}{leftAt}" es="Se unió {joinedAt}{leftAt}" zh="加入时间 {joinedAt}{leftAt}" jp="参加 {joinedAt}{leftAt}" />
+  <text id="leftAt" en=" · left {leftAt}" es=" · salió {leftAt}" zh=" · 离开 {leftAt}" jp=" · 退出 {leftAt}" />
+  <text id="stillInCall" en=" · still in the call" es=" · aún en la llamada" zh=" · 仍在通话中" jp=" · 通話中" />
+  <text id="meetingsSubtitle" en="Video calls between people in this workspace. Audio and video go directly between browsers." es="Videollamadas entre personas de este espacio de trabajo. El audio y video van directamente entre navegadores." zh="此工作区中人员之间的视频通话。音频和视频直接在浏览器之间传输。" jp="このワークスペース内の人同士のビデオ通話。音声と映像はブラウザー間で直接送信されます。" />
+  <text id="newMeeting" en="New meeting" es="Nueva reunión" zh="新会议" jp="新しい会議" />
+  <text id="refresh" en="Refresh" es="Actualizar" zh="刷新" jp="更新" />
+  <text id="cameraAndMicrophoneUnavailable" en="Camera and microphone are unavailable on this address." es="La cámara y el micrófono no están disponibles en esta dirección." zh="此地址无法使用摄像头和麦克风。" jp="このアドレスではカメラとマイクを使用できません。" />
+  <text id="inProgress" en="In progress" es="En curso" zh="进行中" jp="進行中" />
+  <text id="upcoming" en="Upcoming" es="Próximo" zh="即将到来" jp="今後" />
+  <text id="recordings" en="Recordings" es="Grabaciones" zh="录音/录像" jp="録画" />
+  <text id="scheduled" en="Scheduled" es="Programado" zh="已安排" jp="予定" />
+  <text id="ended" en="Ended" es="Finalizado" zh="已结束" jp="終了" />
+  <text id="host" en="Host" es="Anfitrión" zh="主持人" jp="主催者" />
+  <text id="when" en="When" es="Cuándo" zh="时间" jp="日時" />
+  <text id="who" en="Who" es="Quién" zh="谁" jp="対象" />
+  <text id="everyone" en="Everyone" es="Todos" zh="所有人" jp="全員" />
+  <text id="invitedCount" en="{count} invited" es="{count} invitados" zh="{count} 位受邀者" jp="{count} 名が招待されています" />
+  <text id="peopleInCalls" en="{count} people in calls" es="{count} personas en llamadas" zh="{count} 人正在通话" jp="通話中 {count} 人" />
+  <text id="scheduledOrOpen" en="Scheduled or open" es="Programado o abierto" zh="已安排或开放" jp="予定または開いています" />
+  <text id="savedToMeetings" en="Saved to meetings" es="Guardado en reuniones" zh="已保存到会议" jp="会議に保存" />
+  <text id="youCanSee" en="You can see" es="Puedes ver" zh="您可以查看" jp="表示できます" />
+  <text id="searchMeetings" en="Search by title, host or description" es="Buscar por título, anfitrión o descripción" zh="按标题、主持人或描述搜索" jp="タイトル、主催者、説明で検索" />
+  <text id="allMeetings" en="All meetings" es="Todas las reuniones" zh="所有会议" jp="すべての会議" />
+  <text id="noMeetingMatches" en="No meeting matches these filters" es="Ninguna reunión coincide con estos filtros" zh="没有会议符合这些筛选条件" jp="条件に一致する会議はありません" />
+  <text id="noMeetingsYet" en="No meetings yet" es="Aún no hay reuniones" zh="还没有会议" jp="まだ会議がありません" />
+  <text id="noDescription" en="No description." es="Sin descripción." zh="无描述。" jp="説明なし。" />
+  <text id="peopleInCall" en="In the call: {names}" es="En la llamada: {names}" zh="通话中：{names}" jp="通話中: {names}" />
+  <text id="attendedCount" en="{count} attended" es="{count} asistieron" zh="{count} 人已参加" jp="{count} 名が参加" />
+  <text id="recordingsCount" en="{count} recording(s)" es="{count} grabación(es)" zh="{count} 个录音/录像" jp="{count} 件の録画" />
+  <text id="joinMeeting" en="Join meeting" es="Unirse a la reunión" zh="加入会议" jp="会議に参加" />
+  <text id="endMeeting" en="End meeting" es="Finalizar reunión" zh="结束会议" jp="会議を終了" />
+  <text id="endMeetingQuestion" en="End &quot;{title}&quot;?" es="¿Finalizar &quot;{title}&quot;?" zh="结束 &quot;{title}&quot;？" jp="&quot;{title}&quot;を終了しますか？" />
+  <text id="meetingEndWarningPeople" en="{count} person(s) are in the call and will be disconnected. The recordings and the attendance list are kept." es="Hay {count} persona(s) en la llamada y serán desconectadas. Las grabaciones y la lista de asistencia se conservan." zh="{count} 人正在通话中，将被断开连接。录音和出席列表会保留。" jp="{count} 人が通話中で、接続が切断されます。録画と出席者一覧は保持されます。" />
+  <text id="meetingEndWarningSaved" en="The recordings and the attendance list are kept." es="Las grabaciones y la lista de asistencia se conservan." zh="录音和出席列表会保留。" jp="録画と出席者一覧は保持されます。" />
+  <text id="meetingEnded" en="Meeting ended." es="Reunión finalizada." zh="会议已结束。" jp="会議を終了しました。" />
+  <text id="unableToEndMeeting" en="Unable to end the meeting." es="No se pudo finalizar la reunión." zh="无法结束会议。" jp="会議を終了できません。" />
+  <text id="deleteMeetingQuestion" en="Delete &quot;{title}&quot;?" es="¿Eliminar &quot;{title}&quot;?" zh="删除 &quot;{title}&quot;？" jp="&quot;{title}&quot;を削除しますか？" />
+  <text id="deleteMeetingWarningRecordings" en="Its {count} recording(s) and the in-call messages are deleted too. This cannot be undone." es="Sus {count} grabación(es) y los mensajes de la llamada también se eliminan. Esto no se puede deshacer." zh="其 {count} 个录音/录像和通话中的消息也将一并删除，此操作无法撤销。" jp="{count} 件の録画と通話中のメッセージも削除されます。この操作は元に戻せません。" />
+  <text id="deleteMeetingWarningMessages" en="The in-call messages are deleted too. This cannot be undone." es="Los mensajes de la llamada también se eliminan. Esto no se puede deshacer." zh="通话中的消息也将删除，此操作无法撤销。" jp="通話中のメッセージも削除されます。この操作は元に戻せません。" />
+  <text id="meetingDeleted" en="Meeting deleted." es="Reunión eliminada." zh="会议已删除。" jp="会議を削除しました。" />
+  <text id="unableToDeleteMeeting" en="Unable to delete the meeting." es="No se pudo eliminar la reunión." zh="无法删除会议。" jp="会議を削除できません。" />
+  <text id="deleteRecordingQuestion" en="Delete &quot;{name}&quot;?" es="¿Eliminar &quot;{name}&quot;?" zh="删除 &quot;{name}&quot;？" jp="&quot;{name}&quot;を削除しますか？" />
+  <text id="deleteRecordingWarning" en="{size} recorded by {name}. The file is removed from the server and cannot be recovered." es="{size} grabado por {name}. El archivo se elimina del servidor y no se puede recuperar." zh="{size} 由 {name} 录制。文件将从服务器删除且无法恢复。" jp="{size} を {name} が録画しました。このファイルはサーバーから削除され、回復できません。" />
+  <text id="recordingDeleted" en="Recording deleted." es="Grabación eliminada." zh="录音/录像已删除。" jp="録画を削除しました。" />
+  <text id="unableToDeleteRecording" en="Unable to delete that recording." es="No se pudo eliminar esa grabación." zh="无法删除该录音/录像。" jp="その録画を削除できません。" />
+  <text id="unableToLoadMeetings" en="Unable to load meetings." es="No se pudieron cargar las reuniones." zh="无法加载会议。" jp="会議を読み込めません。" />
+  <text id="meetingUpdated" en="Meeting updated." es="Reunión actualizada." zh="会议已更新。" jp="会議を更新しました。" />
+  <text id="meetingCreated" en="Meeting created." es="Reunión creada." zh="会议已创建。" jp="会議を作成しました。" />
+  <text id="unableToSaveMeeting" en="Unable to save the meeting." es="No se pudo guardar la reunión." zh="无法保存会议。" jp="会議を保存できません。" />
+  <text id="whiteboard" en="Whiteboard" es="Pizarra" zh="白板" jp="ホワイトボード" />
+  <text id="openWhiteboard" en="Open the whiteboard" es="Abrir la pizarra" zh="打开白板" jp="ホワイトボードを開く" />
+  <text id="closeWhiteboard" en="Close the whiteboard" es="Cerrar la pizarra" zh="关闭白板" jp="ホワイトボードを閉じる" />
+  <text id="pen" en="Pen" es="Lápiz" zh="画笔" jp="ペン" />
+  <text id="eraser" en="Eraser" es="Borrador" zh="橡皮擦" jp="消しゴム" />
+  <text id="penColour" en="Pen colour" es="Color del lápiz" zh="画笔颜色" jp="ペンの色" />
+  <text id="penSize" en="Pen size" es="Grosor del lápiz" zh="画笔粗细" jp="ペンの太さ" />
+  <text id="strokeThin" en="Thin" es="Fino" zh="细" jp="細い" />
+  <text id="strokeMedium" en="Medium" es="Medio" zh="中" jp="中" />
+  <text id="strokeThick" en="Thick" es="Grueso" zh="粗" jp="太い" />
+  <text id="undoMyLastStroke" en="Undo my last stroke" es="Deshacer mi último trazo" zh="撤销我的上一笔" jp="自分の最後の線を取り消す" />
+  <text id="downloadBoard" en="Download as an image" es="Descargar como imagen" zh="下载为图片" jp="画像として保存" />
+  <text id="clearBoard" en="Clear the whiteboard" es="Borrar la pizarra" zh="清空白板" jp="ホワイトボードを消去" />
+  <text id="clearBoardQuestion" en="Clear the whiteboard for everyone?" es="¿Borrar la pizarra para todos?" zh="为所有人清空白板？" jp="全員のホワイトボードを消去しますか？" />
+  <text id="clearBoardWarning" en="Everything drawn on it is removed for everyone in the call, and the board is not saved anywhere. Download it first if you want to keep it." es="Todo lo dibujado se elimina para todos los participantes y la pizarra no se guarda en ningún sitio. Descárguela antes si quiere conservarla." zh="画布上的所有内容将对通话中的所有人清除，且白板不会被保存。如需保留，请先下载。" jp="描かれた内容は通話中の全員から削除され、ホワイトボードはどこにも保存されません。残したい場合は先にダウンロードしてください。" />
+  <text id="boardEmptyHint" en="Draw here — everyone in the call sees it. The board is cleared when the last person leaves." es="Dibuje aquí: todos los participantes lo ven. La pizarra se borra cuando se va la última persona." zh="在此绘制——通话中的所有人都能看到。最后一人离开后白板将被清空。" jp="ここに描くと通話中の全員に表示されます。最後の一人が退出するとホワイトボードは消去されます。" />
+  <text id="whoAttendedTitle" en="Who attended &quot;{title}&quot;" es="Quién asistió a &quot;{title}&quot;" zh="&quot;{title}&quot; 的出席者" jp="&quot;{title}&quot; に参加した人" />
+  <text id="nobodyHasJoinedYet" en="Nobody has joined yet" es="Nadie se ha unido todavía" zh="还没有人加入" jp="まだ誰も参加していません" />
+  <text id="recordingsOfTitle" en="Recordings of &quot;{title}&quot;" es="Grabaciones de &quot;{title}&quot;" zh="&quot;{title}&quot; 的录音/录像" jp="&quot;{title}&quot; の録画" />
+  <text id="open" en="Open" es="Abrir" zh="打开" jp="開く" />
+  <text id="download" en="Download" es="Descargar" zh="下载" jp="ダウンロード" />
+  <text id="recordedBy" en="Recorded by {name}" es="Grabado por {name}" zh="由 {name} 录制" jp="{name} が録画" />
+  <text id="someone" en="someone" es="alguien" zh="某人" jp="誰か" />
+  <text id="openStartWhenever" en="Open — start it whenever" es="Abierta — iníciela cuando quieras" zh="开放 — 随时开始" jp="開いています — 必要なときに開始" />
   <text id="sharedWithEveryone" en="Shared with everyone" es="Compartido con todos" zh="已共享给所有人" jp="全員に共有" />
   <text id="sharedWithNobody" en="Private to you" es="Privado para ti" zh="仅自己可见" jp="自分のみ" />
   <text id="sharedWithPeople" en="Shared with {names}" es="Compartido con {names}" zh="已共享给 {names}" jp="{names} に共有" />
@@ -648,6 +722,21 @@
   <text id="ptzControl" en="PTZ control" es="Control PTZ" zh="云台控制" jp="PTZ 操作" />
   <text id="ptzAndAttendance" en="PTZ and automatic attendance" es="PTZ y asistencia automatica" zh="云台与自动考勤" jp="PTZ と自動出欠確認" />
   <text id="ptzEnable" en="Enable PTZ control" es="Activar control PTZ" zh="启用云台控制" jp="PTZ 操作を有効にする" />
+  <text id="cameraScanTitle" en="Search the network for cameras" es="Buscar camaras en la red" zh="在网络中搜索摄像头" jp="ネットワークでカメラを検索" />
+  <text id="cameraScanStart" en="Search network" es="Buscar en la red" zh="搜索网络" jp="ネットワークを検索" />
+  <text id="cameraScanAgain" en="Search again" es="Buscar de nuevo" zh="重新搜索" jp="もう一度検索" />
+  <text id="cameraScanNote" en="Cameras on this network are asked to identify themselves over ONVIF. Nothing is added until you choose it." es="Se pide a las camaras de esta red que se identifiquen por ONVIF. No se agrega nada hasta que usted lo elija." zh="通过 ONVIF 请求本网络中的摄像头自报身份。在您选择之前不会添加任何设备。" jp="このネットワーク上のカメラに ONVIF で自己申告を求めます。選択するまで何も追加されません。" />
+  <text id="cameraScanDeep" en="Also try every address on the subnet (slower, finds cameras that ignore discovery)" es="Probar tambien cada direccion de la subred (mas lento, encuentra camaras que ignoran la deteccion)" zh="同时尝试子网中的每个地址（较慢，可找到不响应发现的摄像头）" jp="サブネット内の全アドレスも試す（低速。検出に応答しないカメラを見つけます）" />
+  <text id="cameraScanSubnetPlaceholder" en="Subnet to sweep, e.g. 192.168.1 (optional)" es="Subred a recorrer, p. ej. 192.168.1 (opcional)" zh="要扫描的子网，例如 192.168.1（可选）" jp="走査するサブネット（例: 192.168.1、任意）" />
+  <text id="cameraScanListening" en="Listening for cameras..." es="Escuchando camaras..." zh="正在监听摄像头..." jp="カメラの応答を待っています..." />
+  <text id="cameraScanSweeping" en="Checking every address on the subnet..." es="Comprobando cada direccion de la subred..." zh="正在检查子网中的每个地址..." jp="サブネット内の各アドレスを確認しています..." />
+  <text id="cameraScanNothingDiscovered" en="No camera answered. Cameras on another subnet or behind a switch that blocks multicast will not answer — try the subnet sweep." es="Ninguna camara respondio. Las camaras en otra subred o tras un conmutador que bloquea multicast no responden: pruebe el recorrido de subred." zh="没有摄像头响应。位于其他子网或被交换机屏蔽组播的摄像头不会响应——请尝试子网扫描。" jp="カメラからの応答がありません。別のサブネットにあるカメラやマルチキャストを遮断するスイッチの先のカメラは応答しません。サブネット走査をお試しください。" />
+  <text id="cameraScanNothingFound" en="No cameras were found on this network." es="No se encontraron camaras en esta red." zh="在此网络中未找到摄像头。" jp="このネットワークにカメラは見つかりませんでした。" />
+  <text id="cameraScanFailed" en="The network could not be searched." es="No se pudo buscar en la red." zh="无法搜索网络。" jp="ネットワークを検索できませんでした。" />
+  <text id="cameraScanNeedsLogin" en="needs credentials" es="requiere credenciales" zh="需要凭据" jp="認証情報が必要" />
+  <text id="cameraScanFoundBySweep" en="found by sweep" es="hallada por recorrido" zh="由扫描发现" jp="走査で発見" />
+  <text id="cameraScanAlreadyAdded" en="Already added" es="Ya agregada" zh="已添加" jp="追加済み" />
+  <text id="cameraScanAddHint" en="Add a name, a location and the camera password, then save." es="Agregue un nombre, una ubicacion y la contrasena de la camara, y guarde." zh="请填写名称、位置和摄像头密码后保存。" jp="名前・設置場所・カメラのパスワードを入力して保存してください。" />
   <text id="ptzDeviceUrl" en="ONVIF service address" es="Direccion del servicio ONVIF" zh="ONVIF 服务地址" jp="ONVIF サービスアドレス" />
   <text id="ptzDeviceUrlHint" en="Usually http://camera-address/onvif/device_service. This is the control channel, not the video stream." es="Normalmente http://direccion-camara/onvif/device_service. Es el canal de control, no el video." zh="通常为 http://摄像头地址/onvif/device_service。这是控制通道，不是视频流。" jp="通常は http://カメラのアドレス/onvif/device_service です。映像ではなく制御用の経路です。" />
   <text id="ptzUsername" en="PTZ username" es="Usuario PTZ" zh="云台用户名" jp="PTZ ユーザー名" />
