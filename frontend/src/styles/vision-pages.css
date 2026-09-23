@@ -3231,3 +3231,46 @@
 .convert-result .convert-preview {
   margin-top: var(--v-space-2);
 }
+
+/* --- TTS speech dataset ------------------------------------------------ */
+
+.tts-player {
+  width: 100%;
+  /* The native player is the control surface here, so it gets room rather
+     than being squeezed under the metadata tags. */
+  height: 40px;
+}
+
+.tts-skipped {
+  max-height: 220px;
+  overflow: auto;
+}
+
+.tts-history-row {
+  cursor: pointer;
+  border-radius: var(--v-radius-sm);
+  padding-inline: var(--v-space-2);
+}
+
+.tts-history-row:hover {
+  background: var(--v-surface-muted);
+}
+
+.tts-history-row.is-active {
+  background: var(--v-surface-muted);
+  box-shadow: inset 2px 0 0 var(--v-primary);
+}
+
+.tts-done-mark {
+  color: #22c55e;
+}
+
+/* A hollow circle where the tick will go, so the column stays aligned and the
+   list reads as a checklist rather than as ragged text. */
+.tts-todo-mark {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--v-border);
+  border-radius: 50%;
+}

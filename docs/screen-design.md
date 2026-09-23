@@ -20,7 +20,7 @@ Every signed-in screen sits inside one shell:
 
 **Sidebar order:** Overview · Users · Data · Camera Management · Project
 Management · Schedule · Tools (LVGL, Converting, and an **AI** group holding
-YOLO, Transformers and Keras) ·
+YOLO, TTS, Transformers and Keras) ·
 Chat · Mail · Meetings · Posts · Database Management · System Monitoring ·
 Basic Data (Category).
 
@@ -362,7 +362,7 @@ of the measured series. Nothing on this page is simulated.
 | Camera Management / Camera Wall | Card grid of cameras with a preview or a "no preview" placeholder, status badge, protocol chip and per-card actions (Edit and Delete only with the permission); a wall of live tiles; a single-camera view with fullscreen and object detection. |
 | Schedule | Month view with an entry dialog and an upcoming list. |
 | Contacts (My Page tab) | Searchable list with favourite toggle and a contact dialog. |
-| Tools | LVGL and Converting sit directly under Tools; YOLO, Transformers and Keras sit in an **AI** group beneath them, since those three are about models where the other two are file converters. Both image tools — Converting and the LVGL image tab — take SVG as well as raster input, and render the vector at each output size rather than scaling one decode of it. Converting also emits SVG, by tracing. The LVGL tab emits the v9 `lv_image_dsc_t` form and says so on the output card. YOLO has a Labelling tab: a folder picker on the left with the class list, the image on a canvas in the middle, and the shape list and exports on the right. |
+| Tools | LVGL and Converting sit directly under Tools; YOLO, TTS, Transformers and Keras sit in an **AI** group beneath them, since those are about models where the other two are file converters. Both image tools — Converting and the LVGL image tab — take SVG as well as raster input, and render the vector at each output size rather than scaling one decode of it. Converting also emits SVG, by tracing. The LVGL tab emits the v9 `lv_image_dsc_t` form and says so on the output card. YOLO has a Labelling tab: a folder picker on the left with the class list, the image on a canvas in the middle, and the shape list and exports on the right. TTS mirrors that shape for audio: folder picker, rejected-file list and exports on the left; the player and transcript box in the middle; the text history on the right, ticking off clips as they are done. |
 
 ## 4. Interaction rules
 

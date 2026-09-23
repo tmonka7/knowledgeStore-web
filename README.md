@@ -800,6 +800,80 @@ An SVG converted *to* SVG is resized, not traced. Rasterising a drawing that is
 already made of shapes and then guessing those shapes back would lose every one
 of them.
 
+## TTS speech datasets
+
+**Tools -> AI -> TTS** transcribes a folder of speech into a training dataset.
+Same arrangement as the YOLO labelling tab: the folder is read where it already
+is, nothing is uploaded, and the transcripts — which are small — are mirrored
+into `localStorage` and matched back by file name when the folder is reopened.
+
+**Only 16 kHz mono PCM WAV is accepted**, and the folder is checked rather than
+trusted: a corpus whose clips disagree about sample rate or channel count
+trains badly and says nothing about why. `frontend/src/lib/wavInspect.js` walks
+the RIFF chunks and stops at `data`, so the check is one 64 KB read per file
+however large the file is — decoding each one to find out would mean pulling an
+entire dataset through the browser's audio decoder to learn something the first
+few dozen bytes already state.
+
+Anything rejected is listed with its reason — "44100 Hz; 16000 Hz is required",
+"Stereo; mono is required" — and never silently dropped. The reason is the
+useful part: it says what to run over the folder, where a bare rejection sends
+somebody through it one file at a time.
+
+Two header details that are easy to get wrong, and both produce a wrongly
+rejected folder rather than an obvious failure:
+
+- **`WAVE_FORMAT_EXTENSIBLE` (0xFFFE) is a container**, not a format. The
+  format that matters is the first two bytes of the SubFormat GUID, 24 bytes
+  into the `fmt ` chunk. Read naively, ordinary 16-bit PCM from several common
+  recorders reads as "compressed" and the whole folder is refused.
+- **RIFF chunks are word-aligned.** An odd-length chunk is followed by a pad
+  byte the declared size does not count, and walking without it lands
+  one byte off and finds no `data` chunk at all. Real files hit this: a `LIST`
+  chunk holding an odd-length title is the usual way.
+
+A streaming writer that never went back to fix its header leaves the data size
+at 0 or 0xFFFFFFFF. The duration then comes from the bytes actually on disk,
+and the clip is tagged as estimated rather than reported as 0:00 or 13 hours.
+
+### What comes out
+
+Two files, because the same clips and transcripts feed two ecosystems that read
+different ones:
+
+| File | Format | Read by |
+| --- | --- | --- |
+| `metadata.csv` | `id\|transcript\|normalised`, pipe separated | LJSpeech-style TTS training scripts |
+| `manifest.jsonl` | One JSON object per line: `audio_filepath`, `duration`, `text` | Speech-recognition toolkits |
+
+The duration in the manifest is why the WAV header is parsed at all rather than
+the format merely being validated.
+
+Only clips that have a transcript are written. An untranscribed clip is work
+not yet done, and including it with an empty string teaches a model to answer
+silence — a corpus is better short than quietly wrong. A transcript containing
+a pipe or a newline is flattened, since either would split a record into
+columns or rows that were never meant to exist; the substitution is preferred
+to rejecting somebody's typing over its punctuation.
+
+### Working through a folder
+
+The middle column plays the current clip and takes its transcript; the right
+column is the text history — every clip, its length, and what has been typed so
+far, with a tick against the ones that are done. It follows the clip being
+worked on rather than sitting on page one, and any entry can be clicked to jump
+to it.
+
+Typing is committed on a short delay rather than on each keystroke: writing
+every character into the clip list re-renders the history beside it, and at a
+few thousand clips that is felt in the typing. Anything that reads the dataset
+sees the draft, not the last commit, so an export never misses the sentence
+being typed when the button was pressed.
+
+Ctrl+Enter moves to the next clip — the one shortcut that works while typing,
+because it is the one needed while typing. With the text box unfocused, Space
+plays and the arrow keys move.
+
 ## YOLO labelling
 
 The Labelling tab on the YOLO page turns a folder of images into a YOLO

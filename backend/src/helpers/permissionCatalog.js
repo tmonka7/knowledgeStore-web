@@ -13,6 +13,7 @@ export const PERMISSION_CATALOG = [
   { key: 'lvgl-tool', label: 'Tools / LVGL image/font converter', actions: ['view'] },
   { key: 'convert-tool', label: 'Tools / Converting', actions: ['view'] },
   { key: 'yolo', label: 'Tools / YOLO dataset', actions: ['view'] },
+  { key: 'tts', label: 'Tools / AI / TTS speech dataset', actions: ['view'] },
   { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view'] },
   { key: 'keras', label: 'Tools / Keras dataset', actions: ['view'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
@@ -64,6 +65,7 @@ export const DEFAULT_USER_PERMISSIONS = [
   'lvgl-tool:view',
   'convert-tool:view',
   'yolo:view',
+  'tts:view',
   'transformers:view',
   'keras:view',
 ];

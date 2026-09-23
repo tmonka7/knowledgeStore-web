@@ -522,4 +522,28 @@
   <text id="traceDetail" en="Detail: {percent}%" es="Detalle: {percent}%" zh="细节：{percent}%" jp="ディテール: {percent}%" />
   <text id="tracePhotoWarning" en="Tracing follows flat areas of colour, so logos, icons and line art come out well. A photograph has none, and traces into thousands of blotches that are larger than the original file." es="El trazado sigue las areas planas de color, por lo que logotipos, iconos y dibujos lineales salen bien. Una fotografia no las tiene y se convierte en miles de manchas mas pesadas que el archivo original." zh="描摹依赖大片平坦的色块，因此徽标、图标和线稿效果良好。照片没有这样的色块，会被描摹成上千个色斑，文件反而比原图更大。" jp="トレースは平坦な色面をたどるため、ロゴ・アイコン・線画はきれいに変換できます。写真には平坦な面がなく、元のファイルより大きな数千個の斑点になります。" />
   <text id="svgAlreadyVector" en="This file is already vector. It will be resized rather than traced, so nothing is lost." es="Este archivo ya es vectorial. Se redimensionara en lugar de trazarse, asi que no se pierde nada." zh="该文件本身就是矢量图，将直接调整尺寸而不进行描摹，因此不会有任何损失。" jp="このファイルは既にベクターです。トレースではなくサイズ変更のみ行うため、情報は失われません。" />
+  <text id="ttsSubtitle" en="Transcribe a folder of speech into a training dataset, in the browser." es="Transcriba una carpeta de audio en un conjunto de datos de entrenamiento, en el navegador." zh="在浏览器中将语音文件夹转录为训练数据集。" jp="音声フォルダをブラウザ上で文字起こしし、学習用データセットを作成します。" />
+  <text id="audioFolder" en="Audio folder" es="Carpeta de audio" zh="音频文件夹" jp="音声フォルダ" />
+  <text id="wavRequirement" en="16 kHz mono PCM WAV only. Anything else is listed below with the reason, never silently dropped." es="Solo WAV PCM mono de 16 kHz. Cualquier otro archivo se muestra abajo con el motivo; nunca se descarta en silencio." zh="仅支持 16 kHz 单声道 PCM WAV。其他文件会在下方列出并说明原因，绝不会被静默丢弃。" jp="16 kHz モノラル PCM WAV のみ対応です。それ以外は理由とともに下に表示され、黙って除外されることはありません。" />
+  <text id="noWavFilesFound" en="No .wav files were found in that folder." es="No se encontraron archivos .wav en esa carpeta." zh="该文件夹中没有找到 .wav 文件。" jp="そのフォルダに .wav ファイルが見つかりませんでした。" />
+  <text id="everyFileRejected" en="Every file in that folder was rejected. Check the reasons listed beside them." es="Se rechazaron todos los archivos de esa carpeta. Revise los motivos indicados junto a ellos." zh="该文件夹中的所有文件都被拒绝。请查看旁边列出的原因。" jp="そのフォルダのすべてのファイルが除外されました。横に表示された理由を確認してください。" />
+  <text id="restoredTranscripts" en="Restored transcripts for {count} clips." es="Se restauraron las transcripciones de {count} clips." zh="已恢复 {count} 个片段的转写文本。" jp="{count} 件のクリップの文字起こしを復元しました。" />
+  <text id="skippedFiles" en="Skipped ({count})" es="Omitidos ({count})" zh="已跳过（{count}）" jp="スキップ（{count} 件）" />
+  <text id="andMoreSkipped" en="and {count} more" es="y {count} mas" zh="另有 {count} 个" jp="他 {count} 件" />
+  <text id="noAudioLoaded" en="No audio loaded" es="Ningun audio cargado" zh="未加载音频" jp="音声が読み込まれていません" />
+  <text id="chooseAudioFolderToBegin" en="Choose a folder of 16 kHz mono WAV files to begin." es="Elija una carpeta de archivos WAV mono de 16 kHz para empezar." zh="请选择包含 16 kHz 单声道 WAV 文件的文件夹以开始。" jp="16 kHz モノラル WAV ファイルのフォルダを選択して開始してください。" />
+  <text id="durationEstimated" en="Length estimated" es="Duracion estimada" zh="时长为估算值" jp="長さは推定値" />
+  <text id="transcriptPlaceholder" en="Type exactly what is said in this clip." es="Escriba exactamente lo que se dice en este clip." zh="请输入该片段中实际说出的内容。" jp="このクリップで話されている内容をそのまま入力してください。" />
+  <text id="transcriptHint" en="Saved as you type. Ctrl+Enter moves to the next clip; with the text box unfocused, Space plays and the arrow keys move." es="Se guarda mientras escribe. Ctrl+Intro pasa al siguiente clip; con el cuadro de texto sin foco, Espacio reproduce y las flechas navegan." zh="输入时自动保存。Ctrl+Enter 跳到下一个片段；文本框失去焦点时，空格键播放、方向键切换。" jp="入力中に自動保存されます。Ctrl+Enter で次のクリップへ。テキスト欄からフォーカスを外すと、スペースで再生、矢印キーで移動します。" />
+  <text id="playPause" en="Play / Pause" es="Reproducir / Pausar" zh="播放 / 暂停" jp="再生 / 一時停止" />
+  <text id="playPauseHint" en="Space, when the text box is not focused" es="Espacio, cuando el cuadro de texto no tiene el foco" zh="文本框未聚焦时按空格键" jp="テキスト欄にフォーカスがないときはスペースキー" />
+  <text id="textHistory" en="Text history" es="Historial de texto" zh="文本历史" jp="テキスト履歴" />
+  <text id="historyAppearsHere" en="Each clip and its transcript will appear here." es="Cada clip y su transcripcion apareceran aqui." zh="每个片段及其转写文本将显示在此处。" jp="各クリップとその文字起こしがここに表示されます。" />
+  <text id="notTranscribedYet" en="Not transcribed yet" es="Aun sin transcribir" zh="尚未转写" jp="未入力" />
+  <text id="transcriptionProgress" en="{done} of {total} transcribed · {hours} h · {words} words" es="{done} de {total} transcritos · {hours} h · {words} palabras" zh="已转写 {done}/{total} · {hours} 小时 · {words} 词" jp="{total} 件中 {done} 件 · {hours} 時間 · {words} 語" />
+  <text id="metadataCsvSaved" en="metadata.csv saved." es="metadata.csv guardado." zh="已保存 metadata.csv。" jp="metadata.csv を保存しました。" />
+  <text id="manifestSaved" en="manifest.jsonl saved." es="manifest.jsonl guardado." zh="已保存 manifest.jsonl。" jp="manifest.jsonl を保存しました。" />
+  <text id="clearEveryTranscript" en="Clear every transcript" es="Borrar todas las transcripciones" zh="清除所有转写文本" jp="すべての文字起こしを消去" />
+  <text id="clearTranscriptsTitle" en="Clear every transcript?" es="Borrar todas las transcripciones?" zh="清除所有转写文本？" jp="すべての文字起こしを消去しますか？" />
+  <text id="clearTranscriptsBody" en="All {count} transcripts will be removed. The audio files are untouched. This cannot be undone." es="Se eliminaran las {count} transcripciones. Los archivos de audio no se modifican. Esto no se puede deshacer." zh="将删除全部 {count} 条转写文本。音频文件不受影响，且此操作无法撤销。" jp="{count} 件の文字起こしをすべて削除します。音声ファイルはそのままですが、元に戻せません。" />
 </translations>

@@ -26,6 +26,11 @@ const BACKFILLS = [
     permissions: ['meetings:view', 'meetings:create', 'meetings:edit', 'meetings:delete'],
     note: 'Meetings shipped after these accounts were created. Edit and delete are scoped to your own meetings by the controller.',
   },
+  {
+    id: 'grant-tts-view-2026-09',
+    permissions: ['tts:view'],
+    note: 'The TTS speech-dataset tool was added to Tools / AI after these accounts were created; it sits beside the other dataset tools they already have.',
+  },
 ];
 
 export const backfillDefaultPermissions = async () => {

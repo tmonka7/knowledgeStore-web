@@ -54,6 +54,7 @@ import useScheduleReminders from '../components/schedule/useScheduleReminders';
 import LvglToolPage from './LvglToolPage';
 import ConvertToolPage from './ConvertToolPage';
 import YoloToolPage from './YoloToolPage';
+import TtsToolPage from './TtsToolPage';
 import TransformersToolPage from './TransformersToolPage';
 import KerasToolPage from './KerasToolPage';
 import MyPage from './MyPage';
@@ -402,6 +403,7 @@ export default function DashboardPage({
           label: 'AI',
           children: [
             { key: 'yolo', label: 'YOLO' },
+            { key: 'tts', label: 'TTS' },
             { key: 'transformers', label: 'Transformers' },
             { key: 'keras', label: 'Keras' },
           ],
@@ -762,6 +764,7 @@ export default function DashboardPage({
           {effectiveKey === 'lvgl-tool' && <LvglToolPage />}
           {effectiveKey === 'convert-tool' && <ConvertToolPage />}
           {effectiveKey === 'yolo' && <YoloToolPage />}
+          {effectiveKey === 'tts' && <TtsToolPage />}
           {effectiveKey === 'transformers' && <TransformersToolPage />}
           {effectiveKey === 'keras' && <KerasToolPage />}
 
