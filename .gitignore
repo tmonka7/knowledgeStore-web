@@ -11,3 +11,5 @@ backend/backups
 /openssl
 /openssl/bin
 backend/uploads
+service/daemon
+

@@ -12,9 +12,15 @@
   "scripts": {
     "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
     "build": "npm --prefix frontend run build",
-    "start": "npm --prefix backend run start"
+    "start": "npm --prefix backend run start",
+    "service:install": "node service/install.js",
+    "service:uninstall": "node service/uninstall.js",
+    "service:status": "node service/status.js"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"
+  },
+  "dependencies": {
+    "node-windows": "^1.0.0-beta.8"
   }
 }
