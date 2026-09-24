@@ -14,7 +14,10 @@ export const PERMISSION_CATALOG = [
   { key: 'lvgl-tool', label: 'Tools / LVGL image/font converter', actions: ['view'] },
   { key: 'convert-tool', label: 'Tools / Converting', actions: ['view'] },
   { key: 'yolo', label: 'Tools / YOLO dataset', actions: ['view'] },
-  { key: 'tts', label: 'Tools / AI / TTS speech dataset', actions: ['view'] },
+  // The key stays 'tts': it is stored on every user document as 'tts:view',
+  // and renaming it would silently revoke the permission for everyone who has
+  // it. Only the label an administrator reads has changed.
+  { key: 'tts', label: 'Tools / AI / Speech To Text dataset', actions: ['view'] },
   { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view'] },
   { key: 'keras', label: 'Tools / Keras dataset', actions: ['view'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },

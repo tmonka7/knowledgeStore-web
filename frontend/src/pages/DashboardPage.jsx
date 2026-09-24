@@ -417,7 +417,7 @@ export default function DashboardPage({
           label: t('ai'),
           children: [
             { key: 'yolo', label: 'YOLO' },
-            { key: 'tts', label: 'TTS' },
+            { key: 'tts', label: t('speechToText') },
             { key: 'transformers', label: 'Transformers' },
             { key: 'keras', label: 'Keras' },
           ],

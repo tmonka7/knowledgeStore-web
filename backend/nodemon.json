@@ -1,0 +1,17 @@
+{
+  "//": [
+    "Watch the source, and nothing the running server writes.",
+    "",
+    "nodemon's defaults watch the whole backend folder for js/mjs/cjs/json, and",
+    "backups/ and uploads/ live inside it. A database backup is a .json file",
+    "written into backups/ — so creating one restarted the dev server, and the",
+    "restore that runs immediately after the safety backup was killed partway",
+    "through: the collection it was on had been emptied but not yet refilled.",
+    "Retrying just moved the damage to the next collection.",
+    "",
+    "Anything the server writes at runtime belongs on this list."
+  ],
+  "watch": ["src"],
+  "ext": "js,mjs,cjs,json",
+  "ignore": ["backups/*", "uploads/*", "src/**/*.test.js"]
+}

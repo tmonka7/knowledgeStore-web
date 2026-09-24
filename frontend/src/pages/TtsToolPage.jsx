@@ -7,7 +7,7 @@ export default function TtsToolPage() {
     <div className="vision-page vision-stack">
       <div className="vision-page-header">
         <div>
-          <h1 className="vision-page-title">TTS</h1>
+          <h1 className="vision-page-title">{t('speechToText')}</h1>
           <p className="vision-page-subtitle">{t('ttsSubtitle')}</p>
         </div>
       </div>
