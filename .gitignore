@@ -10,3 +10,4 @@ backend/backups
 /openssl
 /openssl
 /openssl/bin
+backend/uploads
