@@ -1,10 +1,20 @@
-import { Alert, Card, Col, Input, Row, Select, Space, Typography } from 'antd';
+import { useState } from 'react';
+import { Alert } from 'antd';
+import PythonRunner from '../components/transformers/PythonRunner';
+import TranslationDatasetEditor from '../components/transformers/TranslationDatasetEditor';
 import { useLanguage } from '../i18n';
+import { can } from '../permissions';
 
-const { Paragraph, Text } = Typography;
-
-export default function TransformersToolPage() {
+export default function TransformersToolPage({ user }) {
   const { t } = useLanguage();
+  const [datasets, setDatasets] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [activeDirty, setActiveDirty] = useState(false);
+
+  // Running Python is a separate grant from using the page: it executes code
+  // on the server. The API enforces the same rule.
+  const canExecute = can(user, 'transformers', 'execute');
+
   return (
     <div className="vision-page vision-stack">
       <div className="vision-page-header">
@@ -14,48 +24,19 @@ export default function TransformersToolPage() {
         </div>
       </div>
 
-      <Row gutter={[16, 16]}>
-        <Col span={24} lg={12}>
-          <Card title={t('pipeline')} bordered={false}>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Select
-                defaultValue="image-classification"
-                options={[
-                  { value: 'image-classification', label: t('imageClassification') },
-                  { value: 'object-detection', label: t('objectDetection') },
-                  { value: 'text-generation', label: t('textGeneration') },
-                ]}
-                style={{ width: '100%' }}
-              />
-              <Input placeholder={t('modelIdPlaceholder')} />
-              <Input placeholder={t('inputPathOrPrompt')} />
-            </Space>
-          </Card>
-        </Col>
+      <TranslationDatasetEditor
+        datasets={datasets}
+        onDatasetsChange={setDatasets}
+        activeId={activeId}
+        onActiveChange={setActiveId}
+        onDirtyChange={setActiveDirty}
+      />
 
-        <Col span={24} lg={12}>
-          <Card title={t('example')} bordered={false}>
-            <pre style={{ margin: 0, background: '#f6f8fb', borderRadius: 12, padding: 16, whiteSpace: 'pre-wrap' }}>
-              from transformers import pipeline\n
-              classifier = pipeline("image-classification", model="google/vit-base-patch16-224")\n              result = classifier("./sample.jpg")
-            </pre>
-            <Paragraph style={{ marginTop: 16 }}>
-              <Text strong>{t('useCase')}:</Text> {t('transformersUseCase')}
-            </Paragraph>
-          </Card>
-        </Col>
-
-        <Col span={24}>
-          <Card bordered={false}>
-            <Alert
-              type="info"
-              showIcon
-              message={t('transformersUtility')}
-              description={t('transformersDescription')}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {canExecute ? (
+        <PythonRunner datasets={datasets} activeId={activeId} activeDirty={activeDirty} />
+      ) : (
+        <Alert type="info" showIcon message={t('pythonNeedsPermission')} />
+      )}
     </div>
   );
 }

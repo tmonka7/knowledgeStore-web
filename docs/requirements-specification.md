@@ -219,7 +219,9 @@ polled), mobile applications, and single sign-on.
 | ID | Requirement |
 |---|---|
 | FR-SYS-01 | The monitoring page charts measured figures only: API latency measured around a real request, and browser heap use. No plotted series may be fabricated. |
-| FR-SYS-02 | The tool pages (LVGL, Converting, YOLO, Transformers, Keras) are each gated by their own permission. |
+| FR-SYS-02 | The tool pages (LVGL, Converting, YOLO, Transformers) are each gated by their own permission. |
+| FR-SYS-03 | The Transformers page lets a user create, edit, import, export and delete their own multilingual translation datasets. Datasets are private to their owner. |
+| FR-SYS-04 | Running Python against a dataset requires `transformers:execute`, which is never a default permission. A run has a time limit, a per-user and a server-wide concurrency limit, and does not receive the server's environment secrets. |
 
 ### 3.12 Internationalisation (FR-I18N)
 

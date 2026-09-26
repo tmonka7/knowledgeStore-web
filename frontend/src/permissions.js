@@ -20,7 +20,6 @@ export const PAGE_PERMISSIONS = {
   yolo: { key: 'yolo', action: 'view' },
   tts: { key: 'tts', action: 'view' },
   transformers: { key: 'transformers', action: 'view' },
-  keras: { key: 'keras', action: 'view' },
   projects: { key: 'projects', action: 'view' },
   wallet: { key: 'wallet', action: 'view' },
   contacts: { key: 'contacts', action: 'view' },

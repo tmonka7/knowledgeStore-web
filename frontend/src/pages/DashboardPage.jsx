@@ -57,7 +57,6 @@ import ConvertToolPage from './ConvertToolPage';
 import YoloToolPage from './YoloToolPage';
 import TtsToolPage from './TtsToolPage';
 import TransformersToolPage from './TransformersToolPage';
-import KerasToolPage from './KerasToolPage';
 import MyPage from './MyPage';
 import PostsPage from './PostsPage';
 import MeetingsPage from './MeetingsPage';
@@ -410,7 +409,7 @@ export default function DashboardPage({
       children: [
         { key: 'lvgl-tool', label: 'LVGL' },
         { key: 'convert-tool', label: t('toolsConverting') },
-        // The three model tools group together: they are about training and
+        // The model tools group together: they are about training and
         // inference, where the two above are file converters.
         {
           key: 'tools-ai',
@@ -419,7 +418,6 @@ export default function DashboardPage({
             { key: 'yolo', label: 'YOLO' },
             { key: 'tts', label: t('speechToText') },
             { key: 'transformers', label: 'Transformers' },
-            { key: 'keras', label: 'Keras' },
           ],
         },
       ],
@@ -781,8 +779,7 @@ export default function DashboardPage({
           {effectiveKey === 'convert-tool' && <ConvertToolPage />}
           {effectiveKey === 'yolo' && <YoloToolPage />}
           {effectiveKey === 'tts' && <TtsToolPage />}
-          {effectiveKey === 'transformers' && <TransformersToolPage />}
-          {effectiveKey === 'keras' && <KerasToolPage />}
+          {effectiveKey === 'transformers' && <TransformersToolPage user={user} />}
 
           {effectiveKey === 'categories' && (
             <CategoriesPage

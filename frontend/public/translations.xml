@@ -236,26 +236,67 @@
   <text id="repeatUntilHelp" en="Leave empty to repeat indefinitely. A monthly schedule on the 31st skips months that are too short." es="Deje vacio para repetir indefinidamente. Una agenda mensual del dia 31 omite meses demasiado cortos." zh="留空表示无限重复。每月31日的日程会跳过没有31日的月份。" jp="空欄で無期限に繰り返します。31日の月次予定は短い月をスキップします。" />
   <text id="optionalDetails" en="Optional details" es="Detalles opcionales" zh="可选详情" jp="任意の詳細" />
   <text id="reminderOneDayBefore" en="A reminder appears one day before each occurrence." es="Aparece un recordatorio un dia antes de cada ocurrencia." zh="每次发生前一天会显示提醒。" jp="各予定の1日前にリマインダーが表示されます。" />
-  <text id="kerasSubtitle" en="Template-based configuration for Keras model training and inference." es="Configuracion basada en plantillas para entrenamiento e inferencia de modelos Keras." zh="基于模板的 Keras 模型训练和推理配置。" jp="Kerasモデルのトレーニングと推論用テンプレート設定。" />
   <text id="modelConfig" en="Model config" es="Configuracion del modelo" zh="模型配置" jp="モデル設定" />
   <text id="datasetPath" en="Dataset path" es="Ruta del conjunto de datos" zh="数据集路径" jp="データセットパス" />
   <text id="classNamesFile" en="Class names or labels file" es="Archivo de nombres de clases o etiquetas" zh="类别名称或标签文件" jp="クラス名またはラベルファイル" />
   <text id="exampleTrainingSnippet" en="Example training snippet" es="Ejemplo de entrenamiento" zh="训练示例" jp="トレーニング例" />
-  <text id="useCase" en="Use case" es="Caso de uso" zh="使用场景" jp="用途" />
-  <text id="kerasUseCase" en="quick prototyping and training templates for image classification and vision models." es="prototipos rapidos y plantillas de entrenamiento para clasificacion de imagenes y modelos de vision." zh="用于图像分类和视觉模型的快速原型与训练模板。" jp="画像分類とビジョンモデルの迅速な試作・トレーニングテンプレート。" />
-  <text id="kerasUtility" en="Keras utility" es="Utilidad de Keras" zh="Keras 工具" jp="Kerasユーティリティ" />
-  <text id="kerasDescription" en="This page provides a lightweight training/inference scaffold for Keras-based workflows in the same productivity dashboard." es="Esta pagina proporciona una estructura ligera de entrenamiento e inferencia para flujos basados en Keras." zh="此页面为 Keras 工作流提供轻量级训练和推理框架。" jp="このページはKerasベースのワークフロー用の軽量なトレーニング・推論基盤を提供します。" />
-  <text id="transformersSubtitle" en="Ready-to-run model presets for vision and text pipelines." es="Preajustes de modelos listos para ejecutar en flujos de vision y texto." zh="适用于视觉和文本管道的可运行模型预设。" jp="ビジョン・テキストパイプライン用の実行可能なモデルプリセット。" />
-  <text id="pipeline" en="Pipeline" es="Flujo" zh="管道" jp="パイプライン" />
-  <text id="imageClassification" en="Image Classification" es="Clasificacion de imagenes" zh="图像分类" jp="画像分類" />
-  <text id="objectDetection" en="Object Detection" es="Deteccion de objetos" zh="目标检测" jp="物体検出" />
-  <text id="textGeneration" en="Text Generation" es="Generacion de texto" zh="文本生成" jp="テキスト生成" />
-  <text id="modelIdPlaceholder" en="Model ID (e.g. google/vit-base-patch16-224)" es="ID del modelo (p. ej. google/vit-base-patch16-224)" zh="模型 ID（例如 google/vit-base-patch16-224）" jp="モデルID（例: google/vit-base-patch16-224）" />
-  <text id="inputPathOrPrompt" en="Input path or prompt" es="Ruta de entrada o indicacion" zh="输入路径或提示" jp="入力パスまたはプロンプト" />
-  <text id="example" en="Example" es="Ejemplo" zh="示例" jp="例" />
-  <text id="transformersUseCase" en="standard inference pipelines for Hugging Face models and local experimentation." es="flujos de inferencia estandar para modelos Hugging Face y experimentacion local." zh="用于 Hugging Face 模型和本地实验的标准推理管道。" jp="Hugging Faceモデルとローカル実験用の標準推論パイプライン。" />
-  <text id="transformersUtility" en="Transformers utility" es="Utilidad de Transformers" zh="Transformers 工具" jp="Transformersユーティリティ" />
-  <text id="transformersDescription" en="This page provides a compact configuration shell for Hugging Face models used in computer vision and NLP workflows." es="Esta pagina proporciona una configuracion compacta para modelos Hugging Face usados en flujos de vision y NLP." zh="此页面为计算机视觉和 NLP 工作流中的 Hugging Face 模型提供紧凑配置。" jp="このページはコンピュータビジョンとNLP用Hugging Faceモデルの設定シェルを提供します。" />
+  <text id="transformersSubtitle" en="Build multilingual translation datasets and run Python against them." es="Crea conjuntos de datos de traduccion multilingues y ejecuta Python sobre ellos." zh="创建多语言翻译数据集，并在其上运行 Python。" jp="多言語翻訳データセットを作成し、それを使ってPythonを実行します。" />
+  <text id="transformersUtility" en="Translation datasets and Python" es="Conjuntos de traduccion y Python" zh="翻译数据集与 Python" jp="翻訳データセットとPython" />
+  <text id="translationDatasets" en="Translation datasets" es="Conjuntos de datos de traduccion" zh="翻译数据集" jp="翻訳データセット" />
+  <text id="translationPickDataset" en="Open a saved dataset" es="Abrir un conjunto guardado" zh="打开已保存的数据集" jp="保存済みデータセットを開く" />
+  <text id="translationNoDatasets" en="No saved datasets yet" es="Aun no hay conjuntos guardados" zh="暂无已保存的数据集" jp="保存済みデータセットはまだありません" />
+  <text id="translationNewDataset" en="New dataset" es="Nuevo conjunto" zh="新建数据集" jp="新規データセット" />
+  <text id="translationReload" en="Reload list" es="Recargar lista" zh="重新加载列表" jp="一覧を再読み込み" />
+  <text id="translationDatasetName" en="Dataset name" es="Nombre del conjunto" zh="数据集名称" jp="データセット名" />
+  <text id="translationLanguages" en="Languages (first is the source)" es="Idiomas (el primero es el origen)" zh="语言（第一个为源语言）" jp="言語（最初がソース）" />
+  <text id="translationSource" en="source" es="origen" zh="源" jp="ソース" />
+  <text id="translationTarget" en="target" es="destino" zh="目标" jp="ターゲット" />
+  <text id="translationImport" en="Import" es="Importar" zh="导入" jp="インポート" />
+  <text id="translationExport" en="Export" es="Exportar" zh="导出" jp="エクスポート" />
+  <text id="translationExportJsonl" en="JSONL (Hugging Face translation)" es="JSONL (traduccion de Hugging Face)" zh="JSONL（Hugging Face 翻译格式）" jp="JSONL（Hugging Face翻訳形式）" />
+  <text id="translationRowCount" en="{count} rows" es="{count} filas" zh="{count} 行" jp="{count} 行" />
+  <text id="translationCompleteCount" en="{count} fully translated" es="{count} completamente traducidas" zh="{count} 行已完整翻译" jp="{count} 行が翻訳済み" />
+  <text id="translationUnsaved" en="Unsaved changes" es="Cambios sin guardar" zh="未保存的更改" jp="未保存の変更" />
+  <text id="translationSearchRows" en="Search rows" es="Buscar filas" zh="搜索行" jp="行を検索" />
+  <text id="translationNoRows" en="No rows" es="Sin filas" zh="没有行" jp="行がありません" />
+  <text id="translationAddRow" en="Add row" es="Agregar fila" zh="添加行" jp="行を追加" />
+  <text id="translationRemoveRow" en="Remove row" es="Quitar fila" zh="删除行" jp="行を削除" />
+  <text id="translationRowLimit" en="A dataset can have at most {count} rows." es="Un conjunto puede tener como maximo {count} filas." zh="一个数据集最多 {count} 行。" jp="データセットは最大 {count} 行までです。" />
+  <text id="translationBadLanguage" en="&quot;{code}&quot; is not a language code (use e.g. en, pt-BR or eng_Latn)." es="&quot;{code}&quot; no es un codigo de idioma (usa p. ej. en, pt-BR o eng_Latn)." zh="“{code}” 不是语言代码（例如 en、pt-BR 或 eng_Latn）。" jp="「{code}」は言語コードではありません（例: en、pt-BR、eng_Latn）。" />
+  <text id="translationNameRequired" en="Give the dataset a name." es="Ponle un nombre al conjunto." zh="请为数据集命名。" jp="データセットに名前を付けてください。" />
+  <text id="translationTwoLanguages" en="A translation dataset needs at least two languages." es="Un conjunto de traduccion necesita al menos dos idiomas." zh="翻译数据集至少需要两种语言。" jp="翻訳データセットには少なくとも2つの言語が必要です。" />
+  <text id="translationSaved" en="Dataset saved." es="Conjunto guardado." zh="数据集已保存。" jp="データセットを保存しました。" />
+  <text id="translationSaveFailed" en="Unable to save the dataset." es="No se pudo guardar el conjunto." zh="无法保存数据集。" jp="データセットを保存できませんでした。" />
+  <text id="translationDatasetsLoadFailed" en="Unable to load translation datasets." es="No se pudieron cargar los conjuntos de traduccion." zh="无法加载翻译数据集。" jp="翻訳データセットを読み込めませんでした。" />
+  <text id="translationDeleteTitle" en="Delete &quot;{name}&quot;?" es="¿Eliminar &quot;{name}&quot;?" zh="删除“{name}”？" jp="「{name}」を削除しますか？" />
+  <text id="translationDeleteBody" en="The dataset and all its rows are removed. This cannot be undone." es="Se eliminan el conjunto y todas sus filas. No se puede deshacer." zh="数据集及其所有行将被删除，且无法撤销。" jp="データセットとすべての行が削除されます。元に戻せません。" />
+  <text id="translationDeleted" en="Dataset deleted." es="Conjunto eliminado." zh="数据集已删除。" jp="データセットを削除しました。" />
+  <text id="translationDiscardTitle" en="Discard unsaved changes?" es="¿Descartar los cambios sin guardar?" zh="放弃未保存的更改？" jp="未保存の変更を破棄しますか？" />
+  <text id="translationDiscardBody" en="The rows edited since the last save will be lost." es="Se perderan las filas editadas desde el ultimo guardado." zh="自上次保存以来编辑的行将丢失。" jp="最後の保存以降に編集した行は失われます。" />
+  <text id="translationDiscard" en="Discard" es="Descartar" zh="放弃" jp="破棄" />
+  <text id="translationImportHelp" en="Paste CSV, TSV or JSONL, or choose a file. A header row of language codes picks the columns; without one, columns follow the current languages ({languages})." es="Pega CSV, TSV o JSONL, o elige un archivo. Una fila de encabezado con codigos de idioma define las columnas; sin ella, las columnas siguen los idiomas actuales ({languages})." zh="粘贴 CSV、TSV 或 JSONL，或选择文件。若首行为语言代码则按其对应列；否则按当前语言顺序（{languages}）。" jp="CSV、TSV、JSONLを貼り付けるか、ファイルを選択します。言語コードのヘッダー行があれば列を対応付け、なければ現在の言語順（{languages}）になります。" />
+  <text id="translationFormatAuto" en="Detect format" es="Detectar formato" zh="自动识别格式" jp="形式を自動判定" />
+  <text id="translationAppend" en="Append" es="Anadir" zh="追加" jp="追加" />
+  <text id="translationReplace" en="Replace" es="Reemplazar" zh="替换" jp="置換" />
+  <text id="translationChooseFile" en="Choose file" es="Elegir archivo" zh="选择文件" jp="ファイルを選択" />
+  <text id="translationNothingToImport" en="Nothing to import." es="No hay nada que importar." zh="没有可导入的内容。" jp="インポートする内容がありません。" />
+  <text id="translationImported" en="{count} rows imported. Save to keep them." es="{count} filas importadas. Guarda para conservarlas." zh="已导入 {count} 行。请保存以保留。" jp="{count} 行をインポートしました。保存して確定してください。" />
+  <text id="pythonRunner" en="Run Python" es="Ejecutar Python" zh="运行 Python" jp="Pythonを実行" />
+  <text id="pythonCheckAgain" en="Check the server Python again" es="Volver a comprobar el Python del servidor" zh="重新检测服务器的 Python" jp="サーバーのPythonを再確認" />
+  <text id="pythonUnavailable" en="Python is not available on the server." es="Python no esta disponible en el servidor." zh="服务器上没有可用的 Python。" jp="サーバーでPythonを利用できません。" />
+  <text id="pythonNoDataset" en="No dataset" es="Sin conjunto" zh="不使用数据集" jp="データセットなし" />
+  <text id="pythonRun" en="Run" es="Ejecutar" zh="运行" jp="実行" />
+  <text id="pythonRunning" en="Running…" es="Ejecutando…" zh="运行中…" jp="実行中…" />
+  <text id="pythonResetCode" en="Reset to the example script" es="Restablecer el script de ejemplo" zh="恢复示例脚本" jp="サンプルスクリプトに戻す" />
+  <text id="pythonUsesSavedVersion" en="This dataset has unsaved changes. The script runs against the saved version." es="Este conjunto tiene cambios sin guardar. El script usa la version guardada." zh="此数据集有未保存的更改。脚本将使用已保存的版本。" jp="このデータセットには未保存の変更があります。スクリプトは保存済みのバージョンで実行されます。" />
+  <text id="pythonHint" en="Runs on the API server in a temporary folder with dataset.jsonl and the ks_dataset helper. Ctrl+Enter runs." es="Se ejecuta en el servidor de la API en una carpeta temporal con dataset.jsonl y el modulo ks_dataset. Ctrl+Enter ejecuta." zh="在 API 服务器的临时文件夹中运行，其中包含 dataset.jsonl 和 ks_dataset 辅助模块。按 Ctrl+Enter 运行。" jp="APIサーバー上の一時フォルダーで、dataset.jsonlとks_datasetヘルパーとともに実行されます。Ctrl+Enterで実行。" />
+  <text id="pythonRunFailed" en="The script could not be run." es="No se pudo ejecutar el script." zh="无法运行脚本。" jp="スクリプトを実行できませんでした。" />
+  <text id="pythonExitOk" en="Finished" es="Terminado" zh="已完成" jp="完了" />
+  <text id="pythonExitCode" en="Exited with code {code}" es="Termino con el codigo {code}" zh="退出代码 {code}" jp="終了コード {code}" />
+  <text id="pythonTimedOut" en="Stopped after {seconds} s" es="Detenido tras {seconds} s" zh="{seconds} 秒后已停止" jp="{seconds} 秒後に停止" />
+  <text id="pythonNoOutput" en="(no output)" es="(sin salida)" zh="（无输出）" jp="（出力なし）" />
+  <text id="pythonTruncated" en="output cut off" es="salida recortada" zh="输出已截断" jp="出力は省略されました" />
+  <text id="pythonNeedsPermission" en="Running Python on the server needs the Execute permission for Transformers. Ask an administrator to grant it." es="Ejecutar Python en el servidor requiere el permiso Ejecutar de Transformers. Pidelo a un administrador." zh="在服务器上运行 Python 需要 Transformers 的“执行”权限，请联系管理员授予。" jp="サーバーでPythonを実行するには、Transformersの「実行」権限が必要です。管理者に付与を依頼してください。" />
   <text id="yoloSubtitle" en="Quick object-detection pipeline presets for YOLO-style model exports." es="Preajustes rapidos de deteccion de objetos para exportaciones de modelos tipo YOLO." zh="适用于 YOLO 风格模型导出的快速目标检测管道预设。" jp="YOLO形式モデルのエクスポート用物体検出パイプラインプリセット。" />
   <text id="modelSettings" en="Model settings" es="Configuracion del modelo" zh="模型设置" jp="モデル設定" />
   <text id="inputImageOrVideoPath" en="Input image or video path" es="Ruta de imagen o video de entrada" zh="输入图像或视频路径" jp="入力画像または動画パス" />

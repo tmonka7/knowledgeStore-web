@@ -3,7 +3,17 @@ import multer from 'multer';
 import os from 'node:os';
 import { convertFont, fontCapabilities } from '../controllers/lvglController.js';
 import { convertCapabilities, convertVideo } from '../controllers/convertController.js';
+import {
+  createTranslationDatasetRecord,
+  deleteTranslationDataset,
+  getTranslationDataset,
+  listTranslationDatasets,
+  pythonCapabilities,
+  runTranslationScript,
+  updateTranslationDataset,
+} from '../controllers/transformersController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
+import { asyncRoute } from '../helpers/asyncRoute.js';
 
 const router = express.Router();
 
@@ -38,6 +48,28 @@ router.post(
   requirePermission('convert-tool:view'),
   videoUpload.single('video'),
   convertVideo,
+);
+
+// Translation datasets are personal, like the YOLO and TTS drafts, so the
+// page's own permission covers managing them. Running Python does not: it
+// executes code on this host, and needs 'transformers:execute' as well.
+const transformersView = [requireAuth, requirePermission('transformers:view')];
+router.get('/tools/transformers/datasets', ...transformersView, asyncRoute(listTranslationDatasets));
+router.post('/tools/transformers/datasets', ...transformersView, asyncRoute(createTranslationDatasetRecord));
+router.get('/tools/transformers/datasets/:id', ...transformersView, asyncRoute(getTranslationDataset));
+router.put('/tools/transformers/datasets/:id', ...transformersView, asyncRoute(updateTranslationDataset));
+router.delete('/tools/transformers/datasets/:id', ...transformersView, asyncRoute(deleteTranslationDataset));
+router.get(
+  '/tools/transformers/python',
+  ...transformersView,
+  requirePermission('transformers:execute'),
+  asyncRoute(pythonCapabilities),
+);
+router.post(
+  '/tools/transformers/run',
+  ...transformersView,
+  requirePermission('transformers:execute'),
+  asyncRoute(runTranslationScript),
 );
 
 export default router;

@@ -18,8 +18,9 @@ export const PERMISSION_CATALOG = [
   // and renaming it would silently revoke the permission for everyone who has
   // it. Only the label an administrator reads has changed.
   { key: 'tts', label: 'Tools / AI / Speech To Text dataset', actions: ['view'] },
-  { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view'] },
-  { key: 'keras', label: 'Tools / Keras dataset', actions: ['view'] },
+  // 'execute' runs Python on the API host. It is not in the defaults below and
+  // never should be: an administrator grants it per account.
+  { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view', 'execute'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'wallet', label: 'My Page / Wallet', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'contacts', label: 'My Page / Contacts', actions: ['view', 'create', 'edit', 'delete'] },
@@ -71,7 +72,6 @@ export const DEFAULT_USER_PERMISSIONS = [
   'yolo:view',
   'tts:view',
   'transformers:view',
-  'keras:view',
   // 'attendance:*' is deliberately absent, exactly as 'cameras:*' is. A sweep
   // turns a camera by remote control and writes a biometric record of
   // everyone standing in front of it, and the lists it produces say where

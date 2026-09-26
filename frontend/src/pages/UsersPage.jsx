@@ -7,6 +7,7 @@ import {
   CalendarOutlined,
   CameraOutlined,
   CloudServerOutlined,
+  CodeOutlined,
   ContactsOutlined,
   CheckCircleFilled,
   DatabaseFilled,
@@ -31,6 +32,7 @@ import {
   SaveOutlined,
   ScanOutlined,
   SearchOutlined,
+  SettingOutlined,
   SolutionOutlined,
   TagFilled,
   TeamOutlined,
@@ -49,14 +51,22 @@ import { useLanguage } from '../i18n';
 
 const { Text } = Typography;
 
-const ACTION_COLUMNS = ['view', 'create', 'edit', 'delete'];
+// The usual four always show. Any other action the catalog defines — such as
+// database:manage or transformers:execute — gets a column after them, or it
+// could never be granted from this screen.
+const BASE_ACTION_COLUMNS = ['view', 'create', 'edit', 'delete'];
 
 const ACTION_META = {
   view: { label: 'View', icon: <EyeOutlined /> },
   create: { label: 'Create', icon: <PlusSquareOutlined /> },
   edit: { label: 'Edit', icon: <EditOutlined /> },
   delete: { label: 'Delete', icon: <DeleteOutlined /> },
+  manage: { label: 'Manage', icon: <SettingOutlined /> },
+  execute: { label: 'Execute', icon: <CodeOutlined /> },
 };
+
+const actionMeta = (action) => ACTION_META[action]
+  || { label: action.charAt(0).toUpperCase() + action.slice(1), icon: <SettingOutlined /> };
 
 // Keyed by the page keys in backend/src/helpers/permissionCatalog.js.
 const PAGE_META = {
@@ -220,6 +230,10 @@ export default function UsersPage({
   const facePhoto = faceUpdate?.faceImage || editingUser?.faceImage || '';
   const hasRegisteredFace = Boolean(editingUser?.faceImage);
   const allPermissionCount = permissionCatalog.reduce((total, page) => total + page.actions.length, 0);
+  const actionColumns = useMemo(() => [
+    ...BASE_ACTION_COLUMNS,
+    ...new Set(permissionCatalog.flatMap((page) => page.actions).filter((action) => !BASE_ACTION_COLUMNS.includes(action))),
+  ], [permissionCatalog]);
 
   const openEditor = (record) => {
     setEditingUser(record);
@@ -283,10 +297,10 @@ export default function UsersPage({
       const next = new Set(current);
       if (checked) {
         next.add(`${pageKey}:${action}`);
-        // A create/edit/delete right is meaningless without access to the page.
+        // Any other right is meaningless without access to the page.
         next.add(`${pageKey}:view`);
       } else if (action === 'view') {
-        ACTION_COLUMNS.forEach((item) => next.delete(`${pageKey}:${item}`));
+        [...next].filter((key) => key.startsWith(`${pageKey}:`)).forEach((key) => next.delete(key));
       } else {
         next.delete(`${pageKey}:${action}`);
       }
@@ -845,11 +859,11 @@ export default function UsersPage({
                         <thead>
                           <tr>
                             <th>Page</th>
-                            {ACTION_COLUMNS.map((action) => (
+                            {actionColumns.map((action) => (
                               <th key={action}>
                                 <span className="permission-action">
-                                  {ACTION_META[action].icon}
-                                  {ACTION_META[action].label}
+                                  {actionMeta(action).icon}
+                                  {actionMeta(action).label}
                                 </span>
                               </th>
                             ))}
@@ -866,7 +880,7 @@ export default function UsersPage({
                                   </span>
                                   {page.label}
                                 </td>
-                                {ACTION_COLUMNS.map((action) => (
+                                {actionColumns.map((action) => (
                                   <td key={action}>
                                     {page.actions.includes(action) ? (
                                       <Checkbox

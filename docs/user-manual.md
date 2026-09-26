@@ -371,6 +371,37 @@ the record of who attended are all kept.
 Clicking the attendance count on a card shows everyone who joined, when they
 arrived and when they left. Leaving and coming back shows as two visits.
 
+## 8d. Transformers: translation datasets
+
+**Tools → AI → Transformers** builds parallel-text datasets for training or
+evaluating translation models.
+
+- **New dataset**, give it a name, and list its languages. The first language
+  is the source and the rest are targets. Codes such as `en`, `pt-BR` or
+  `eng_Latn` are accepted.
+- Type the sentences into the table, one row per sentence in every language.
+  **Import** takes CSV, TSV or JSONL, pasted or from a file. A header row of
+  language codes says which column is which.
+- **Save** stores the dataset under your account; nobody else sees it.
+  **Export** downloads it as JSONL in the Hugging Face translation layout
+  (`{"translation": {"en": ..., "es": ...}}`), or as CSV or TSV.
+
+### Running Python against a dataset
+
+With the **Execute** permission on Transformers, which an administrator has to
+grant, the **Run Python** panel runs a script on the server. The dataset you
+pick is written next to the script as `dataset.jsonl`, and the `ks_dataset`
+module reads it:
+
+```python
+from ks_dataset import LANGUAGES, load, pairs, to_hf
+```
+
+`pairs("en", "es")` gives the (source, target) sentence pairs, and `to_hf()` a
+Hugging Face `Dataset`. The script sees the dataset as last saved, not unsaved
+edits. Output is shown when the script finishes. A script that runs past the
+server's time limit (5 minutes unless changed) is stopped.
+
 ## 9. Other pages
 
 | Page | What it does |
@@ -384,7 +415,7 @@ arrived and when they left. Leaving and coming back shows as two visits.
 | Posts | Announcements, and who has read them. |
 | Meetings | Video calls with other people here, with screen sharing, in-call messages and recording. See §8c. |
 | Contacts | Your own address book, on My Page. |
-| Tools | LVGL, Converting, YOLO, Transformers and Keras helpers. |
+| Tools | LVGL, Converting, YOLO and Transformers helpers. |
 | Users | For administrators: accounts, roles and permissions. |
 | Database Management | For administrators: backups, restores, replication and cleanup. |
 | System Monitoring | Measured API latency and browser memory. |
@@ -405,6 +436,9 @@ Click the pencil on a row to edit that account:
 - **Permissions** — tick the pages and actions the account may use.
   Administrators bypass this list entirely, so it is shown as read-only for
   them.
+  **Execute** on Transformers lets the account run Python on the server as the
+  API's own OS user. It is not granted by default; give it only to people you
+  would trust with a shell on that machine.
 - **Logs** — recent activity for that account.
 
 A permission change takes effect on that user's next request; they do not need

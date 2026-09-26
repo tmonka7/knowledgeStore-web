@@ -196,9 +196,9 @@ export default function OverviewPage({
   /**
    * Every module in the project, with its real count where one exists.
    *
-   * `status` is honest rather than flattering: the YOLO, Transformers and
-   * Keras pages are still shells, and saying so here is more useful than a
-   * count that implies they do something.
+   * `status` is honest rather than flattering: the YOLO page is still a
+   * shell, and saying so here is more useful than a count that implies it
+   * does something.
    */
   const components = useMemo(() => [
     {
@@ -263,15 +263,7 @@ export default function OverviewPage({
       title: 'Transformers',
       tone: 'red',
       detail: t('transformersUtility'),
-      status: 'planned',
-    },
-    {
-      key: 'keras',
-      icon: <ToolOutlined />,
-      title: 'Keras',
-      tone: 'red',
-      detail: t('kerasUtility'),
-      status: 'planned',
+      status: 'ready',
     },
     {
       key: 'chat',
