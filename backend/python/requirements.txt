@@ -1,0 +1,20 @@
+# Python side of Tools > AI > Transformers (training, translation, ONNX export).
+#   pip install -r backend/python/requirements.txt
+# Install on a machine with internet access, together with
+#   python backend/python/download_models.py en-es ...
+# after which nothing here needs the network.
+#
+# CPU-only torch is a much smaller download; for that, install torch first:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.6
+transformers>=4.40
+sentencepiece>=0.2
+sacremoses
+safetensors
+numpy
+
+# ONNX export. Without optimum the export falls back to torch.onnx; without
+# onnxruntime the exported model is written but not test-run.
+onnx
+onnxruntime
+optimum[onnxruntime]

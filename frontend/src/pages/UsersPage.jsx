@@ -28,6 +28,7 @@ import {
   ProjectOutlined,
   PlusSquareOutlined,
   ReloadOutlined,
+  RocketOutlined,
   SafetyCertificateOutlined,
   SaveOutlined,
   ScanOutlined,
@@ -52,7 +53,7 @@ import { useLanguage } from '../i18n';
 const { Text } = Typography;
 
 // The usual four always show. Any other action the catalog defines — such as
-// database:manage or transformers:execute — gets a column after them, or it
+// database:manage or transformers:execute and :train — gets a column after them, or it
 // could never be granted from this screen.
 const BASE_ACTION_COLUMNS = ['view', 'create', 'edit', 'delete'];
 
@@ -63,6 +64,7 @@ const ACTION_META = {
   delete: { label: 'Delete', icon: <DeleteOutlined /> },
   manage: { label: 'Manage', icon: <SettingOutlined /> },
   execute: { label: 'Execute', icon: <CodeOutlined /> },
+  train: { label: 'Train', icon: <RocketOutlined /> },
 };
 
 const actionMeta = (action) => ACTION_META[action]

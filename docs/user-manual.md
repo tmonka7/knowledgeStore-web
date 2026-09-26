@@ -379,12 +379,39 @@ evaluating translation models.
 - **New dataset**, give it a name, and list its languages. The first language
   is the source and the rest are targets. Codes such as `en`, `pt-BR` or
   `eng_Latn` are accepted.
-- Type the sentences into the table, one row per sentence in every language.
-  **Import** takes CSV, TSV or JSONL, pasted or from a file. A header row of
+- Pairs are edited in two large boxes side by side: the source language on
+  the left and the target on the right. Pick a row in the list below the
+  boxes to edit it. With more than two languages, the selectors above the
+  boxes choose which two are shown, and ⇄ swaps them.
+  **Ctrl+Enter** moves to the next pair (a new one after the last), **Alt+↑/↓**
+  moves between pairs, and **Ctrl+S** saves.
+- **Import** takes CSV, TSV or JSONL, pasted or from a file. A header row of
   language codes says which column is which.
 - **Save** stores the dataset under your account; nobody else sees it.
   **Export** downloads it as JSONL in the Hugging Face translation layout
   (`{"translation": {"en": ..., "es": ...}}`), or as CSV or TSV.
+
+### Training a model (offline)
+
+With the **Train** permission on Transformers, save the dataset and press
+**Train**. In the training panel, choose the source and target language and
+the model to start from. That is normally the Opus-MT model for the same pair,
+or one you trained earlier. Then press **Train** again.
+
+Training runs on the server and needs no internet connection. The panel shows
+the progress, the loss after each epoch, and a few held-back sentences
+translated before and after training. **Cancel** stops the run and discards
+it. The finished model appears in the list below, where you can:
+
+- **Test** it by translating a few sentences.
+- **Export ONNX**, then download the zip. It holds `encoder_model.onnx`,
+  `decoder_model.onnx` (and, when the server has Optimum installed, the faster
+  decoder variants), the tokenizer and a README showing how to load it.
+- Delete it.
+
+Only one training or export job runs on the server at a time. On a CPU, a few
+hundred pairs for three epochs takes minutes, and tens of thousands take
+hours.
 
 ### Running Python against a dataset
 
@@ -422,6 +449,22 @@ server's time limit (5 minutes unless changed) is stopped.
 
 ## 10. For administrators
 
+### Installing the translation models
+
+Training and translation use Opus-MT models stored in
+`backend/python/models` and never download anything while running. Install
+them once, on a machine with internet access:
+
+```
+pip install -r backend/python/requirements.txt
+python backend/python/download_models.py en-es es-en
+```
+
+Name each language pair you need. For a server with no internet access, copy
+the `models` folder across; `backend/python/models/README.md` describes how to
+move the pip packages as well. Set `PYTHON_BIN` in `backend/.env` if the
+packages are installed in a virtual environment.
+
 ### Managing accounts
 
 Open **Users**. The list holds every registered account. It is re-read each
@@ -438,7 +481,9 @@ Click the pencil on a row to edit that account:
   them.
   **Execute** on Transformers lets the account run Python on the server as the
   API's own OS user. It is not granted by default; give it only to people you
-  would trust with a shell on that machine.
+  would trust with a shell on that machine. **Train** lets the account
+  fine-tune and export models. That is safe, but it occupies the server's CPU
+  or GPU for as long as training runs.
 - **Logs** — recent activity for that account.
 
 A permission change takes effect on that user's next request; they do not need

@@ -15,7 +15,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-const PYTHON_BIN = process.env.PYTHON_BIN
+export const PYTHON_BIN = process.env.PYTHON_BIN
   // On Windows "python3" is usually the Microsoft Store stub, which prints an
   // install hint and exits instead of running anything.
   || (process.platform === 'win32' ? 'python' : 'python3');
@@ -41,7 +41,7 @@ const INHERITED_ENV = [
   'CUDA_VISIBLE_DEVICES', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',
 ];
 
-const childEnv = (extra) => {
+export const childEnv = (extra) => {
   const env = {};
   for (const key of INHERITED_ENV) {
     if (process.env[key] !== undefined) env[key] = process.env[key];
@@ -123,15 +123,23 @@ const collect = (stream) => {
 /**
  * Spawn Python and wait for it, killing it at the deadline.
  * Resolves in every case — a missing interpreter is reported, not thrown.
+ * `input`, when given, is written to the script's stdin.
  */
-const runProcess = (args, { cwd, env, timeoutMs }) => new Promise((resolve) => {
+export const runProcess = (args, { cwd, env, timeoutMs, input }) => new Promise((resolve) => {
   const started = Date.now();
   let child;
   try {
-    child = spawn(PYTHON_BIN, args, { cwd, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    child = spawn(PYTHON_BIN, args, {
+      cwd, env, windowsHide: true, stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
+    });
   } catch (error) {
     resolve({ spawnError: error.message });
     return;
+  }
+  if (input !== undefined) {
+    // A script that exits without reading stdin closes the pipe under us.
+    child.stdin.on('error', () => {});
+    child.stdin.end(input);
   }
 
   const stdout = collect(child.stdout);

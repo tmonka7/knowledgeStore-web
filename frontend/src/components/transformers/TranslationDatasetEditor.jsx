@@ -3,7 +3,8 @@ import {
   Alert, Button, Card, Dropdown, Empty, Input, Modal, Radio, Select, Space, Table, Tag, Tooltip, Typography, message,
 } from 'antd';
 import {
-  DeleteOutlined, DownloadOutlined, ImportOutlined, PlusOutlined, ReloadOutlined, SaveOutlined, UploadOutlined,
+  CheckCircleFilled, DeleteOutlined, DownloadOutlined, ImportOutlined, LeftOutlined, PlusOutlined, ReloadOutlined,
+  RightOutlined, RocketOutlined, SaveOutlined, SwapOutlined, UploadOutlined,
 } from '@ant-design/icons';
 import api from '../../api';
 import { useLanguage } from '../../i18n';
@@ -15,25 +16,32 @@ import {
 const { Text } = Typography;
 const { TextArea } = Input;
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 const DEFAULT_LANGUAGES = ['en', 'es'];
 
 const blankDraft = () => ({ id: null, name: '', languages: DEFAULT_LANGUAGES, rows: [emptyRow(DEFAULT_LANGUAGES)] });
 
 const languageOptions = COMMON_LANGUAGES.map(([code, label]) => ({ value: code, label: `${code} · ${label}` }));
 
+const hasText = (row, code) => Boolean(String(row?.texts?.[code] || '').trim());
+
 /**
  * Creating and editing multilingual parallel-text datasets.
+ *
+ * Editing is one pair at a time: the selected row's text in two languages sits
+ * in two large boxes side by side, with the list of rows beneath for picking
+ * which pair to edit. A dataset with more than two languages is edited a pair
+ * of columns at a time, chosen above the boxes.
  *
  * The whole dataset is held here and saved in one PUT: at the size the API
  * allows, sending it whole is simpler and no slower than tracking row edits,
  * and it means what is on screen is exactly what gets stored.
  *
  * The stored list lives with the page (`datasets` / `onDatasetsChange`), so the
- * Python runner beside this always offers what is actually saved.
+ * training and Python panels always offer what is actually saved.
  */
 export default function TranslationDatasetEditor({
-  datasets, onDatasetsChange, activeId, onActiveChange, onDirtyChange,
+  datasets, onDatasetsChange, activeId, onActiveChange, onDirtyChange, onTrain,
 }) {
   const { t } = useLanguage();
 
@@ -44,8 +52,27 @@ export default function TranslationDatasetEditor({
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [importOpen, setImportOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState(() => null);
+  const [pair, setPair] = useState(DEFAULT_LANGUAGES);
+
+  const leftRef = useRef(null);
 
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+
+  // The two edited languages must be languages of the dataset; when the list
+  // changes under them, fall back to the first two.
+  useEffect(() => {
+    setPair(([left, right]) => {
+      const { languages } = draft;
+      const nextLeft = languages.includes(left) ? left : languages[0];
+      const nextRight = languages.includes(right) && right !== nextLeft
+        ? right
+        : languages.find((code) => code !== nextLeft);
+      return [nextLeft, nextRight];
+    });
+  }, [draft.languages]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [left, right] = pair;
 
   const loadList = useCallback(async () => {
     try {
@@ -58,34 +85,40 @@ export default function TranslationDatasetEditor({
 
   useEffect(() => { loadList(); }, [loadList]);
 
+  const showDataset = useCallback((dataset) => {
+    const rows = dataset.rows.length ? dataset.rows : [emptyRow(dataset.languages)];
+    setDraft({ id: dataset.id, name: dataset.name, languages: dataset.languages, rows });
+    setSelectedId(rows[0].id);
+    setDirty(false);
+  }, []);
+
   const openDataset = useCallback(async (id) => {
+    setSearch('');
+    setPage(1);
     if (!id) {
-      setDraft(blankDraft());
+      const blank = blankDraft();
+      setDraft(blank);
+      setSelectedId(blank.rows[0].id);
       setDirty(false);
-      setPage(1);
       onActiveChange(null);
       return;
     }
     setLoading(true);
     try {
       const { data } = await api.get(`/tools/transformers/datasets/${id}`);
-      const { dataset } = data;
-      setDraft({
-        id: dataset.id,
-        name: dataset.name,
-        languages: dataset.languages,
-        rows: dataset.rows.length ? dataset.rows : [emptyRow(dataset.languages)],
-      });
-      setDirty(false);
-      setPage(1);
-      setSearch('');
-      onActiveChange(dataset.id);
+      showDataset(data.dataset);
+      onActiveChange(data.dataset.id);
     } catch (error) {
       message.error(error.response?.data?.message || t('translationDatasetsLoadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [onActiveChange, t]);
+  }, [onActiveChange, showDataset, t]);
+
+  // Always have a pair selected while there are rows to select.
+  useEffect(() => {
+    setSelectedId((current) => (draft.rows.some((row) => row.id === current) ? current : draft.rows[0]?.id || null));
+  }, [draft.rows]);
 
   // Leaving unsaved rows is a confirmation, not a silent loss.
   const guarded = (action) => {
@@ -123,17 +156,89 @@ export default function TranslationDatasetEditor({
     update({ languages: codes });
   };
 
-  const addRow = () => {
+  /* ---------------------------------------------------------- pair editing */
+
+  const selectedIndex = draft.rows.findIndex((row) => row.id === selectedId);
+  const selected = draft.rows[selectedIndex] || null;
+
+  const visibleRows = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    const numbered = draft.rows.map((row, index) => ({ ...row, number: index + 1 }));
+    if (!needle) return numbered;
+    return numbered.filter((row) => draft.languages
+      .some((code) => String(row.texts?.[code] || '').toLowerCase().includes(needle)));
+  }, [draft.rows, draft.languages, search]);
+
+  // Keep the selected row on the visible page of the list.
+  useEffect(() => {
+    const position = visibleRows.findIndex((row) => row.id === selectedId);
+    if (position >= 0) setPage(Math.floor(position / PAGE_SIZE) + 1);
+  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const focusLeft = () => requestAnimationFrame(() => leftRef.current?.focus());
+
+  const select = (id, focus = false) => {
+    setSelectedId(id);
+    if (focus) focusLeft();
+  };
+
+  const addRow = (focus = true) => {
     if (draft.rows.length >= MAX_ROWS) {
       message.warning(t('translationRowLimit', { count: MAX_ROWS }));
       return;
     }
-    update((current) => ({ rows: [...current.rows, emptyRow(current.languages)] }));
+    const row = emptyRow(draft.languages);
+    // Inserted after the selected row, so a pair can be added in context.
+    update((current) => {
+      const at = current.rows.findIndex((item) => item.id === selectedId);
+      const rows = [...current.rows];
+      rows.splice(at < 0 ? rows.length : at + 1, 0, row);
+      return { rows };
+    });
     setSearch('');
-    setPage(Math.ceil((draft.rows.length + 1) / PAGE_SIZE));
+    select(row.id, focus);
   };
 
-  const removeRow = (rowId) => update((current) => ({ rows: current.rows.filter((row) => row.id !== rowId) }));
+  const move = (step) => {
+    const next = draft.rows[selectedIndex + step];
+    if (next) {
+      select(next.id, true);
+      return;
+    }
+    // Moving past the last pair starts a new one, unless the last is empty.
+    if (step > 0 && selected && draft.languages.some((code) => hasText(selected, code))) addRow();
+  };
+
+  const removeRow = (rowId) => {
+    const index = draft.rows.findIndex((row) => row.id === rowId);
+    const neighbour = draft.rows[index + 1] || draft.rows[index - 1];
+    update((current) => {
+      const rows = current.rows.filter((row) => row.id !== rowId);
+      return { rows: rows.length ? rows : [emptyRow(current.languages)] };
+    });
+    setSelectedId(neighbour?.id || null);
+  };
+
+  const swapPair = () => setPair(([a, b]) => [b, a]);
+
+  const editorKeys = (event) => {
+    // Ctrl+Enter: next pair (a new one after the last). Alt+↑/↓: move.
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      move(1);
+    } else if (event.altKey && event.key === 'ArrowDown') {
+      event.preventDefault();
+      move(1);
+    } else if (event.altKey && event.key === 'ArrowUp') {
+      event.preventDefault();
+      move(-1);
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+      event.preventDefault();
+      save();
+    }
+  };
+
+  /* ------------------------------------------------------ save and delete */
 
   const save = async () => {
     if (!draft.name.trim()) {
@@ -150,15 +255,11 @@ export default function TranslationDatasetEditor({
       const { data } = draft.id
         ? await api.put(`/tools/transformers/datasets/${draft.id}`, body)
         : await api.post('/tools/transformers/datasets', body);
-      const { dataset } = data;
-      setDraft({
-        id: dataset.id,
-        name: dataset.name,
-        languages: dataset.languages,
-        rows: dataset.rows.length ? dataset.rows : [emptyRow(dataset.languages)],
-      });
-      setDirty(false);
-      onActiveChange(dataset.id);
+      const keep = selectedId;
+      showDataset(data.dataset);
+      // Blank rows are dropped by the server; stay on the pair if it survived.
+      if (data.dataset.rows.some((row) => row.id === keep)) setSelectedId(keep);
+      onActiveChange(data.dataset.id);
       message.success(t('translationSaved'));
       loadList();
     } catch (error) {
@@ -189,7 +290,7 @@ export default function TranslationDatasetEditor({
   };
 
   const exportAs = (format) => {
-    const dataset = { ...draft, rows: draft.rows.filter((row) => draft.languages.some((code) => row.texts?.[code]?.trim())) };
+    const dataset = { ...draft, rows: draft.rows.filter((row) => draft.languages.some((code) => hasText(row, code))) };
     const base = safeFileName(draft.name);
     if (format === 'jsonl') downloadText(`${base}.jsonl`, `${buildJsonl(dataset)}\n`, 'application/x-ndjson');
     if (format === 'csv') downloadText(`${base}.csv`, `﻿${buildDelimited(dataset, ',')}`, 'text/csv');
@@ -208,54 +309,61 @@ export default function TranslationDatasetEditor({
     if (merged.length > MAX_ROWS) {
       message.warning(t('translationRowLimit', { count: MAX_ROWS }));
     }
-    update({ languages: nextLanguages, rows: merged.slice(0, MAX_ROWS) });
-    setPage(1);
+    const nextRows = merged.slice(0, MAX_ROWS);
+    update({ languages: nextLanguages, rows: nextRows.length ? nextRows : [emptyRow(nextLanguages)] });
     setSearch('');
+    setSelectedId((rows[0] || nextRows[0])?.id || null);
     message.success(t('translationImported', { count: Math.min(rows.length, MAX_ROWS - kept.length) }));
     setImportOpen(false);
   };
 
-  const visibleRows = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    const numbered = draft.rows.map((row, index) => ({ ...row, number: index + 1 }));
-    if (!needle) return numbered;
-    return numbered.filter((row) => draft.languages
-      .some((code) => String(row.texts?.[code] || '').toLowerCase().includes(needle)));
-  }, [draft.rows, draft.languages, search]);
+  /* ------------------------------------------------------------- display */
 
   const complete = countComplete(draft.rows, draft.languages);
+  const pairComplete = left && right ? countComplete(draft.rows, [left, right]) : 0;
+  const pairLanguageOptions = draft.languages.map((code) => ({ value: code, label: code }));
 
   const columns = [
-    { title: '#', dataIndex: 'number', width: 56, render: (value) => <Text type="secondary">{value}</Text> },
-    ...draft.languages.map((code, index) => ({
+    { title: '#', dataIndex: 'number', width: 64, render: (value) => <Text type="secondary">{value}</Text> },
+    ...[left, right].filter(Boolean).map((code) => ({
       key: code,
-      title: (
-        <Space size={4}>
-          <Tag color={index === 0 ? 'blue' : 'default'}>{code}</Tag>
-          <Text type="secondary">{index === 0 ? t('translationSource') : t('translationTarget')}</Text>
-        </Space>
-      ),
-      render: (_, row) => (
-        <TextArea
-          value={row.texts?.[code] || ''}
-          onChange={(event) => setText(row.id, code, event.target.value)}
-          autoSize={{ minRows: 1, maxRows: 6 }}
-          maxLength={2000}
-          lang={code}
-          dir="auto"
-        />
-      ),
+      title: <Tag color={code === draft.languages[0] ? 'blue' : 'default'}>{code}</Tag>,
+      ellipsis: true,
+      render: (_, row) => (hasText(row, code)
+        ? <span lang={code} dir="auto">{row.texts[code]}</span>
+        : <Text type="secondary" italic>{t('translationEmpty')}</Text>),
     })),
     {
-      key: 'remove',
-      width: 56,
-      render: (_, row) => (
-        <Tooltip title={t('translationRemoveRow')}>
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeRow(row.id)} />
-        </Tooltip>
-      ),
+      key: 'done',
+      width: 48,
+      render: (_, row) => (hasText(row, left) && hasText(row, right)
+        ? <CheckCircleFilled style={{ color: '#12a370' }} />
+        : null),
     },
   ];
+
+  const box = (code, ref, onPick) => (
+    <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+      <Space style={{ marginBottom: 8 }} wrap>
+        <Select size="small" value={code} onChange={onPick} options={pairLanguageOptions} style={{ minWidth: 96 }} />
+        <Text type="secondary">{code === draft.languages[0] ? t('translationSource') : t('translationTarget')}</Text>
+      </Space>
+      <TextArea
+        ref={ref}
+        value={selected?.texts?.[code] || ''}
+        onChange={(event) => selected && setText(selected.id, code, event.target.value)}
+        onKeyDown={editorKeys}
+        disabled={!selected || !code}
+        autoSize={{ minRows: 6, maxRows: 16 }}
+        maxLength={2000}
+        showCount
+        lang={code}
+        dir="auto"
+        placeholder={code ? t('translationTypeIn', { code }) : ''}
+        style={{ fontSize: 15 }}
+      />
+    </div>
+  );
 
   return (
     <Card
@@ -318,6 +426,17 @@ export default function TranslationDatasetEditor({
           >
             <Button icon={<DownloadOutlined />}>{t('translationExport')}</Button>
           </Dropdown>
+          {onTrain && (
+            <Tooltip title={dirty || !draft.id ? t('translationSaveBeforeTraining') : ''}>
+              <Button
+                icon={<RocketOutlined />}
+                disabled={dirty || !draft.id}
+                onClick={() => onTrain({ datasetId: draft.id, source: left, target: right })}
+              >
+                {t('trainButton')}
+              </Button>
+            </Tooltip>
+          )}
           {draft.id && <Button danger icon={<DeleteOutlined />} onClick={remove}>{t('delete')}</Button>}
         </Space>
 
@@ -326,10 +445,35 @@ export default function TranslationDatasetEditor({
           <Tag color={complete === draft.rows.length ? 'green' : 'gold'}>
             {t('translationCompleteCount', { count: complete })}
           </Tag>
+          {draft.languages.length > 2 && left && right && (
+            <Tag>{`${left} → ${right}: ${pairComplete}`}</Tag>
+          )}
           {dirty && <Tag color="orange">{t('translationUnsaved')}</Tag>}
         </Space>
 
         {draft.languages.length < 2 && <Alert type="warning" showIcon message={t('translationTwoLanguages')} />}
+
+        {/* The pair being edited: source on the left, target on the right. */}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          {box(left, leftRef, (code) => setPair(([, other]) => [code, other === code ? left : other]))}
+          <Tooltip title={t('translationSwapSides')}>
+            <Button icon={<SwapOutlined />} onClick={swapPair} style={{ marginTop: 32 }} disabled={!right} />
+          </Tooltip>
+          {box(right, null, (code) => setPair(([other]) => [other === code ? right : other, code]))}
+        </div>
+
+        <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
+          <Space wrap>
+            <Button icon={<LeftOutlined />} disabled={selectedIndex <= 0} onClick={() => move(-1)} />
+            <Text>{t('translationPairPosition', { current: selectedIndex + 1, total: draft.rows.length })}</Text>
+            <Button icon={<RightOutlined />} onClick={() => move(1)} />
+            <Button type="dashed" icon={<PlusOutlined />} onClick={() => addRow()}>{t('translationAddRow')}</Button>
+            <Button danger icon={<DeleteOutlined />} disabled={!selected} onClick={() => removeRow(selected.id)}>
+              {t('translationRemoveRow')}
+            </Button>
+          </Space>
+          <Text type="secondary">{t('translationPairKeys')}</Text>
+        </Space>
 
         <Input.Search
           allowClear
@@ -344,12 +488,16 @@ export default function TranslationDatasetEditor({
           size="small"
           columns={columns}
           dataSource={visibleRows}
+          onRow={(row) => ({
+            onClick: () => select(row.id, true),
+            style: {
+              cursor: 'pointer',
+              background: row.id === selectedId ? 'rgba(47, 107, 255, 0.10)' : undefined,
+            },
+          })}
           pagination={{ current: page, pageSize: PAGE_SIZE, onChange: setPage, showSizeChanger: false }}
           locale={{ emptyText: <Empty description={t('translationNoRows')} /> }}
-          scroll={{ x: 'max-content' }}
         />
-
-        <Button type="dashed" icon={<PlusOutlined />} onClick={addRow} block>{t('translationAddRow')}</Button>
       </Space>
 
       <ImportModal

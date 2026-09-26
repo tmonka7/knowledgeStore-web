@@ -5,6 +5,18 @@ import {
   getTranslationDatasetSummaries,
 } from '../models/translationDatasetModel.js';
 import { MAX_CODE_LENGTH, probePython, runPythonScript } from '../helpers/pythonRunner.js';
+import {
+  cancelJob,
+  createDownloadTicket,
+  deleteModel,
+  getJob,
+  listJobs,
+  listModels,
+  redeemDownloadTicket,
+  startOnnxExport,
+  startTraining,
+  translateTexts,
+} from '../helpers/translationJobs.js';
 
 // Sized so a full dataset still fits inside express.json's 3mb body limit.
 const MAX_LANGUAGES = 12;
@@ -133,4 +145,72 @@ export const runTranslationScript = async (req, res) => {
     stderr: result.stderr.text,
     stderrTruncated: result.stderr.truncated,
   });
+};
+
+/* ------------------------------------------------------------------------
+ * Offline models: fine-tuning, ONNX export and test translation.
+ * These run the project's own scripts in backend/python, not user code, so
+ * they need 'transformers:train' rather than 'transformers:execute'.
+ * --------------------------------------------------------------------- */
+
+export const listTranslationModels = async (req, res) => {
+  res.json({ models: await listModels(req.user.sub) });
+};
+
+export const deleteTranslationModel = async (req, res) => {
+  await deleteModel(req.user.sub, req.params.id);
+  res.json({ ok: true });
+};
+
+/** POST /tools/transformers/train — starts a job; the page polls it. */
+export const trainTranslationModel = async (req, res) => {
+  const dataset = await getTranslationDatasetById(req.user.sub, String(req.body?.datasetId || ''));
+  if (!dataset) return res.status(404).json({ message: 'Dataset not found.' });
+
+  const job = await startTraining({
+    ownerId: req.user.sub,
+    dataset: asPlain(dataset),
+    source: String(req.body?.source || ''),
+    target: String(req.body?.target || ''),
+    baseModelId: String(req.body?.baseModelId || ''),
+    name: req.body?.name,
+    options: req.body?.options || {},
+  });
+  return res.status(202).json({ job });
+};
+
+export const exportTranslationModel = async (req, res) => {
+  const job = await startOnnxExport({ ownerId: req.user.sub, modelId: req.params.id });
+  res.status(202).json({ job });
+};
+
+/** POST /tools/transformers/models/:id/onnx/link — a one-use, one-minute URL. */
+export const onnxDownloadLink = async (req, res) => {
+  const ticket = await createDownloadTicket(req.user.sub, req.params.id);
+  res.json({ path: `/tools/transformers/onnx-download/${ticket}` });
+};
+
+/** GET /tools/transformers/onnx-download/:ticket — the ticket is the credential. */
+export const downloadOnnx = async (req, res) => {
+  const { model, stream, size } = await redeemDownloadTicket(req.params.ticket);
+  const filename = `${String(model.name || model.id).replace(/[^\w.-]+/g, '_')}-onnx.zip`;
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Length', size);
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  stream.pipe(res);
+};
+
+export const listTranslationJobs = (req, res) => res.json({ jobs: listJobs(req.user.sub) });
+
+export const getTranslationJob = (req, res) => res.json({ job: getJob(req.user.sub, req.params.id) });
+
+export const cancelTranslationJob = (req, res) => res.json({ job: cancelJob(req.user.sub, req.params.id) });
+
+export const translateWithModel = async (req, res) => {
+  const texts = (Array.isArray(req.body?.texts) ? req.body.texts : [req.body?.text])
+    .map((text) => String(text ?? '').slice(0, 2000))
+    .filter((text) => text.trim())
+    .slice(0, 50);
+  if (!texts.length) return res.status(400).json({ message: 'There is nothing to translate.' });
+  return res.json(await translateTexts({ ownerId: req.user.sub, modelId: String(req.body?.modelId || ''), texts }));
 };

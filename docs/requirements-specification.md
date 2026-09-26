@@ -222,6 +222,8 @@ polled), mobile applications, and single sign-on.
 | FR-SYS-02 | The tool pages (LVGL, Converting, YOLO, Transformers) are each gated by their own permission. |
 | FR-SYS-03 | The Transformers page lets a user create, edit, import, export and delete their own multilingual translation datasets. Datasets are private to their owner. |
 | FR-SYS-04 | Running Python against a dataset requires `transformers:execute`, which is never a default permission. A run has a time limit, a per-user and a server-wide concurrency limit, and does not receive the server's environment secrets. |
+| FR-SYS-05 | With `transformers:train`, a user can fine-tune a local Opus-MT model on a saved dataset, watch its progress, cancel it, test the result and export it to ONNX. None of this may use the network: models are read from `backend/python/models`, installed beforehand with `download_models.py`. |
+| FR-SYS-06 | An interrupted, failed or cancelled training or export must never appear as a model: output is written aside and moved into place only on success. |
 
 ### 3.12 Internationalisation (FR-I18N)
 

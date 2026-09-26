@@ -4,12 +4,22 @@ import os from 'node:os';
 import { convertFont, fontCapabilities } from '../controllers/lvglController.js';
 import { convertCapabilities, convertVideo } from '../controllers/convertController.js';
 import {
+  cancelTranslationJob,
   createTranslationDatasetRecord,
   deleteTranslationDataset,
+  deleteTranslationModel,
+  downloadOnnx,
+  exportTranslationModel,
   getTranslationDataset,
+  getTranslationJob,
   listTranslationDatasets,
+  listTranslationJobs,
+  listTranslationModels,
+  onnxDownloadLink,
   pythonCapabilities,
   runTranslationScript,
+  trainTranslationModel,
+  translateWithModel,
   updateTranslationDataset,
 } from '../controllers/transformersController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
@@ -71,5 +81,21 @@ router.post(
   requirePermission('transformers:execute'),
   asyncRoute(runTranslationScript),
 );
+
+// Fine-tuning, ONNX export and test translation with the offline models.
+const transformersTrain = [...transformersView, requirePermission('transformers:train')];
+router.get('/tools/transformers/models', ...transformersTrain, asyncRoute(listTranslationModels));
+router.delete('/tools/transformers/models/:id', ...transformersTrain, asyncRoute(deleteTranslationModel));
+router.post('/tools/transformers/models/:id/onnx', ...transformersTrain, asyncRoute(exportTranslationModel));
+router.post('/tools/transformers/models/:id/onnx/link', ...transformersTrain, asyncRoute(onnxDownloadLink));
+// No auth middleware: this is followed by a plain browser navigation, which
+// cannot send the Authorization header. The single-use ticket in the URL,
+// issued above to an authorised caller, is what grants access.
+router.get('/tools/transformers/onnx-download/:ticket', asyncRoute(downloadOnnx));
+router.post('/tools/transformers/train', ...transformersTrain, asyncRoute(trainTranslationModel));
+router.post('/tools/transformers/translate', ...transformersTrain, asyncRoute(translateWithModel));
+router.get('/tools/transformers/jobs', ...transformersTrain, asyncRoute(listTranslationJobs));
+router.get('/tools/transformers/jobs/:id', ...transformersTrain, asyncRoute(getTranslationJob));
+router.post('/tools/transformers/jobs/:id/cancel', ...transformersTrain, asyncRoute(cancelTranslationJob));
 
 export default router;

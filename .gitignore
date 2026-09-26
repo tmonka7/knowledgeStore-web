@@ -13,3 +13,8 @@ backend/backups
 backend/uploads
 service/daemon
 
+# Translation models are hundreds of MB each (GitHub refuses files over 100 MB).
+# Fetch them with backend/python/download_models.py; see the README there.
+backend/python/models/*
+!backend/python/models/README.md
+__pycache__/

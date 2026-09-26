@@ -18,9 +18,11 @@ export const PERMISSION_CATALOG = [
   // and renaming it would silently revoke the permission for everyone who has
   // it. Only the label an administrator reads has changed.
   { key: 'tts', label: 'Tools / AI / Speech To Text dataset', actions: ['view'] },
-  // 'execute' runs Python on the API host. It is not in the defaults below and
-  // never should be: an administrator grants it per account.
-  { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view', 'execute'] },
+  // 'execute' runs arbitrary Python on the API host; 'train' runs the
+  // project's own fine-tuning and ONNX export, which is safe but ties up the
+  // CPU or GPU for hours. Neither is in the defaults below: an administrator
+  // grants them per account, and 'execute' should stay that way.
+  { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view', 'execute', 'train'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'wallet', label: 'My Page / Wallet', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'contacts', label: 'My Page / Contacts', actions: ['view', 'create', 'edit', 'delete'] },

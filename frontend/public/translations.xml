@@ -807,4 +807,58 @@
   <text id="ptzSettleHint" en="How long the camera is given to stop moving before a frame is taken." es="Cuanto se espera a que la camara deje de moverse antes de tomar un fotograma." zh="取帧前等待摄像头停稳的时间。" jp="フレームを取得する前にカメラが静止するのを待つ時間です。" />
   <text id="ptzSpeed" en="Speed" es="Velocidad" zh="速度" jp="速度" />
   <text id="ptzMoveFailed" en="The camera did not accept that movement." es="La camara no acepto ese movimiento." zh="摄像头未接受该操作。" jp="カメラがその操作を受け付けませんでした。" />
+  <text id="translationEmpty" en="empty" es="vacio" zh="空" jp="空" />
+  <text id="translationTypeIn" en="Type the {code} text" es="Escribe el texto en {code}" zh="输入 {code} 文本" jp="{code} のテキストを入力" />
+  <text id="translationSwapSides" en="Swap left and right" es="Intercambiar izquierda y derecha" zh="交换左右" jp="左右を入れ替え" />
+  <text id="translationPairPosition" en="Pair {current} of {total}" es="Par {current} de {total}" zh="第 {current} / {total} 对" jp="{total} 組中 {current} 組目" />
+  <text id="translationPairKeys" en="Ctrl+Enter next pair · Alt+↑/↓ move · Ctrl+S save" es="Ctrl+Enter siguiente par · Alt+↑/↓ mover · Ctrl+S guardar" zh="Ctrl+Enter 下一对 · Alt+↑/↓ 移动 · Ctrl+S 保存" jp="Ctrl+Enter 次の組 · Alt+↑/↓ 移動 · Ctrl+S 保存" />
+  <text id="translationSaveBeforeTraining" en="Save the dataset before training." es="Guarda el conjunto antes de entrenar." zh="训练前请先保存数据集。" jp="学習の前にデータセットを保存してください。" />
+  <text id="trainButton" en="Train" es="Entrenar" zh="训练" jp="学習" />
+  <text id="trainTitle" en="Fine-tuning and ONNX (offline)" es="Ajuste fino y ONNX (sin conexion)" zh="微调与 ONNX（离线）" jp="ファインチューニングとONNX（オフライン）" />
+  <text id="trainNeedsPermission" en="Training models needs the Train permission for Transformers. Ask an administrator to grant it." es="Entrenar modelos requiere el permiso Entrenar de Transformers. Pidelo a un administrador." zh="训练模型需要 Transformers 的“训练”权限，请联系管理员授予。" jp="モデルの学習にはTransformersの「学習」権限が必要です。管理者に付与を依頼してください。" />
+  <text id="trainNoBaseModels" en="No translation models are installed on the server." es="No hay modelos de traduccion instalados en el servidor." zh="服务器上未安装翻译模型。" jp="サーバーに翻訳モデルがインストールされていません。" />
+  <text id="trainNoBaseModelsHelp" en="Run these once on the server, on a machine with internet access. After that everything works offline:" es="Ejecuta esto una vez en el servidor, con acceso a internet. Despues todo funciona sin conexion:" zh="请在可联网的服务器上运行一次以下命令，之后即可完全离线使用：" jp="インターネットに接続できるサーバーで一度だけ実行してください。以後はすべてオフラインで動作します:" />
+  <text id="trainModelsLoadFailed" en="Unable to load the models." es="No se pudieron cargar los modelos." zh="无法加载模型。" jp="モデルを読み込めませんでした。" />
+  <text id="trainDataset" en="Dataset" es="Conjunto de datos" zh="数据集" jp="データセット" />
+  <text id="trainStartFrom" en="Start from model" es="Partir del modelo" zh="基础模型" jp="元のモデル" />
+  <text id="trainPickModel" en="Pick a model" es="Elige un modelo" zh="选择模型" jp="モデルを選択" />
+  <text id="trainMatchingModels" en="For this language pair" es="Para este par de idiomas" zh="适用于此语言对" jp="この言語ペア用" />
+  <text id="trainOtherModels" en="Other language pairs" es="Otros pares de idiomas" zh="其他语言对" jp="その他の言語ペア" />
+  <text id="trainOtherPair" en="different pair" es="otro par" zh="语言对不同" jp="別のペア" />
+  <text id="trainEpochs" en="Epochs" es="Epocas" zh="轮数" jp="エポック数" />
+  <text id="trainBatchSize" en="Batch size" es="Tamano de lote" zh="批大小" jp="バッチサイズ" />
+  <text id="trainLearningRate" en="Learning rate" es="Tasa de aprendizaje" zh="学习率" jp="学習率" />
+  <text id="trainModelName" en="New model name" es="Nombre del nuevo modelo" zh="新模型名称" jp="新しいモデル名" />
+  <text id="trainStarted" en="Training started." es="Entrenamiento iniciado." zh="训练已开始。" jp="学習を開始しました。" />
+  <text id="trainFailedToStart" en="Training could not be started." es="No se pudo iniciar el entrenamiento." zh="无法开始训练。" jp="学習を開始できませんでした。" />
+  <text id="trainModel" en="Model" es="Modelo" zh="模型" jp="モデル" />
+  <text id="trainBase" en="base" es="base" zh="基础" jp="ベース" />
+  <text id="trainFinetuned" en="fine-tuned" es="ajustado" zh="已微调" jp="ファインチューニング済み" />
+  <text id="trainFromOn" en="from {base}, on {dataset}" es="desde {base}, con {dataset}" zh="基于 {base}，数据集 {dataset}" jp="{base} から、{dataset} で学習" />
+  <text id="trainPair" en="Pair" es="Par" zh="语言对" jp="ペア" />
+  <text id="trainLoss" en="Loss" es="Perdida" zh="损失" jp="損失" />
+  <text id="trainTest" en="Test" es="Probar" zh="测试" jp="テスト" />
+  <text id="trainDeleteModel" en="Delete this model and its ONNX export?" es="¿Eliminar este modelo y su exportacion ONNX?" zh="删除此模型及其 ONNX 导出？" jp="このモデルとONNXエクスポートを削除しますか？" />
+  <text id="trainNoModels" en="No models yet" es="Aun no hay modelos" zh="暂无模型" jp="モデルはまだありません" />
+  <text id="trainEarlierJobs" en="Earlier jobs ({count})" es="Trabajos anteriores ({count})" zh="之前的任务（{count}）" jp="以前のジョブ（{count}）" />
+  <text id="trainEta" en="about {time} left" es="quedan unos {time}" zh="约剩 {time}" jp="残り約 {time}" />
+  <text id="trainEpochSummary" en="Epoch {epoch}: train {train}, validation {validation}" es="Epoca {epoch}: entrenamiento {train}, validacion {validation}" zh="第 {epoch} 轮：训练 {train}，验证 {validation}" jp="エポック {epoch}: 学習 {train}、検証 {validation}" />
+  <text id="trainReference" en="Reference" es="Referencia" zh="参考译文" jp="参照訳" />
+  <text id="trainBefore" en="Before training" es="Antes del entrenamiento" zh="训练前" jp="学習前" />
+  <text id="trainAfter" en="After training" es="Despues del entrenamiento" zh="训练后" jp="学習後" />
+  <text id="trainLog" en="Log ({count} lines)" es="Registro ({count} lineas)" zh="日志（{count} 行）" jp="ログ（{count} 行）" />
+  <text id="trainTestPlaceholder" en="One sentence per line. Ctrl+Enter translates." es="Una frase por linea. Ctrl+Enter traduce." zh="每行一句。按 Ctrl+Enter 翻译。" jp="1行に1文。Ctrl+Enterで翻訳。" />
+  <text id="trainTranslate" en="Translate" es="Traducir" zh="翻译" jp="翻訳" />
+  <text id="trainTranslateFailed" en="Translation failed." es="La traduccion fallo." zh="翻译失败。" jp="翻訳に失敗しました。" />
+  <text id="jobStatus_running" en="Running" es="En curso" zh="运行中" jp="実行中" />
+  <text id="jobStatus_succeeded" en="Finished" es="Terminado" zh="已完成" jp="完了" />
+  <text id="jobStatus_failed" en="Failed" es="Fallido" zh="失败" jp="失敗" />
+  <text id="jobStatus_cancelled" en="Cancelled" es="Cancelado" zh="已取消" jp="キャンセル済み" />
+  <text id="onnxExport" en="Export ONNX" es="Exportar ONNX" zh="导出 ONNX" jp="ONNXをエクスポート" />
+  <text id="onnxExportAgain" en="Export ONNX again" es="Volver a exportar ONNX" zh="重新导出 ONNX" jp="ONNXを再エクスポート" />
+  <text id="onnxFailedToStart" en="The ONNX export could not be started." es="No se pudo iniciar la exportacion ONNX." zh="无法开始 ONNX 导出。" jp="ONNXエクスポートを開始できませんでした。" />
+  <text id="onnxDownloadFailed" en="The ONNX download failed." es="La descarga ONNX fallo." zh="ONNX 下载失败。" jp="ONNXのダウンロードに失敗しました。" />
+  <text id="onnxCheckInput" en="Test sentence" es="Frase de prueba" zh="测试句子" jp="テスト文" />
+  <text id="onnxCheckMatch" en="identical" es="identico" zh="一致" jp="一致" />
+  <text id="onnxCheckDiffers" en="differs" es="difiere" zh="不同" jp="相違あり" />
 </translations>
