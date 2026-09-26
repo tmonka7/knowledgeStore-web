@@ -379,12 +379,23 @@ evaluating translation models.
 - **New dataset**, give it a name, and list its languages. The first language
   is the source and the rest are targets. Codes such as `en`, `pt-BR` or
   `eng_Latn` are accepted.
-- Pairs are edited in two large boxes side by side: the source language on
-  the left and the target on the right. Pick a row in the list below the
-  boxes to edit it. With more than two languages, the selectors above the
-  boxes choose which two are shown, and ⇄ swaps them.
-  **Ctrl+Enter** moves to the next pair (a new one after the last), **Alt+↑/↓**
-  moves between pairs, and **Ctrl+S** saves.
+- Pairs are edited in two large boxes side by side, one language each,
+  lined up like an OCR correction screen: **line N on the left and line N on
+  the right are one pair**. Paste a whole column of sentences into each box,
+  or type them line by line.
+  - Putting the cursor on a line, or selecting several, highlights the same
+    lines in both boxes, and the two boxes scroll together.
+  - **Tab** jumps to the same line in the other box and selects it, adding
+    empty lines to that box if it is shorter.
+  - A line that is empty on one side but filled on the other is tinted
+    yellow, and its line number is too.
+  - Lines never wrap, so that line N stays level on both sides; long ones
+    scroll sideways. Inserting or deleting a line on one side only shifts
+    every pair below it, so fix alignment by adding or removing the matching
+    line on the other side.
+  - **Find** jumps to the next line containing some text. **Ctrl+S** saves.
+  - With more than two languages, the selectors above the boxes choose which
+    two are shown, and ⇄ swaps them.
 - **Import** takes CSV, TSV or JSONL, pasted or from a file. A header row of
   language codes says which column is which.
 - **Save** stores the dataset under your account; nobody else sees it.

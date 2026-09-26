@@ -254,13 +254,8 @@
   <text id="translationImport" en="Import" es="Importar" zh="导入" jp="インポート" />
   <text id="translationExport" en="Export" es="Exportar" zh="导出" jp="エクスポート" />
   <text id="translationExportJsonl" en="JSONL (Hugging Face translation)" es="JSONL (traduccion de Hugging Face)" zh="JSONL（Hugging Face 翻译格式）" jp="JSONL（Hugging Face翻訳形式）" />
-  <text id="translationRowCount" en="{count} rows" es="{count} filas" zh="{count} 行" jp="{count} 行" />
   <text id="translationCompleteCount" en="{count} fully translated" es="{count} completamente traducidas" zh="{count} 行已完整翻译" jp="{count} 行が翻訳済み" />
   <text id="translationUnsaved" en="Unsaved changes" es="Cambios sin guardar" zh="未保存的更改" jp="未保存の変更" />
-  <text id="translationSearchRows" en="Search rows" es="Buscar filas" zh="搜索行" jp="行を検索" />
-  <text id="translationNoRows" en="No rows" es="Sin filas" zh="没有行" jp="行がありません" />
-  <text id="translationAddRow" en="Add row" es="Agregar fila" zh="添加行" jp="行を追加" />
-  <text id="translationRemoveRow" en="Remove row" es="Quitar fila" zh="删除行" jp="行を削除" />
   <text id="translationRowLimit" en="A dataset can have at most {count} rows." es="Un conjunto puede tener como maximo {count} filas." zh="一个数据集最多 {count} 行。" jp="データセットは最大 {count} 行までです。" />
   <text id="translationBadLanguage" en="&quot;{code}&quot; is not a language code (use e.g. en, pt-BR or eng_Latn)." es="&quot;{code}&quot; no es un codigo de idioma (usa p. ej. en, pt-BR o eng_Latn)." zh="“{code}” 不是语言代码（例如 en、pt-BR 或 eng_Latn）。" jp="「{code}」は言語コードではありません（例: en、pt-BR、eng_Latn）。" />
   <text id="translationNameRequired" en="Give the dataset a name." es="Ponle un nombre al conjunto." zh="请为数据集命名。" jp="データセットに名前を付けてください。" />
@@ -807,11 +802,14 @@
   <text id="ptzSettleHint" en="How long the camera is given to stop moving before a frame is taken." es="Cuanto se espera a que la camara deje de moverse antes de tomar un fotograma." zh="取帧前等待摄像头停稳的时间。" jp="フレームを取得する前にカメラが静止するのを待つ時間です。" />
   <text id="ptzSpeed" en="Speed" es="Velocidad" zh="速度" jp="速度" />
   <text id="ptzMoveFailed" en="The camera did not accept that movement." es="La camara no acepto ese movimiento." zh="摄像头未接受该操作。" jp="カメラがその操作を受け付けませんでした。" />
-  <text id="translationEmpty" en="empty" es="vacio" zh="空" jp="空" />
-  <text id="translationTypeIn" en="Type the {code} text" es="Escribe el texto en {code}" zh="输入 {code} 文本" jp="{code} のテキストを入力" />
+  <text id="translationLineCount" en="{count} lines" es="{count} lineas" zh="{count} 行" jp="{count} 行" />
+  <text id="translationPairCount" en="{count} complete pairs" es="{count} pares completos" zh="{count} 个完整句对" jp="完全なペア {count} 組" />
+  <text id="translationHalfCount" en="{count} lines missing a translation" es="{count} lineas sin traduccion" zh="{count} 行缺少译文" jp="訳が欠けている行 {count} 行" />
+  <text id="translationFindLine" en="Find a line" es="Buscar una linea" zh="查找行" jp="行を検索" />
+  <text id="translationFindNext" en="Next" es="Siguiente" zh="下一个" jp="次へ" />
+  <text id="translationNotFound" en="No line contains that text." es="Ninguna linea contiene ese texto." zh="没有包含该文本的行。" jp="そのテキストを含む行はありません。" />
+  <text id="translationAlignedHelp" en="Line N on the left and line N on the right are one pair. Tab jumps to the same line in the other box · Ctrl+S saves · lines tinted yellow are missing their other half." es="La linea N de la izquierda y la linea N de la derecha forman un par. Tab salta a la misma linea del otro cuadro · Ctrl+S guarda · las lineas en amarillo no tienen su otra mitad." zh="左侧第 N 行与右侧第 N 行为一对。Tab 跳到另一框的同一行 · Ctrl+S 保存 · 黄色行缺少对应的另一半。" jp="左のN行目と右のN行目が1組です。Tabでもう一方の同じ行へ移動 · Ctrl+Sで保存 · 黄色の行は対になる訳がありません。" />
   <text id="translationSwapSides" en="Swap left and right" es="Intercambiar izquierda y derecha" zh="交换左右" jp="左右を入れ替え" />
-  <text id="translationPairPosition" en="Pair {current} of {total}" es="Par {current} de {total}" zh="第 {current} / {total} 对" jp="{total} 組中 {current} 組目" />
-  <text id="translationPairKeys" en="Ctrl+Enter next pair · Alt+↑/↓ move · Ctrl+S save" es="Ctrl+Enter siguiente par · Alt+↑/↓ mover · Ctrl+S guardar" zh="Ctrl+Enter 下一对 · Alt+↑/↓ 移动 · Ctrl+S 保存" jp="Ctrl+Enter 次の組 · Alt+↑/↓ 移動 · Ctrl+S 保存" />
   <text id="translationSaveBeforeTraining" en="Save the dataset before training." es="Guarda el conjunto antes de entrenar." zh="训练前请先保存数据集。" jp="学習の前にデータセットを保存してください。" />
   <text id="trainButton" en="Train" es="Entrenar" zh="训练" jp="学習" />
   <text id="trainTitle" en="Fine-tuning and ONNX (offline)" es="Ajuste fino y ONNX (sin conexion)" zh="微调与 ONNX（离线）" jp="ファインチューニングとONNX（オフライン）" />
