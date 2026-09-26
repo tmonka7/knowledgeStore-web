@@ -2,6 +2,8 @@ node_modules
 backend/node_modules
 frontend/node_modules
 frontend/dist
+# The frontend .exe (frontend/exe/build-exe.mjs): ~80 MB, rebuilt on demand.
+frontend/release
 npm-debug.log*
 .DS_Store
 .env

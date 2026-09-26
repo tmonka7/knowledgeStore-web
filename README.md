@@ -75,6 +75,47 @@ address, list it — `ALLOWED_ORIGINS=https://95.217.56.218:6173`. Pointing
 `VITE_API_URL` straight at the API instead is what makes `HOST=0.0.0.0`
 necessary, along with a second certificate exception.
 
+## The frontend as a program (.exe)
+
+`frontend/release/knowledgeStore-web.exe` is the whole frontend in one file:
+the built pages plus a small server that forwards `/api`, `/uploads` and the
+`/rtc` meeting socket to the backend — what the Vite dev server does, on a PC
+with no Node, no `node_modules` and no Vite.
+
+```bash
+cd frontend
+npm run build:exe        # vite build, then exe/build-exe.mjs
+```
+
+Copy `knowledgeStore-web.exe` to any folder (with `server.crt` and
+`server.key` beside it for https) and double-click it. It opens the browser
+and prints the addresses other machines can use. Settings are in
+`knowledgeStore-web.json` beside the program, written with the defaults on the
+first run:
+
+| Setting | Default | |
+| --- | --- | --- |
+| `port` | 6173 | the next free port is used if taken, unless `strictPort` |
+| `host` | 0.0.0.0 | every network interface |
+| `apiUrl` | auto | `https://127.0.0.1:4000` with https, else http |
+| `https`, `certFile`, `keyFile` | true, server.crt, server.key | https when both files exist |
+| `distDir` | (built in) | serve a newer `dist/` folder without rebuilding the program |
+| `openBrowser` | true | |
+
+The same can be given as flags (`--port 8080 --api https://10.0.0.5:4000
+--http --no-browser`, see `--help`) or environment variables (`KS_PORT`,
+`KS_API_URL`, …). `npm run serve:dist` runs the same server with Node, on
+`frontend/dist`.
+
+How it is built: `exe/server.cjs` uses only Node's own modules, `dist/` is
+gzipped into it, and Node's single-executable feature (postject, fetched by
+npx) injects the result into a copy of `node.exe`. Node 18 cannot make single
+executables, so on Node 18 the build downloads the current LTS Node once
+(checked against nodejs.org's SHA-256 list) into `frontend/release/.node` and
+that is the Node inside the program. The program is about 105 MB, for the
+platform it was built on. It is not code-signed, so SmartScreen may ask for
+confirmation the first time.
+
 ## Default admin login
 
 - Username: `admin`
