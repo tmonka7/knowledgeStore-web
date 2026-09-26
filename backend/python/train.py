@@ -17,7 +17,7 @@ import os
 import random
 import time
 
-from ks_common import emit, fail, go_offline, load_pairs, pick_device, setup_languages
+from ks_common import check_model, emit, fail, go_offline, load_pairs, pick_device, setup_languages
 
 go_offline()
 
@@ -64,6 +64,7 @@ def translate(model, tokenizer, texts, max_length, device, generate_args):
 def main():
     args = parse_args()
 
+    check_model(args.base_model)
     pairs = load_pairs(args.dataset, args.source, args.target)
     if len(pairs) < 2:
         fail(f"The dataset has {len(pairs)} complete {args.source}->{args.target} pairs; at least 2 are needed.")

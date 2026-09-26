@@ -21,7 +21,7 @@ import os
 import shutil
 import sys
 
-from ks_common import META_FILE, emit, fail, go_offline, read_meta, setup_languages
+from ks_common import META_FILE, check_model, emit, fail, go_offline, read_meta, setup_languages
 
 go_offline()
 
@@ -193,6 +193,7 @@ def main():
     parser.add_argument("--method", choices=["auto", "optimum", "torch"], default="auto")
     args = parser.parse_args()
 
+    check_model(args.model)
     try:
         import torch  # noqa: F401
         import transformers  # noqa: F401

@@ -29,6 +29,15 @@ CPU needs roughly 8 GB of free RAM, and its ONNX export is about 2.8 GB.
 Opus-MT names a few languages differently from the codes a dataset uses; map
 them explicitly, e.g. `en-ja=Helsinki-NLP/opus-mt-en-jap`.
 
+If training or ONNX export reports that a model is damaged — typically after
+an interrupted download, or a copy of this folder that did not finish — check
+and repair it (the repair re-downloads only the damaged files):
+
+```
+python backend/python/download_models.py --verify
+python backend/python/download_models.py --verify --repair
+```
+
 For an offline machine, copy this whole folder across (and install the pip
 packages from a wheelhouse: `pip download -r requirements.txt -d wheels` on the
 connected machine, `pip install --no-index --find-links wheels -r

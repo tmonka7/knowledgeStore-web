@@ -474,7 +474,10 @@ python backend/python/download_models.py en-es en-zh m2m100
 Name each Opus-MT language pair you need (about 300 MB each). `m2m100` adds
 one multilingual model (about 1.9 GB) that covers any direction between 100
 languages, including en→ko, which has no working Opus-MT model. The Train
-panel offers it for any pair it supports. For a server with no internet access, copy
+panel offers it for any pair it supports. If training or ONNX export says a model is damaged, a download or a copy of
+the models folder was cut short. Run
+`python backend/python/download_models.py --verify --repair`, which re-downloads
+only the damaged files, or copy the folder again. For a server with no internet access, copy
 the `models` folder across; `backend/python/models/README.md` describes how to
 move the pip packages as well. Set `PYTHON_BIN` in `backend/.env` if the
 packages are installed in a virtual environment.

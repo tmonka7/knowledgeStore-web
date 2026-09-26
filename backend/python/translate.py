@@ -13,7 +13,7 @@ import json
 import sys
 import time
 
-from ks_common import emit, fail, go_offline, pick_device, setup_languages
+from ks_common import check_model, emit, fail, go_offline, pick_device, setup_languages
 
 go_offline()
 
@@ -25,6 +25,7 @@ def main():
     parser.add_argument("--target")
     args = parser.parse_args()
 
+    check_model(args.model)
     request = json.load(sys.stdin)
     texts = [str(text) for text in request.get("texts", []) if str(text).strip()]
     max_length = int(request.get("maxLength") or 256)
