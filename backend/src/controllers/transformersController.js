@@ -212,5 +212,11 @@ export const translateWithModel = async (req, res) => {
     .filter((text) => text.trim())
     .slice(0, 50);
   if (!texts.length) return res.status(400).json({ message: 'There is nothing to translate.' });
-  return res.json(await translateTexts({ ownerId: req.user.sub, modelId: String(req.body?.modelId || ''), texts }));
+  return res.json(await translateTexts({
+    ownerId: req.user.sub,
+    modelId: String(req.body?.modelId || ''),
+    texts,
+    source: req.body?.source ? String(req.body.source) : undefined,
+    target: req.body?.target ? String(req.body.target) : undefined,
+  }));
 };

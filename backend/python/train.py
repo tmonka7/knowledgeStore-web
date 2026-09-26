@@ -1,4 +1,4 @@
-"""Fine-tune a local Marian (Opus-MT) model on a translation dataset.
+"""Fine-tune a local translation model (Opus-MT or M2M100) on a dataset.
 
     python train.py --dataset dataset.jsonl --source en --target es \
         --base-model models/base/opus-mt-en-es --output models/finetuned/<id>.partial
@@ -17,7 +17,7 @@ import os
 import random
 import time
 
-from ks_common import emit, fail, go_offline, load_pairs, pick_device
+from ks_common import emit, fail, go_offline, load_pairs, pick_device, setup_languages
 
 go_offline()
 
@@ -53,11 +53,11 @@ def encode(tokenizer, pairs, max_length, device):
     return {key: value.to(device) for key, value in batch.items()}
 
 
-def translate(model, tokenizer, texts, max_length, device):
+def translate(model, tokenizer, texts, max_length, device, generate_args):
     import torch
     inputs = tokenizer(texts, max_length=max_length, truncation=True, padding=True, return_tensors="pt").to(device)
     with torch.no_grad():
-        output = model.generate(**inputs, num_beams=4, max_new_tokens=max_length)
+        output = model.generate(**inputs, num_beams=4, max_new_tokens=max_length, **generate_args)
     return tokenizer.batch_decode(output, skip_special_tokens=True)
 
 
@@ -89,9 +89,12 @@ def main():
 
     tokenizer = AutoTokenizer.from_pretrained(args.base_model, local_files_only=True)
     model = AutoModelForSeq2SeqLM.from_pretrained(args.base_model, local_files_only=True).to(device)
+    # Multilingual models tag the source and the labels with their language,
+    # and are forced to start the output in the target language.
+    generate_args = setup_languages(tokenizer, model, args.source, args.target)
 
     samples = (validation or training)[:3]
-    before = translate(model, tokenizer, [source for source, _ in samples], args.max_length, device)
+    before = translate(model, tokenizer, [source for source, _ in samples], args.max_length, device, generate_args)
 
     steps_per_epoch = math.ceil(len(training) / args.batch_size)
     total_steps = steps_per_epoch * args.epochs
@@ -141,7 +144,7 @@ def main():
         emit("epoch", **entry)
 
     model.eval()
-    after = translate(model, tokenizer, [source for source, _ in samples], args.max_length, device)
+    after = translate(model, tokenizer, [source for source, _ in samples], args.max_length, device, generate_args)
     emit("samples", samples=[
         {"source": source, "reference": reference, "before": old, "after": new}
         for (source, reference), old, new in zip(samples, before, after)

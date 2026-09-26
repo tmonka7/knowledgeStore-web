@@ -833,6 +833,7 @@
   <text id="trainBase" en="base" es="base" zh="基础" jp="ベース" />
   <text id="trainFinetuned" en="fine-tuned" es="ajustado" zh="已微调" jp="ファインチューニング済み" />
   <text id="trainFromOn" en="from {base}, on {dataset}" es="desde {base}, con {dataset}" zh="基于 {base}，数据集 {dataset}" jp="{base} から、{dataset} で学習" />
+  <text id="trainMultilingual" en="multilingual, {count} languages" es="multilingue, {count} idiomas" zh="多语言，{count} 种语言" jp="多言語、{count} 言語" />
   <text id="trainPair" en="Pair" es="Par" zh="语言对" jp="ペア" />
   <text id="trainLoss" en="Loss" es="Perdida" zh="损失" jp="損失" />
   <text id="trainTest" en="Test" es="Probar" zh="测试" jp="テスト" />

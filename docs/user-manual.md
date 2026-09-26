@@ -468,10 +468,13 @@ them once, on a machine with internet access:
 
 ```
 pip install -r backend/python/requirements.txt
-python backend/python/download_models.py en-es es-en
+python backend/python/download_models.py en-es en-zh m2m100
 ```
 
-Name each language pair you need. For a server with no internet access, copy
+Name each Opus-MT language pair you need (about 300 MB each). `m2m100` adds
+one multilingual model (about 1.9 GB) that covers any direction between 100
+languages, including en→ko, which has no working Opus-MT model. The Train
+panel offers it for any pair it supports. For a server with no internet access, copy
 the `models` folder across; `backend/python/models/README.md` describes how to
 move the pip packages as well. Set `PYTHON_BIN` in `backend/.env` if the
 packages are installed in a virtual environment.

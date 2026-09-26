@@ -330,6 +330,25 @@ export const cancelJob = (ownerId, id) => {
 
 /* --------------------------------------------------------------- training */
 
+// Mirrors LANGUAGE_ALIASES in backend/python/ks_common.py.
+const LANGUAGE_ALIASES = { jp: 'ja', jpn: 'ja', kor: 'ko', zho: 'zh', chi: 'zh', eng: 'en', spa: 'es' };
+
+/** A dataset code ("ko", "zh-Hans", "jp") as a multilingual model names it ("ko"). */
+const modelLanguage = (code) => {
+  const primary = String(code).split(/[-_]/)[0].toLowerCase();
+  return LANGUAGE_ALIASES[primary] || primary;
+};
+
+/** Whether `model` can translate source -> target at all. */
+const supportsPair = (model, source, target) => {
+  if (model.multilingual) {
+    const languages = model.languages || [];
+    // An empty list means the download could not read it; let Python decide.
+    return !languages.length || [source, target].every((code) => languages.includes(modelLanguage(code)));
+  }
+  return true;
+};
+
 const clampNumber = (value, fallback, min, max) => {
   const number = Number(value);
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
@@ -337,6 +356,9 @@ const clampNumber = (value, fallback, min, max) => {
 
 export const startTraining = async ({ ownerId, dataset, source, target, baseModelId, name, options = {} }) => {
   const base = await findModel(ownerId, baseModelId);
+  if (!supportsPair(base, source, target)) {
+    throw new JobError(`${base.name || base.id} does not support ${source}→${target}.`);
+  }
   const languages = dataset.languages || [];
   if (!languages.includes(source) || !languages.includes(target) || source === target) {
     throw new JobError('Pick two different languages from the dataset.');
@@ -387,6 +409,8 @@ export const startTraining = async ({ ownerId, dataset, source, target, baseMode
         target,
         baseModel: base.id,
         baseName: base.name || base.id,
+        // Still an M2M100 underneath: exports and tests need to know.
+        multilingual: Boolean(base.multilingual),
         datasetId: dataset.id,
         datasetName: dataset.name,
         options: { epochs, batchSize, learningRate, maxLength },
@@ -439,9 +463,16 @@ export const startOnnxExport = async ({ ownerId, modelId }) => {
 
 /* -------------------------------------------------------------- translate */
 
-export const translateTexts = async ({ ownerId, modelId, texts }) => {
+export const translateTexts = async ({ ownerId, modelId, texts, source, target }) => {
   const model = await findModel(ownerId, modelId);
-  const result = await runProcess(['translate.py', '--model', model.folder], {
+  // A multilingual base model is told the direction; every other model has
+  // one of its own, recorded in its ks-model.json.
+  const from = String(source || model.source || '');
+  const to = String(target || model.target || '');
+  if (model.multilingual && (!from || !to)) throw new JobError('Pick the languages to translate between.');
+  if (!supportsPair(model, from, to)) throw new JobError(`${model.name || model.id} does not support ${from}→${to}.`);
+  const languageArgs = from && to ? ['--source', from, '--target', to] : [];
+  const result = await runProcess(['translate.py', '--model', model.folder, ...languageArgs], {
     cwd: PYTHON_DIR,
     env: pythonEnv(),
     timeoutMs: TRANSLATE_TIMEOUT_MS,

@@ -26,6 +26,33 @@ const formatSeconds = (seconds) => {
   return minutes ? `${minutes} min ${seconds % 60} s` : `${seconds} s`;
 };
 
+// Mirrors LANGUAGE_ALIASES in backend/python/ks_common.py.
+const LANGUAGE_ALIASES = { jp: 'ja', jpn: 'ja', kor: 'ko', zho: 'zh', chi: 'zh', eng: 'en', spa: 'es' };
+
+/** A dataset code ("ko", "zh-Hans", "jp") as a multilingual model names it. */
+const modelLanguage = (code) => {
+  const primary = String(code).split(/[-_]/)[0].toLowerCase();
+  return LANGUAGE_ALIASES[primary] || primary;
+};
+
+/** A multilingual base model (M2M100) translates any direction it has languages for. */
+const isOpenMultilingual = (model) => Boolean(model.multilingual && !model.source);
+
+/**
+ * How well `model` fits source -> target: 'exact' when it was made for that
+ * direction, 'multi' when it is a multilingual model covering both
+ * languages, '' when it does neither.
+ */
+const fitFor = (model, source, target) => {
+  if (!source || !target) return '';
+  if (model.source === source && model.target === target) return 'exact';
+  if (isOpenMultilingual(model)) {
+    const languages = model.languages || [];
+    if (!languages.length || [source, target].every((code) => languages.includes(modelLanguage(code)))) return 'multi';
+  }
+  return '';
+};
+
 const lastLoss = (model) => {
   const final = model.history?.[model.history.length - 1];
   return final ? (final.validationLoss ?? final.trainLoss) : null;
@@ -114,13 +141,18 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
   const baseModels = models.filter((model) => model.kind === 'base');
   const finetuned = models.filter((model) => model.kind === 'finetuned');
 
-  // A model for the chosen direction first; anything else is allowed but
-  // marked, since a model trained en→es learns nothing useful from ja→en.
+  const pairLabel = (model) => (isOpenMultilingual(model)
+    ? t('trainMultilingual', { count: model.languages?.length || '' })
+    : `${model.source}→${model.target}`);
+
+  // Models for the chosen direction first — including a multilingual model
+  // that covers it; anything else is allowed but marked, since a model
+  // trained en→es learns nothing useful from ja→en.
   const modelOptions = useMemo(() => {
-    const fits = (model) => model.source === form.source && model.target === form.target;
+    const fits = (model) => Boolean(fitFor(model, form.source, form.target));
     const option = (model) => ({
       value: model.id,
-      label: `${model.name} (${model.source}→${model.target})${fits(model) ? '' : ` — ${t('trainOtherPair')}`}`,
+      label: `${model.name} (${pairLabel(model)})${fits(model) ? '' : ` — ${t('trainOtherPair')}`}`,
     });
     return [
       { label: t('trainMatchingModels'), options: models.filter(fits).map(option) },
@@ -128,12 +160,15 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
     ].filter((group) => group.options.length);
   }, [models, form.source, form.target, t]);
 
+  // Default to the best starting point: a small model made for the pair,
+  // then one trained on it earlier, then the multilingual model.
   useEffect(() => {
     setForm((current) => {
-      if (models.some((model) => model.id === current.baseModelId
-        && model.source === current.source && model.target === current.target)) return current;
-      const match = models.find((model) => model.kind === 'base' && model.source === current.source && model.target === current.target)
-        || models.find((model) => model.source === current.source && model.target === current.target);
+      const fit = (model) => fitFor(model, current.source, current.target);
+      if (models.some((model) => model.id === current.baseModelId && fit(model))) return current;
+      const match = models.find((model) => model.kind === 'base' && fit(model) === 'exact')
+        || models.find((model) => fit(model) === 'exact')
+        || models.find((model) => fit(model) === 'multi');
       return { ...current, baseModelId: match?.id || '' };
     });
   }, [models, form.source, form.target]);
@@ -222,7 +257,7 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
         </Space>
       ),
     },
-    { title: t('trainPair'), key: 'pair', width: 110, render: (_, model) => <Tag>{`${model.source} → ${model.target}`}</Tag> },
+    { title: t('trainPair'), key: 'pair', width: 130, render: (_, model) => <Tag>{pairLabel(model)}</Tag> },
     {
       title: t('trainLoss'),
       key: 'loss',
@@ -281,7 +316,7 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
               <Paragraph style={{ margin: 0 }}>
                 {t('trainNoBaseModelsHelp')}
                 <pre style={{ ...MONO, margin: '8px 0 0' }}>
-                  pip install -r backend/python/requirements.txt{'\n'}python backend/python/download_models.py en-es es-en
+                  pip install -r backend/python/requirements.txt{'\n'}python backend/python/download_models.py en-es en-zh m2m100
                 </pre>
               </Paragraph>
             )}
@@ -501,16 +536,31 @@ function TestModal({ model, onClose }) {
   const [text, setText] = useState('');
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [pair, setPair] = useState({ source: '', target: '' });
 
-  useEffect(() => { setResult(null); }, [model?.id]);
+  // A multilingual base model has no direction of its own: pick one.
+  const open = Boolean(model && isOpenMultilingual(model));
+  useEffect(() => {
+    setResult(null);
+    if (!model) return;
+    const languages = model.languages || [];
+    setPair(open
+      ? { source: 'en', target: ['ko', 'zh', 'es', 'ja'].find((code) => languages.includes(code)) || languages[0] || '' }
+      : { source: model.source, target: model.target });
+  }, [model?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const languageOptions = (model?.languages || []).map((code) => ({ value: code, label: code }));
 
   const run = async () => {
     const texts = text.split(/\r?\n/).filter((line) => line.trim());
     if (!texts.length) return;
     setBusy(true);
     try {
-      const { data } = await api.post('/tools/transformers/translate', { modelId: model.id, texts }, { timeout: 0 });
-      setResult({ ...data, texts });
+      const { data } = await api.post(
+        '/tools/transformers/translate',
+        { modelId: model.id, texts, source: pair.source, target: pair.target },
+        { timeout: 0 },
+      );
+      setResult({ ...data, texts, source: pair.source, target: pair.target });
     } catch (error) {
       message.error(error.response?.data?.message || t('trainTranslateFailed'));
     } finally {
@@ -521,13 +571,32 @@ function TestModal({ model, onClose }) {
   return (
     <Modal
       open={Boolean(model)}
-      title={model ? `${model.name} (${model.source} → ${model.target})` : ''}
+      title={model ? `${model.name} (${open ? t('trainMultilingual', { count: model.languages?.length || '' }) : `${model.source} → ${model.target}`})` : ''}
       onCancel={onClose}
       footer={null}
       width={760}
       destroyOnClose
     >
       <Space direction="vertical" style={{ width: '100%' }}>
+        {open && (
+          <Space wrap>
+            <Select
+              showSearch
+              style={{ width: 120 }}
+              value={pair.source}
+              options={languageOptions}
+              onChange={(source) => setPair((current) => ({ ...current, source }))}
+            />
+            →
+            <Select
+              showSearch
+              style={{ width: 120 }}
+              value={pair.target}
+              options={languageOptions}
+              onChange={(target) => setPair((current) => ({ ...current, target }))}
+            />
+          </Space>
+        )}
         <TextArea
           value={text}
           onChange={(event) => setText(event.target.value)}
@@ -548,8 +617,8 @@ function TestModal({ model, onClose }) {
             pagination={false}
             dataSource={result.texts.map((source, index) => ({ source, output: result.translations[index] }))}
             columns={[
-              { title: model?.source, dataIndex: 'source' },
-              { title: model?.target, dataIndex: 'output' },
+              { title: result.source, dataIndex: 'source' },
+              { title: result.target, dataIndex: 'output' },
             ]}
             footer={() => <Text type="secondary">{`${result.seconds} s · ${result.device}`}</Text>}
           />

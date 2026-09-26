@@ -21,7 +21,7 @@ import os
 import shutil
 import sys
 
-from ks_common import META_FILE, emit, fail, go_offline, read_meta
+from ks_common import META_FILE, emit, fail, go_offline, read_meta, setup_languages
 
 go_offline()
 
@@ -99,7 +99,16 @@ def export_with_torch(model_dir, output):
         model.generation_config.save_pretrained(output)
 
 
-def verify(model_dir, output, source):
+def check_pair(meta):
+    """The direction to test-translate in: the model's own, or en->ko/zh/… for a multilingual base."""
+    if meta.get("source") and meta.get("target"):
+        return meta["source"], meta["target"]
+    languages = meta.get("languages") or []
+    target = next((code for code in ("ko", "zh", "es", "ja", "fr", "de") if code in languages), "es")
+    return "en", target
+
+
+def verify(model_dir, output, meta):
     """Greedy-decode one sentence through the ONNX graphs and through PyTorch."""
     try:
         import numpy as np
@@ -112,6 +121,9 @@ def verify(model_dir, output, source):
 
     tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
     config = AutoConfig.from_pretrained(model_dir, local_files_only=True)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_dir, local_files_only=True).eval()
+    source, target = check_pair(meta)
+    generate_args = setup_languages(tokenizer, model, source, target)
     text = SAMPLE_TEXTS.get(source, SAMPLE_TEXTS["en"])
     encoded = tokenizer([text], return_tensors="np")
 
@@ -122,6 +134,10 @@ def verify(model_dir, output, source):
     hidden = encoder.run(None, {"input_ids": encoded["input_ids"].astype(np.int64),
                                 "attention_mask": encoded["attention_mask"].astype(np.int64)})[0]
     tokens = [config.decoder_start_token_id]
+    # A multilingual model is steered by forcing the target language as the
+    # first generated token; generate() does the same with forced_bos_token_id.
+    if "forced_bos_token_id" in generate_args:
+        tokens.append(generate_args["forced_bos_token_id"])
     for _ in range(64):
         feed = {"input_ids": np.array([tokens], dtype=np.int64),
                 "encoder_hidden_states": hidden,
@@ -135,12 +151,11 @@ def verify(model_dir, output, source):
             break
     onnx_text = tokenizer.decode(tokens, skip_special_tokens=True)
 
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_dir, local_files_only=True).eval()
     with torch.no_grad():
         reference = model.generate(**tokenizer([text], return_tensors="pt"), num_beams=1, do_sample=False,
-                                   max_new_tokens=64)
+                                   max_new_tokens=64, **generate_args)
     torch_text = tokenizer.decode(reference[0], skip_special_tokens=True)
-    return {"verified": True, "input": text, "onnx": onnx_text, "pytorch": torch_text, "match": onnx_text == torch_text}
+    return {"verified": True, "input": text, "pair": f"{source}->{target}", "onnx": onnx_text, "pytorch": torch_text, "match": onnx_text == torch_text}
 
 
 README = """{name} — ONNX export
@@ -159,6 +174,15 @@ Load with Hugging Face Optimum (offline):
   tokenizer = AutoTokenizer.from_pretrained(".")
   model = ORTModelForSeq2SeqLM.from_pretrained(".", use_cache={use_cache})
   print(tokenizer.batch_decode(model.generate(**tokenizer(["Hello"], return_tensors="pt")), skip_special_tokens=True))
+{multilingual}"""
+
+MULTILINGUAL_NOTE = """
+This is a multilingual (M2M100) model. Set the languages on the tokenizer and
+force the target language as the first generated token:
+  tokenizer.src_lang = "en"
+  model.generate(**tokenizer(["Hello"], return_tensors="pt"), forced_bos_token_id=tokenizer.get_lang_id("ko"))
+Driving the ONNX graphs yourself: start the decoder with
+  [decoder_start_token_id, id of the "__ko__" token]
 """
 
 
@@ -211,14 +235,15 @@ def main():
 
     emit("status", message="Checking the exported model")
     try:
-        check = verify(args.model, args.output, meta.get("source", "en"))
+        check = verify(args.model, args.output, meta)
     except Exception as error:  # noqa: BLE001
         check = {"verified": False, "reason": f"The check could not run: {error}"}
 
     with open(os.path.join(args.output, "README.txt"), "w", encoding="utf-8") as handle:
         handle.write(README.format(name=meta.get("name", os.path.basename(args.model)),
                                    source=meta.get("source", "?"), target=meta.get("target", "?"),
-                                   method=method, use_cache=method == "optimum"))
+                                   method=method, use_cache=method == "optimum",
+                                   multilingual=MULTILINGUAL_NOTE if meta.get("multilingual") or "m2m" in str(meta.get("baseModel", "")) else ""))
     # The model's own metadata belongs to the source folder, not the export.
     stale = os.path.join(args.output, META_FILE)
     if os.path.exists(stale):

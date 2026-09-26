@@ -1,17 +1,23 @@
-"""Fetch Opus-MT translation models into backend/python/models/base, once.
+"""Fetch translation models into backend/python/models/base, once.
 
 This is the only script that uses the network. Run it on a machine with
 internet access; after that, training, translation and ONNX export read the
 models from disk and never go online. The models folder can be copied as-is
 to an offline machine.
 
-    python download_models.py en-es es-en
+    python download_models.py en-es en-zh
     python download_models.py en-ja=Helsinki-NLP/opus-mt-en-jap
+    python download_models.py m2m100
     python download_models.py --list
 
-A plain "src-tgt" means Helsinki-NLP/opus-mt-src-tgt. Use "src-tgt=repo" when
-the repository's language codes differ from the ones your datasets use (Opus-MT
-calls Japanese "jap", for example).
+A plain "src-tgt" means Helsinki-NLP/opus-mt-src-tgt, a small model for one
+direction. Use "src-tgt=repo" when the repository's language codes differ from
+the ones your datasets use (Opus-MT calls Japanese "jap", for example).
+
+"m2m100" fetches facebook/m2m100_418M (MIT licence, about 1.9 GB): a single
+multilingual model that translates between any two of 100 languages. It is
+the fallback for pairs Opus-MT has no working model for, such as en-ko.
+"multi=<repo>" fetches another model of the same family.
 
 Only the standard library is used, so this runs before `pip install`.
 """
@@ -30,8 +36,9 @@ from ks_common import META_FILE, MODELS_DIR, read_meta, write_meta
 HUB = os.environ.get("HF_ENDPOINT", "https://huggingface.co").rstrip("/")
 BASE_DIR = os.path.join(MODELS_DIR, "base")
 
-# Other frameworks' copies of the same weights, and repository clutter.
-SKIP = re.compile(r"(^\.|\.md$|tf_model\.h5$|flax_model\.msgpack$|rust_model\.ot$|\.onnx$|^onnx/)")
+# Other frameworks' copies of the same weights, benchmark outputs, and
+# repository clutter.
+SKIP = re.compile(r"(^\.|\.md$|^benchmark_|tf_model\.h5$|flax_model\.msgpack$|rust_model\.ot$|\.onnx$|^onnx/)")
 
 
 def request(url):
@@ -71,14 +78,34 @@ def fetch(repo, name, target):
     print(f"\r    {name}: done{' ' * 30}")
 
 
+MULTILINGUAL = {"m2m100": "facebook/m2m100_418M"}
+
+
+def multilingual_languages(folder):
+    """Language codes a multilingual model declares, from its "__ko__" tokens."""
+    try:
+        with open(os.path.join(folder, "special_tokens_map.json"), encoding="utf-8") as handle:
+            tokens = json.load(handle).get("additional_special_tokens", [])
+    except (OSError, ValueError):
+        return []
+    return [token.strip("_") for token in tokens if isinstance(token, str) and re.fullmatch(r"__\w+__", token)]
+
+
 def download(spec):
-    pair, _, repo = spec.partition("=")
+    name, _, repo = spec.partition("=")
+    if name in MULTILINGUAL or name == "multi":
+        return fetch_repo(repo or MULTILINGUAL.get(name, ""), multilingual=True)
+    pair = name
     match = re.fullmatch(r"([A-Za-z]{2,3}(?:_[A-Za-z]+)?)-([A-Za-z]{2,3}(?:_[A-Za-z]+)?)", pair)
     if not match:
         raise SystemExit(f'"{spec}" is not a pair like en-es or en-ja=Helsinki-NLP/opus-mt-en-jap')
     source, target = match.groups()
-    repo = repo or f"Helsinki-NLP/opus-mt-{source}-{target}"
+    return fetch_repo(repo or f"Helsinki-NLP/opus-mt-{source}-{target}", source=source, target=target)
 
+
+def fetch_repo(repo, source=None, target=None, multilingual=False):
+    if not repo:
+        raise SystemExit('"multi" needs a repository, e.g. multi=facebook/m2m100_1.2B')
     folder = os.path.join(BASE_DIR, repo.split("/")[-1])
     if read_meta(folder).get("complete"):
         print(f"{repo}: already downloaded")
@@ -97,16 +124,19 @@ def download(spec):
     except urllib.error.HTTPError as error:
         raise SystemExit(f"{repo}: HTTP {error.code}. Check the pair exists at {HUB}/{repo}") from error
 
-    write_meta(staging, {
+    meta = {
         "id": os.path.basename(folder),
         "kind": "base",
         "name": repo,
         "repo": repo,
-        "source": source,
-        "target": target,
         "complete": True,
         "downloadedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    })
+    }
+    if multilingual:
+        meta.update(multilingual=True, languages=multilingual_languages(staging))
+    else:
+        meta.update(source=source, target=target)
+    write_meta(staging, meta)
     if os.path.exists(folder):
         shutil.rmtree(folder)
     os.replace(staging, folder)
@@ -118,12 +148,14 @@ def list_models():
         for name in sorted(os.listdir(root)) if os.path.isdir(root) else []:
             meta = read_meta(os.path.join(root, name))
             if meta:
-                print(f"{kind:9} {meta.get('source')}->{meta.get('target')}  {meta.get('name', name)}")
+                pair = (f"{len(meta.get('languages', []))} languages" if meta.get("multilingual")
+                        else f"{meta.get('source')}->{meta.get('target')}")
+                print(f"{kind:9} {pair:14} {meta.get('name', name)}")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("pairs", nargs="*", help="en-es, or en-ja=Helsinki-NLP/opus-mt-en-jap")
+    parser.add_argument("pairs", nargs="*", help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, or m2m100")
     parser.add_argument("--list", action="store_true", help="show the models already on disk")
     args = parser.parse_args()
 
