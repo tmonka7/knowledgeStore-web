@@ -19,6 +19,7 @@ import {
   pythonCapabilities,
   runTranslationScript,
   trainTranslationModel,
+  trainingDevices,
   translateWithModel,
   updateTranslationDataset,
 } from '../controllers/transformersController.js';
@@ -95,6 +96,7 @@ router.post('/tools/transformers/models/:id/onnx/link', ...transformersTrain, as
 router.get('/tools/transformers/onnx-download/:ticket', asyncRoute(downloadOnnx));
 router.post('/tools/transformers/train', ...transformersTrain, asyncRoute(trainTranslationModel));
 router.post('/tools/transformers/translate', ...transformersTrain, asyncRoute(translateWithModel));
+router.get('/tools/transformers/devices', ...transformersTrain, asyncRoute(trainingDevices));
 router.get('/tools/transformers/jobs', ...transformersTrain, asyncRoute(listTranslationJobs));
 router.get('/tools/transformers/jobs/:id', ...transformersTrain, asyncRoute(getTranslationJob));
 router.post('/tools/transformers/jobs/:id/cancel', ...transformersTrain, asyncRoute(cancelTranslationJob));
@@ -130,6 +132,7 @@ for (const [area, permission] of [['yolo', 'yolo'], ['speech', 'tts']]) {
   router.post(`${base}/models/:id/onnx/link`, ...train, asyncRoute(handlers.onnxLink));
   router.post(`${base}/train`, ...train, asyncRoute(handlers.train));
   router.post(`${base}/test`, ...train, upload.array('files', 8), asyncRoute(handlers.test));
+  router.get(`${base}/devices`, ...train, asyncRoute(handlers.devices));
   router.get(`${base}/jobs`, ...train, asyncRoute(handlers.listJobs));
   router.get(`${base}/jobs/:id`, ...train, asyncRoute(handlers.getJob));
   router.post(`${base}/jobs/:id/cancel`, ...train, asyncRoute(handlers.cancelJob));

@@ -48,6 +48,11 @@ python backend/python/download_models.py --verify
 python backend/python/download_models.py --verify --repair
 ```
 
+Training runs on the device chosen in each Train panel: automatic (the first
+NVIDIA GPU if PyTorch can use one, otherwise the CPU), the CPU, or a specific
+GPU. A GPU needs a CUDA build of PyTorch — see backend/python/requirements.txt;
+`python backend/python/gpu_info.py` shows what the server's PyTorch can see.
+
 For an offline machine, copy this whole folder across (and install the pip
 packages from a wheelhouse: `pip download -r requirements.txt -d wheels` on the
 connected machine, `pip install --no-index --find-links wheels -r

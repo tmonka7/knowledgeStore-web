@@ -342,6 +342,44 @@ export const cancelJob = (ownerId, id, task = 'translation') => {
   return publicJob(job);
 };
 
+/* ---------------------------------------------------------------- devices */
+
+// Asking Python costs a second or two (importing torch), and the answer only
+// changes when drivers or packages do, so it is kept for a minute.
+const DEVICE_CACHE_MS = 60 * 1000;
+let deviceCache = null;
+
+/** The devices PyTorch can train on: { devices: [{ id, name, memoryGb }], mps, cuda, reason }. */
+export const probeDevices = async ({ refresh = false } = {}) => {
+  if (!refresh && deviceCache && Date.now() - deviceCache.at < DEVICE_CACHE_MS) return deviceCache.value;
+  const result = await runProcess(['gpu_info.py'], { cwd: PYTHON_DIR, env: pythonEnv(), timeoutMs: 60000 });
+  let value;
+  if (result.spawnError) {
+    value = { devices: [], mps: false, reason: result.spawnError };
+  } else {
+    const done = result.stdout.text.split(/\r?\n/).map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    }).find((event) => event?.event === 'done');
+    const { event: _event, ...rest } = done || {};
+    value = done ? rest : { devices: [], mps: false, reason: result.stderr.text.trim().split(/\r?\n/).pop() || 'Could not ask PyTorch.' };
+  }
+  deviceCache = { at: Date.now(), value };
+  return value;
+};
+
+/** The --device arguments for a training script, from a requested device. */
+export const deviceArgs = (requested) => {
+  const device = String(requested || 'auto').trim().toLowerCase();
+  if (!/^(auto|cpu|mps|cuda(:\d{1,2})?)$/.test(device)) {
+    throw new JobError(`Unknown device "${requested}". Use auto, cpu, cuda, cuda:N or mps.`);
+  }
+  return ['--device', device];
+};
+
 /* --------------------------------------------------------------- training */
 
 // Mirrors LANGUAGE_ALIASES in backend/python/ks_common.py.
@@ -384,6 +422,7 @@ export const startTraining = async ({ ownerId, dataset, source, target, baseMode
   const batchSize = Math.round(clampNumber(options.batchSize, 8, 1, 128));
   const learningRate = clampNumber(options.learningRate, 5e-5, 1e-7, 1e-2);
   const maxLength = Math.round(clampNumber(options.maxLength, 128, 16, 512));
+  const device = deviceArgs(options.device);
 
   const id = randomUUID();
   const finetunedRoot = path.join(MODELS_DIR, 'finetuned');
@@ -412,6 +451,7 @@ export const startTraining = async ({ ownerId, dataset, source, target, baseMode
       '--batch-size', String(batchSize),
       '--learning-rate', String(learningRate),
       '--max-length', String(maxLength),
+      ...device,
     ],
     finish: async (job) => {
       await fs.writeFile(path.join(output, META_FILE), JSON.stringify({

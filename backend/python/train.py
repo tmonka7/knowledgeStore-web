@@ -17,7 +17,7 @@ import os
 import random
 import time
 
-from ks_common import check_model, emit, fail, go_offline, load_pairs, pick_device, setup_languages
+from ks_common import check_model, describe_device, emit, fail, go_offline, load_pairs, pick_device, setup_languages
 
 go_offline()
 
@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument("--max-length", type=int, default=128)
     parser.add_argument("--validation-split", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--device", default="auto", help="auto, cpu, cuda, cuda:N or mps")
     return parser.parse_args()
 
 
@@ -84,8 +85,8 @@ def main():
     held = int(len(pairs) * args.validation_split) if len(pairs) >= 10 else 0
     validation, training = pairs[:held], pairs[held:]
 
-    device = pick_device()
-    emit("status", message=f"Loading {os.path.basename(args.base_model)} on {device.type}",
+    device = pick_device(args.device)
+    emit("status", message=f"Loading {os.path.basename(args.base_model)} on {describe_device(device)}",
          device=device.type, trainPairs=len(training), validationPairs=len(validation))
 
     tokenizer = AutoTokenizer.from_pretrained(args.base_model, local_files_only=True)

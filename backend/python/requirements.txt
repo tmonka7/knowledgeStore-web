@@ -5,8 +5,11 @@
 #   python backend/python/download_models.py en-es ...
 # after which nothing here needs the network.
 #
-# CPU-only torch is a much smaller download; for that, install torch first:
-#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Install torch first, choosing the build for the hardware:
+#   NVIDIA GPU:  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+#   CPU only:    pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# The Train panels list the GPUs this build can use (backend/python/gpu_info.py)
+# and say why when there are none — most often a CPU-only build.
 torch>=2.6
 transformers>=4.40
 sentencepiece>=0.2

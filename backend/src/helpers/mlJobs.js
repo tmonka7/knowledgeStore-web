@@ -12,7 +12,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { runProcess } from './pythonRunner.js';
 import {
-  JobError, MODELS_DIR, PYTHON_DIR, clampNumber, findModel, pythonEnv, startJob,
+  JobError, MODELS_DIR, PYTHON_DIR, clampNumber, deviceArgs, findModel, pythonEnv, startJob,
 } from './translationJobs.js';
 import { datasetFolder, getDataset, sampleFile } from './mlDatasets.js';
 
@@ -161,6 +161,7 @@ export const startYoloTraining = async ({ ownerId, datasetId, baseModelId, name,
       '--epochs', String(epochs),
       '--imgsz', String(imgsz),
       '--batch-size', String(batchSize),
+      ...deviceArgs(options.device),
     ],
     details: { datasetName: dataset.name, baseModel: base.name, epochs, imgsz, batchSize },
     meta: {
@@ -217,6 +218,7 @@ export const startSpeechTraining = async ({ ownerId, datasetId, baseModelId, nam
       '--epochs', String(epochs),
       '--batch-size', String(batchSize),
       '--learning-rate', String(learningRate),
+      ...deviceArgs(options.device),
     ],
     details: { datasetName: dataset.name, baseModel: base.name, language: dataset.language, epochs, batchSize, learningRate },
     meta: {

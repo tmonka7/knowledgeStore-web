@@ -4,6 +4,7 @@ import {
   Tag, Tooltip, Typography,
 } from 'antd';
 import { DeleteOutlined, ReloadOutlined, RocketOutlined, UploadOutlined } from '@ant-design/icons';
+import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
 import ModelActions from '../ml/ModelActions';
 import useMlArea from '../ml/useMlArea';
@@ -26,7 +27,9 @@ export default function SpeechTrainingPanel() {
   const { t } = useLanguage();
   const area = useMlArea('speech', t);
   const { models, datasets, jobs } = area;
-  const [form, setForm] = useState({ datasetId: '', baseModelId: '', name: '', epochs: 5, batchSize: 8, learningRate: 1e-5 });
+  const [form, setForm] = useState({
+    datasetId: '', baseModelId: '', name: '', epochs: 5, batchSize: 8, learningRate: 1e-5, device: 'auto',
+  });
   const [testing, setTesting] = useState(null);
   const set = (patch) => setForm((current) => ({ ...current, ...patch }));
 
@@ -46,7 +49,7 @@ export default function SpeechTrainingPanel() {
     datasetId: form.datasetId,
     baseModelId: form.baseModelId,
     name: form.name,
-    options: { epochs: form.epochs, batchSize: form.batchSize, learningRate: form.learningRate },
+    options: { epochs: form.epochs, batchSize: form.batchSize, learningRate: form.learningRate, device: form.device },
   });
 
   const busyModelIds = new Set(jobs.filter((job) => job.status === 'running').map((job) => job.modelId));
@@ -185,7 +188,11 @@ export default function SpeechTrainingPanel() {
                 options={LEARNING_RATES.map((rate) => ({ value: rate, label: rate.toExponential(0) }))}
               />
             </Col>
-            <Col xs={24} md={{ span: 6, offset: 6 }} style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <Col xs={24} md={6}>
+              <Text type="secondary">{t('trainDevice')}</Text>
+              <DeviceSelect base="/tools/speech" value={form.device} onChange={(device) => set({ device })} />
+            </Col>
+            <Col xs={24} md={6} style={{ display: 'flex', alignItems: 'flex-end' }}>
               <Button
                 type="primary"
                 size="large"

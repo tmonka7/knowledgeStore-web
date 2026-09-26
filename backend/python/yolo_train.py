@@ -20,7 +20,7 @@ import random
 import shutil
 import time
 
-from ks_common import check_model, emit, fail, go_offline_yolo, pick_device, yolo_weights
+from ks_common import check_model, describe_device, emit, fail, go_offline_yolo, pick_device, yolo_weights
 
 go_offline_yolo()
 
@@ -37,6 +37,7 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--validation-split", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--device", default="auto", help="auto, cpu, cuda, cuda:N or mps")
     return parser.parse_args()
 
 
@@ -125,14 +126,14 @@ def main():
     yaml_path, train_count, validation_count = write_split(
         args.data, work, classes, images, args.validation_split, args.seed)
 
-    device = pick_device()
+    device = pick_device(args.device)
     model = YOLO(yolo_weights(args.base_model))
     weights_task = getattr(model, "task", "detect")
     if dataset.get("task", "detect") != weights_task:
         fail(f"This is a {dataset.get('task')} dataset but the base model is for {weights_task}. "
              f"Pick a {'-seg ' if dataset.get('task') == 'segment' else 'detection '}model.")
 
-    emit("status", message=f"Training {os.path.basename(args.base_model)} on {device.type}",
+    emit("status", message=f"Training {os.path.basename(args.base_model)} on {describe_device(device)}",
          device=device.type, trainImages=train_count, validationImages=validation_count, classes=classes)
 
     state = {"step": 0, "total": 0, "last": 0.0, "started": time.time(), "history": []}
@@ -176,7 +177,7 @@ def main():
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch_size,
-        device=0 if device.type == "cuda" else "cpu",
+        device=(device.index or 0) if device.type == "cuda" else device.type,
         # Worker processes re-import this script on Windows; loading in the
         # main process is slower but always works.
         workers=0,

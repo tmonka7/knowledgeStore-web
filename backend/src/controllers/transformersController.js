@@ -12,6 +12,7 @@ import {
   getJob,
   listJobs,
   listModels,
+  probeDevices,
   redeemDownloadTicket,
   startOnnxExport,
   startTraining,
@@ -199,6 +200,8 @@ export const downloadOnnx = async (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   stream.pipe(res);
 };
+
+export const trainingDevices = async (req, res) => res.json(await probeDevices({ refresh: req.query.refresh === '1' }));
 
 export const listTranslationJobs = (req, res) => res.json({ jobs: listJobs(req.user.sub) });
 

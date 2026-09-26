@@ -478,6 +478,13 @@ the **Train** tab:
   Whisper. Each export is checked against the original model on a file from
   its dataset, and the result is shown.
 
+**Train on** chooses the device, on all three Train panels (Transformers
+too): **Automatic** uses the server's first NVIDIA GPU when there is one and
+the CPU otherwise; **CPU** or a listed **GPU** forces that choice. If no GPU
+is listed, the reason is shown under the list — usually that PyTorch was
+installed without GPU support. Asking for a GPU that is not there stops the
+job straight away rather than training slowly on the CPU.
+
 Only one training or export job runs on the server at a time, across the
 Transformers, YOLO and Speech to Text pages. YOLO training uses Ultralytics,
 which is licensed AGPL-3.0 — see the note on the Train tab.

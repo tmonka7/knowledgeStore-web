@@ -7,6 +7,7 @@ import {
   CloudDownloadOutlined, DeleteOutlined, ExportOutlined, ReloadOutlined, RocketOutlined, TranslationOutlined,
 } from '@ant-design/icons';
 import api from '../../api';
+import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
 import { useLanguage } from '../../i18n';
 
@@ -68,7 +69,7 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
   const [loadingModels, setLoadingModels] = useState(false);
   const [starting, setStarting] = useState(false);
   const [form, setForm] = useState({
-    datasetId: activeId || '', source: '', target: '', baseModelId: '', name: '', epochs: 3, batchSize: 8, learningRate: 5e-5,
+    datasetId: activeId || '', source: '', target: '', baseModelId: '', name: '', epochs: 3, batchSize: 8, learningRate: 5e-5, device: 'auto',
   });
   const [testing, setTesting] = useState(null);
 
@@ -176,7 +177,9 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
         target: form.target,
         baseModelId: form.baseModelId,
         name: form.name,
-        options: { epochs: form.epochs, batchSize: form.batchSize, learningRate: form.learningRate },
+        options: {
+          epochs: form.epochs, batchSize: form.batchSize, learningRate: form.learningRate, device: form.device,
+        },
       });
       setJobs((current) => [data.job, ...current]);
       message.success(t('trainStarted'));
@@ -383,7 +386,11 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
               onChange={(event) => set({ name: event.target.value })}
             />
           </Col>
-          <Col xs={24} md={4} style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <Col xs={24} md={8}>
+            <Text type="secondary">{t('trainDevice')}</Text>
+            <DeviceSelect base="/tools/transformers" value={form.device} onChange={(device) => set({ device })} />
+          </Col>
+          <Col xs={24} md={{ span: 4, offset: 12 }} style={{ display: 'flex', alignItems: 'flex-end' }}>
             <Button type="primary" size="large" icon={<RocketOutlined />} block loading={starting} disabled={!canTrain} onClick={train}>
               {t('trainButton')}
             </Button>

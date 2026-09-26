@@ -4,6 +4,7 @@ import {
   Tag, Tooltip, Typography,
 } from 'antd';
 import { DeleteOutlined, ReloadOutlined, RocketOutlined, UploadOutlined } from '@ant-design/icons';
+import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
 import ModelActions from '../ml/ModelActions';
 import useMlArea from '../ml/useMlArea';
@@ -27,7 +28,9 @@ export default function YoloTrainingPanel() {
   const { t } = useLanguage();
   const area = useMlArea('yolo', t);
   const { models, datasets, jobs } = area;
-  const [form, setForm] = useState({ datasetId: '', baseModelId: '', name: '', epochs: 50, imgsz: 640, batchSize: 8 });
+  const [form, setForm] = useState({
+    datasetId: '', baseModelId: '', name: '', epochs: 50, imgsz: 640, batchSize: 8, device: 'auto',
+  });
   const [testing, setTesting] = useState(null);
   const set = (patch) => setForm((current) => ({ ...current, ...patch }));
 
@@ -54,7 +57,7 @@ export default function YoloTrainingPanel() {
     datasetId: form.datasetId,
     baseModelId: form.baseModelId,
     name: form.name,
-    options: { epochs: form.epochs, imgsz: form.imgsz, batchSize: form.batchSize },
+    options: { epochs: form.epochs, imgsz: form.imgsz, batchSize: form.batchSize, device: form.device },
   });
 
   const busyModelIds = new Set(jobs.filter((job) => job.status === 'running').map((job) => job.modelId));
@@ -200,7 +203,11 @@ export default function YoloTrainingPanel() {
               <Text type="secondary">{t('trainBatchSize')}</Text>
               <InputNumber style={{ width: '100%' }} min={1} max={128} value={form.batchSize} onChange={(batchSize) => set({ batchSize })} />
             </Col>
-            <Col xs={24} md={{ span: 6, offset: 6 }} style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <Col xs={24} md={6}>
+              <Text type="secondary">{t('trainDevice')}</Text>
+              <DeviceSelect base="/tools/yolo" value={form.device} onChange={(device) => set({ device })} />
+            </Col>
+            <Col xs={24} md={6} style={{ display: 'flex', alignItems: 'flex-end' }}>
               <Button
                 type="primary"
                 size="large"

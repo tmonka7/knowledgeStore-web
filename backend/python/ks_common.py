@@ -289,10 +289,49 @@ def setup_languages(tokenizer, model, source, target):
     return {"forced_bos_token_id": forced}
 
 
-def pick_device():
+def gpu_unavailable_reason():
+    """Why PyTorch cannot see a GPU, in terms of what to do about it."""
     import torch
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+    if torch.version.cuda is None:
+        return ("This PyTorch build is CPU-only. Install a CUDA build, e.g. "
+                "pip install torch --index-url https://download.pytorch.org/whl/cu126")
+    return (f"PyTorch was built for CUDA {torch.version.cuda}, but no NVIDIA GPU or driver was found. "
+            "Check that the GPU driver is installed (nvidia-smi).")
+
+
+def pick_device(requested="auto"):
+    """The torch device to train on.
+
+    "auto" takes a CUDA GPU, then Apple's MPS, then the CPU. "cpu", "mps",
+    "cuda" (the first GPU) and "cuda:N" ask for one specifically, and fail —
+    rather than quietly training on the CPU for hours — when it is missing.
+    """
+    import torch
+    requested = str(requested or "auto").strip().lower()
+    has_mps = bool(getattr(torch.backends, "mps", None) and torch.backends.mps.is_available())
+    if requested == "auto":
+        if torch.cuda.is_available():
+            return torch.device("cuda:0")
+        return torch.device("mps") if has_mps else torch.device("cpu")
+    if requested == "cpu":
+        return torch.device("cpu")
+    if requested == "mps":
+        if not has_mps:
+            fail("Apple GPU (MPS) was requested, but it is not available on this server.")
         return torch.device("mps")
-    return torch.device("cpu")
+    if requested in ("cuda", "gpu") or requested.startswith("cuda:"):
+        if not torch.cuda.is_available():
+            fail(f"A GPU was requested, but PyTorch cannot use one. {gpu_unavailable_reason()}")
+        index = int(requested.split(":", 1)[1]) if ":" in requested else 0
+        if index >= torch.cuda.device_count():
+            fail(f"GPU {index} was requested, but this server has {torch.cuda.device_count()}.")
+        return torch.device(f"cuda:{index}")
+    fail(f'Unknown device "{requested}". Use auto, cpu, cuda, cuda:N or mps.')
+
+
+def describe_device(device):
+    """"cuda:0 (NVIDIA GeForce RTX 4090)" — shown in the job's status line."""
+    import torch
+    if device.type == "cuda":
+        return f"{device} ({torch.cuda.get_device_name(device)})"
+    return device.type

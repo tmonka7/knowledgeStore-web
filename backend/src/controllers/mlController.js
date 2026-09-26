@@ -5,7 +5,7 @@ import {
   startSpeechExport, startSpeechTraining, startYoloExport, startYoloTraining, transcribe, yoloPredict,
 } from '../helpers/mlJobs.js';
 import {
-  JobError, cancelJob, createDownloadTicket, deleteModel, getJob, listJobs, listModels,
+  JobError, cancelJob, createDownloadTicket, deleteModel, getJob, listJobs, listModels, probeDevices,
 } from '../helpers/translationJobs.js';
 
 /*
@@ -90,6 +90,7 @@ export const mlHandlers = (area) => {
         : await transcribe({ ownerId: req.user.sub, modelId, uploads, language: req.body?.language }));
     },
 
+    devices: async (req, res) => res.json(await probeDevices({ refresh: req.query.refresh === '1' })),
     listJobs: (req, res) => res.json({ jobs: listJobs(req.user.sub, task) }),
     getJob: (req, res) => res.json({ job: getJob(req.user.sub, req.params.id, task) }),
     cancelJob: (req, res) => res.json({ job: cancelJob(req.user.sub, req.params.id, task) }),

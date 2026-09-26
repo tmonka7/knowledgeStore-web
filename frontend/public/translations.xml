@@ -896,4 +896,13 @@
   <text id="speechTrainNeedsPermission" en="Training speech models needs the Train permission for Speech To Text. Ask an administrator to grant it." es="Entrenar modelos de voz requiere el permiso Entrenar de Voz a texto. Pidelo a un administrador." zh="训练语音模型需要“语音转文字”的“训练”权限，请联系管理员授予。" jp="音声モデルの学習には「音声認識」の「学習」権限が必要です。管理者に付与を依頼してください。" />
   <text id="speechChooseWav" en="Choose WAV files" es="Elegir archivos WAV" zh="选择 WAV 文件" jp="WAV ファイルを選択" />
   <text id="speechTestHelp" en="16 kHz mono WAV works best; up to 8 files, and each is cut at 30 seconds." es="Lo mejor es WAV mono de 16 kHz; hasta 8 archivos, cada uno se corta a los 30 segundos." zh="建议使用 16 kHz 单声道 WAV；最多 8 个文件，每个截取前 30 秒。" jp="16 kHz モノラル WAV が最適です。最大 8 ファイル、各 30 秒で切り詰めます。" />
+  <text id="trainDevice" en="Train on" es="Entrenar en" zh="训练设备" jp="学習デバイス" />
+  <text id="deviceAutoGpu" en="Automatic (GPU: {name})" es="Automatico (GPU: {name})" zh="自动（GPU：{name}）" jp="自動（GPU: {name}）" />
+  <text id="deviceAutoMps" en="Automatic (Apple GPU)" es="Automatico (GPU de Apple)" zh="自动（Apple GPU）" jp="自動（Apple GPU）" />
+  <text id="deviceAutoCpu" en="Automatic (CPU — no GPU found)" es="Automatico (CPU, sin GPU)" zh="自动（CPU，未找到 GPU）" jp="自動（CPU、GPU なし）" />
+  <text id="deviceCpu" en="CPU" es="CPU" zh="CPU" jp="CPU" />
+  <text id="deviceGpu" en="GPU {index}" es="GPU {index}" zh="GPU {index}" jp="GPU {index}" />
+  <text id="deviceMps" en="Apple GPU (MPS)" es="GPU de Apple (MPS)" zh="Apple GPU (MPS)" jp="Apple GPU (MPS)" />
+  <text id="deviceNoGpu" en="GPU — not available on this server" es="GPU: no disponible en este servidor" zh="GPU：此服务器不可用" jp="GPU: このサーバーでは利用不可" />
+  <text id="deviceCheckAgain" en="Check the server GPUs again" es="Volver a comprobar las GPU del servidor" zh="重新检测服务器 GPU" jp="サーバーの GPU を再確認" />
 </translations>
