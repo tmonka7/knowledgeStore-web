@@ -51,6 +51,73 @@ def write_meta(model_dir, meta):
 
 WEIGHT_FILES = ("model.safetensors", "pytorch_model.bin")
 
+# Bytes per element of the storage classes a legacy torch.save names.
+LEGACY_ELEMENT_SIZES = {
+    "DoubleStorage": 8, "FloatStorage": 4, "HalfStorage": 2, "BFloat16Storage": 2, "LongStorage": 8,
+    "IntStorage": 4, "ShortStorage": 2, "CharStorage": 1, "ByteStorage": 1, "BoolStorage": 1,
+}
+
+
+def legacy_checkpoint_size(path):
+    """How long a legacy (pre-zip) torch.save file must be, or None if unknown.
+
+    That format is: a few small pickles (magic number, protocol, system info),
+    the model pickle, the list of storage keys, then each storage's raw bytes
+    preceded by an 8-byte element count. The model pickle names every
+    storage's type and element count, so the full length follows from the
+    first few kilobytes — without torch, and offline.
+
+    The pickle is read with an unpickler that builds nothing real: every class
+    it names becomes an inert stand-in, so no code from the file can run.
+    """
+    import pickle
+    from collections import OrderedDict
+
+    class Inert:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __call__(self, *args, **kwargs):
+            return Inert()
+
+        def __setstate__(self, state):
+            pass
+
+        def __setitem__(self, key, value):
+            pass
+
+    storages = {}
+
+    class Reader(pickle.Unpickler):
+        def find_class(self, module, name):
+            if module == "collections" and name == "OrderedDict":
+                return OrderedDict
+            if module.startswith("torch") and name.endswith("Storage"):
+                return type(name, (Inert,), {"storage_name": name})
+            return Inert
+
+        def persistent_load(self, pid):
+            # ("storage", storage_type, key, location, element_count, view_metadata)
+            if isinstance(pid, tuple) and len(pid) >= 5 and pid[0] == "storage":
+                element_size = LEGACY_ELEMENT_SIZES.get(getattr(pid[1], "storage_name", ""))
+                if element_size is None:
+                    raise ValueError(f"unknown storage type {pid[1]!r}")
+                storages[pid[2]] = pid[4] * element_size
+            return Inert()
+
+    try:
+        with open(path, "rb") as handle:
+            for _ in range(3):  # magic number, protocol version, system info
+                Reader(handle).load()
+            Reader(handle).load()
+            keys = Reader(handle).load()
+            offset = handle.tell()
+        return offset + sum(8 + storages[key] for key in keys)
+    except (EOFError, pickle.UnpicklingError):
+        return -1  # The file ends inside its own index: certainly cut off.
+    except Exception:  # noqa: BLE001 — an unfamiliar variant; do not guess
+        return None
+
 
 def weights_problem(path):
     """Why a weights file cannot be whole, or "" when it looks intact.
@@ -61,8 +128,9 @@ def weights_problem(path):
     - a current pytorch_model.bin is a zip archive whose directory sits at the
       very end — losing it is PyTorch's "failed finding central directory";
     - model.safetensors starts with a header giving every tensor's offsets.
-    Older checkpoints (many Opus-MT ones) are a bare pickle stream instead,
-    which has no such marker; for those only the recorded size can tell.
+    - an older checkpoint (many Opus-MT ones) is a bare pickle stream whose
+      index gives every tensor's size — see legacy_checkpoint_size — which is
+      PyTorch's "unexpected EOF, expected N more bytes" when it falls short.
     """
     size = os.path.getsize(path)
     if path.endswith(".bin"):
@@ -71,7 +139,13 @@ def weights_problem(path):
         if magic.startswith(b"PK"):
             if not zipfile.is_zipfile(path):
                 return f"cut off: its zip directory is missing ({size:,} bytes)"
-        elif not magic.startswith(b"\x80"):
+        elif magic.startswith(b"\x80"):
+            expected = legacy_checkpoint_size(path)
+            if expected == -1:
+                return f"cut off ({size:,} bytes)"
+            if expected is not None and expected != size:
+                return f"cut off ({size:,} of {expected:,} bytes)"
+        else:
             return f"not a PyTorch checkpoint ({size:,} bytes)"
     elif path.endswith(".safetensors"):
         with open(path, "rb") as handle:
