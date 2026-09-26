@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Collapse, Empty, Input, InputNumber, List, Modal, Popconfirm, Row, Select, Space, Table,
+  Alert, Button, Card, Col, Collapse, Empty, Input, InputNumber, List, Popconfirm, Row, Select, Space, Table,
   Tag, Tooltip, Typography,
 } from 'antd';
 import { DeleteOutlined, ReloadOutlined, RocketOutlined, UploadOutlined } from '@ant-design/icons';
 import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
 import ModelActions from '../ml/ModelActions';
+import TestCard from '../ml/TestCard';
 import useMlArea from '../ml/useMlArea';
 import { formatBytes } from '../../lib/mlUpload';
 import { COMMON_LANGUAGES } from '../../lib/translationDataset';
@@ -30,7 +31,13 @@ export default function SpeechTrainingPanel() {
   const [form, setForm] = useState({
     datasetId: '', baseModelId: '', name: '', epochs: 5, batchSize: 8, learningRate: 1e-5, device: 'auto',
   });
-  const [testing, setTesting] = useState(null);
+  const [testId, setTestId] = useState('');
+  const testRef = useRef(null);
+  // A row's Test button picks that model in the Test section below and scrolls to it.
+  const openTest = (model) => {
+    setTestId(model.id);
+    testRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const set = (patch) => setForm((current) => ({ ...current, ...patch }));
 
   const ready = datasets.filter((dataset) => dataset.complete);
@@ -86,7 +93,7 @@ export default function SpeechTrainingPanel() {
       key: 'actions',
       width: 280,
       render: (_, model) => (
-        <ModelActions model={model} area={area} busy={busyModelIds.has(model.id)} onTest={setTesting} />
+        <ModelActions model={model} area={area} busy={busyModelIds.has(model.id)} onTest={openTest} />
       ),
     },
   ];
@@ -247,6 +254,16 @@ export default function SpeechTrainingPanel() {
         </Space>
       </Card>
 
+      <TestCard
+        ref={testRef}
+        models={[...models.filter((model) => model.kind === 'finetuned'), ...baseModels]}
+        value={testId}
+        onChange={setTestId}
+        describe={(model) => model.language || t('mlAnyLanguage')}
+      >
+        {(model) => <SpeechTest model={model} area={area} />}
+      </TestCard>
+
       <Card bordered={false} title={t('mlServerDatasets')}>
         <Table
           rowKey="id"
@@ -258,14 +275,12 @@ export default function SpeechTrainingPanel() {
           scroll={{ x: 'max-content' }}
         />
       </Card>
-
-      <SpeechTestModal model={testing} area={area} onClose={() => setTesting(null)} />
     </Space>
   );
 }
 
 /** Pick WAV files and transcribe them with the model. */
-function SpeechTestModal({ model, area, onClose }) {
+function SpeechTest({ model, area }) {
   const { t } = useLanguage();
   const [language, setLanguage] = useState('en');
   const [results, setResults] = useState([]);
@@ -284,58 +299,56 @@ function SpeechTestModal({ model, area, onClose }) {
     setBusy(false);
   };
 
-  // Object URLs for the players are released when the list is replaced or the dialog closes.
+  // Object URLs for the players are released when the list is replaced or the section goes.
   useEffect(() => () => results.forEach((row) => URL.revokeObjectURL(row.url)), [results]);
 
   return (
-    <Modal open={Boolean(model)} title={model?.name} onCancel={onClose} footer={null} width={720} destroyOnClose>
-      <Space direction="vertical" style={{ width: '100%' }}>
-        <Space wrap>
-          {!model?.language && (
-            <>
-              <Text type="secondary">{t('mlSpokenLanguage')}</Text>
-              <Select showSearch style={{ minWidth: 180 }} value={language} onChange={setLanguage} options={languageOptions} />
-            </>
-          )}
-          <Button
-            type="primary"
-            icon={<UploadOutlined />}
-            loading={busy}
-            onClick={() => document.getElementById('speech-test-input')?.click()}
-          >
-            {t('speechChooseWav')}
-          </Button>
-          <input
-            id="speech-test-input"
-            type="file"
-            accept=".wav,audio/wav"
-            multiple
-            style={{ display: 'none' }}
-            onChange={(event) => {
-              const files = [...(event.target.files || [])].slice(0, 8);
-              event.target.value = '';
-              run(files);
-            }}
-          />
-        </Space>
-        <Text type="secondary">{t('speechTestHelp')}</Text>
-        {results.length > 0 && (
-          <List
-            dataSource={results}
-            renderItem={(row) => (
-              <List.Item>
-                <Space direction="vertical" style={{ width: '100%' }} size={4}>
-                  <Space wrap>
-                    <Text strong>{row.name}</Text>
-                    <audio controls src={row.url} style={{ height: 32 }} />
-                  </Space>
-                  <Text>{row.text || <Text type="secondary">{t('pythonNoOutput')}</Text>}</Text>
-                </Space>
-              </List.Item>
-            )}
-          />
+    <Space direction="vertical" style={{ width: '100%' }}>
+      <Space wrap>
+        {!model?.language && (
+          <>
+            <Text type="secondary">{t('mlSpokenLanguage')}</Text>
+            <Select showSearch style={{ minWidth: 180 }} value={language} onChange={setLanguage} options={languageOptions} />
+          </>
         )}
+        <Button
+          type="primary"
+          icon={<UploadOutlined />}
+          loading={busy}
+          onClick={() => document.getElementById('speech-test-input')?.click()}
+        >
+          {t('speechChooseWav')}
+        </Button>
+        <input
+          id="speech-test-input"
+          type="file"
+          accept=".wav,audio/wav"
+          multiple
+          style={{ display: 'none' }}
+          onChange={(event) => {
+            const files = [...(event.target.files || [])].slice(0, 8);
+            event.target.value = '';
+            run(files);
+          }}
+        />
       </Space>
-    </Modal>
+      <Text type="secondary">{t('speechTestHelp')}</Text>
+      {results.length > 0 && (
+        <List
+          dataSource={results}
+          renderItem={(row) => (
+            <List.Item>
+              <Space direction="vertical" style={{ width: '100%' }} size={4}>
+                <Space wrap>
+                  <Text strong>{row.name}</Text>
+                  <audio controls src={row.url} style={{ height: 32 }} />
+                </Space>
+                <Text>{row.text || <Text type="secondary">{t('pythonNoOutput')}</Text>}</Text>
+              </Space>
+            </List.Item>
+          )}
+        />
+      )}
+    </Space>
   );
 }

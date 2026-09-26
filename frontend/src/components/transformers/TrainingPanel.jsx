@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Collapse, Empty, Input, InputNumber, Modal, Popconfirm, Row, Select,
+  Alert, Button, Card, Col, Collapse, Empty, Input, InputNumber, Popconfirm, Row, Select,
   Space, Table, Tag, Tooltip, Typography, message,
 } from 'antd';
 import {
@@ -9,6 +9,7 @@ import {
 import api from '../../api';
 import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
+import TestCard from '../ml/TestCard';
 import { useLanguage } from '../../i18n';
 
 const { Text, Paragraph } = Typography;
@@ -71,7 +72,13 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
   const [form, setForm] = useState({
     datasetId: activeId || '', source: '', target: '', baseModelId: '', name: '', epochs: 3, batchSize: 8, learningRate: 5e-5, device: 'auto',
   });
-  const [testing, setTesting] = useState(null);
+  const [testId, setTestId] = useState('');
+  const testRef = useRef(null);
+  // A row's Test button picks that model in the Test section below and scrolls to it.
+  const openTest = (model) => {
+    setTestId(model.id);
+    testRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const set = (patch) => setForm((current) => ({ ...current, ...patch }));
 
@@ -266,7 +273,7 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
       width: 260,
       render: (_, model) => (
         <Space wrap>
-          <Button size="small" icon={<TranslationOutlined />} onClick={() => setTesting(model)}>{t('trainTest')}</Button>
+          <Button size="small" icon={<TranslationOutlined />} onClick={() => openTest(model)}>{t('trainTest')}</Button>
           {model.onnxBytes ? (
             <Tooltip title={formatBytes(model.onnxBytes)}>
               <Button size="small" icon={<CloudDownloadOutlined />} onClick={() => downloadOnnx(model)}>ONNX</Button>
@@ -293,147 +300,151 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
   ];
 
   return (
-    <Card
-      ref={ref}
-      bordered={false}
-      title={t('trainTitle')}
-      extra={(
-        <Tooltip title={t('translationReload')}>
-          <Button icon={<ReloadOutlined />} loading={loadingModels} onClick={() => { loadModels(); loadJobs(); }} />
-        </Tooltip>
-      )}
-    >
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        {!loadingModels && !baseModels.length && (
-          <Alert
-            type="warning"
-            showIcon
-            message={t('trainNoBaseModels')}
-            description={(
-              <Paragraph style={{ margin: 0 }}>
-                {t('trainNoBaseModelsHelp')}
-                <pre style={{ ...MONO, margin: '8px 0 0' }}>
-                  pip install -r backend/python/requirements.txt{'\n'}python backend/python/download_models.py en-es en-zh m2m100
-                </pre>
-              </Paragraph>
-            )}
-          />
+    <Space ref={ref} direction="vertical" size={16} style={{ width: '100%' }}>
+      <Card
+        bordered={false}
+        title={t('trainTitle')}
+        extra={(
+          <Tooltip title={t('translationReload')}>
+            <Button icon={<ReloadOutlined />} loading={loadingModels} onClick={() => { loadModels(); loadJobs(); }} />
+          </Tooltip>
         )}
+      >
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          {!loadingModels && !baseModels.length && (
+            <Alert
+              type="warning"
+              showIcon
+              message={t('trainNoBaseModels')}
+              description={(
+                <Paragraph style={{ margin: 0 }}>
+                  {t('trainNoBaseModelsHelp')}
+                  <pre style={{ ...MONO, margin: '8px 0 0' }}>
+                    pip install -r backend/python/requirements.txt{'\n'}python backend/python/download_models.py en-es en-zh m2m100
+                  </pre>
+                </Paragraph>
+              )}
+            />
+          )}
 
-        <Row gutter={[12, 12]}>
-          <Col xs={24} md={8}>
-            <Text type="secondary">{t('trainDataset')}</Text>
-            <Select
-              style={{ width: '100%' }}
-              value={form.datasetId || undefined}
-              placeholder={t('translationPickDataset')}
-              onChange={(datasetId) => set({ datasetId })}
-              options={datasets.map((item) => ({ value: item.id, label: `${item.name} (${item.rowCount})` }))}
-            />
-          </Col>
-          <Col xs={12} md={4}>
-            <Text type="secondary">{t('translationSource')}</Text>
-            <Select
-              style={{ width: '100%' }}
-              value={form.source || undefined}
-              onChange={(source) => set({ source, target: source === form.target ? form.source : form.target })}
-              options={languages.map((code) => ({ value: code, label: code }))}
-            />
-          </Col>
-          <Col xs={12} md={4}>
-            <Text type="secondary">{t('translationTarget')}</Text>
-            <Select
-              style={{ width: '100%' }}
-              value={form.target || undefined}
-              onChange={(target) => set({ target, source: target === form.source ? form.target : form.source })}
-              options={languages.map((code) => ({ value: code, label: code }))}
-            />
-          </Col>
-          <Col xs={24} md={8}>
-            <Text type="secondary">{t('trainStartFrom')}</Text>
-            <Select
-              style={{ width: '100%' }}
-              value={form.baseModelId || undefined}
-              placeholder={t('trainPickModel')}
-              onChange={(baseModelId) => set({ baseModelId })}
-              options={modelOptions}
-              notFoundContent={t('trainNoBaseModels')}
-            />
-          </Col>
-          <Col xs={8} md={4}>
-            <Text type="secondary">{t('trainEpochs')}</Text>
-            <InputNumber style={{ width: '100%' }} min={1} max={50} value={form.epochs} onChange={(epochs) => set({ epochs })} />
-          </Col>
-          <Col xs={8} md={4}>
-            <Text type="secondary">{t('trainBatchSize')}</Text>
-            <InputNumber style={{ width: '100%' }} min={1} max={128} value={form.batchSize} onChange={(batchSize) => set({ batchSize })} />
-          </Col>
-          <Col xs={8} md={4}>
-            <Text type="secondary">{t('trainLearningRate')}</Text>
-            <Select
-              style={{ width: '100%' }}
-              value={form.learningRate}
-              onChange={(learningRate) => set({ learningRate })}
-              options={LEARNING_RATES.map((rate) => ({ value: rate, label: rate.toExponential(0) }))}
-            />
-          </Col>
-          <Col xs={24} md={8}>
-            <Text type="secondary">{t('trainModelName')}</Text>
-            <Input
-              value={form.name}
-              maxLength={120}
-              placeholder={dataset ? `${dataset.name} ${form.source}→${form.target}` : ''}
-              onChange={(event) => set({ name: event.target.value })}
-            />
-          </Col>
-          <Col xs={24} md={8}>
-            <Text type="secondary">{t('trainDevice')}</Text>
-            <DeviceSelect base="/tools/transformers" value={form.device} onChange={(device) => set({ device })} />
-          </Col>
-          <Col xs={24} md={{ span: 4, offset: 12 }} style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <Button type="primary" size="large" icon={<RocketOutlined />} block loading={starting} disabled={!canTrain} onClick={train}>
-              {t('trainButton')}
-            </Button>
-          </Col>
-        </Row>
+          <Row gutter={[12, 12]}>
+            <Col xs={24} md={8}>
+              <Text type="secondary">{t('trainDataset')}</Text>
+              <Select
+                style={{ width: '100%' }}
+                value={form.datasetId || undefined}
+                placeholder={t('translationPickDataset')}
+                onChange={(datasetId) => set({ datasetId })}
+                options={datasets.map((item) => ({ value: item.id, label: `${item.name} (${item.rowCount})` }))}
+              />
+            </Col>
+            <Col xs={12} md={4}>
+              <Text type="secondary">{t('translationSource')}</Text>
+              <Select
+                style={{ width: '100%' }}
+                value={form.source || undefined}
+                onChange={(source) => set({ source, target: source === form.target ? form.source : form.target })}
+                options={languages.map((code) => ({ value: code, label: code }))}
+              />
+            </Col>
+            <Col xs={12} md={4}>
+              <Text type="secondary">{t('translationTarget')}</Text>
+              <Select
+                style={{ width: '100%' }}
+                value={form.target || undefined}
+                onChange={(target) => set({ target, source: target === form.source ? form.target : form.source })}
+                options={languages.map((code) => ({ value: code, label: code }))}
+              />
+            </Col>
+            <Col xs={24} md={8}>
+              <Text type="secondary">{t('trainStartFrom')}</Text>
+              <Select
+                style={{ width: '100%' }}
+                value={form.baseModelId || undefined}
+                placeholder={t('trainPickModel')}
+                onChange={(baseModelId) => set({ baseModelId })}
+                options={modelOptions}
+                notFoundContent={t('trainNoBaseModels')}
+              />
+            </Col>
+            <Col xs={8} md={4}>
+              <Text type="secondary">{t('trainEpochs')}</Text>
+              <InputNumber style={{ width: '100%' }} min={1} max={50} value={form.epochs} onChange={(epochs) => set({ epochs })} />
+            </Col>
+            <Col xs={8} md={4}>
+              <Text type="secondary">{t('trainBatchSize')}</Text>
+              <InputNumber style={{ width: '100%' }} min={1} max={128} value={form.batchSize} onChange={(batchSize) => set({ batchSize })} />
+            </Col>
+            <Col xs={8} md={4}>
+              <Text type="secondary">{t('trainLearningRate')}</Text>
+              <Select
+                style={{ width: '100%' }}
+                value={form.learningRate}
+                onChange={(learningRate) => set({ learningRate })}
+                options={LEARNING_RATES.map((rate) => ({ value: rate, label: rate.toExponential(0) }))}
+              />
+            </Col>
+            <Col xs={24} md={8}>
+              <Text type="secondary">{t('trainModelName')}</Text>
+              <Input
+                value={form.name}
+                maxLength={120}
+                placeholder={dataset ? `${dataset.name} ${form.source}→${form.target}` : ''}
+                onChange={(event) => set({ name: event.target.value })}
+              />
+            </Col>
+            <Col xs={24} md={8}>
+              <Text type="secondary">{t('trainDevice')}</Text>
+              <DeviceSelect base="/tools/transformers" value={form.device} onChange={(device) => set({ device })} />
+            </Col>
+            <Col xs={24} md={{ span: 4, offset: 12 }} style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <Button type="primary" size="large" icon={<RocketOutlined />} block loading={starting} disabled={!canTrain} onClick={train}>
+                {t('trainButton')}
+              </Button>
+            </Col>
+          </Row>
 
-        {latest && <JobView job={latest} onCancel={cancel} />}
+          {latest && <JobView job={latest} onCancel={cancel} />}
 
-        <Table
-          rowKey="id"
-          size="small"
-          columns={modelColumns}
-          dataSource={[...finetuned, ...baseModels]}
-          pagination={false}
-          loading={loadingModels}
-          locale={{ emptyText: <Empty description={t('trainNoModels')} /> }}
-          scroll={{ x: 'max-content' }}
-        />
-
-        {jobs.length > 1 && (
-          <Collapse
+          <Table
+            rowKey="id"
             size="small"
-            items={[{
-              key: 'jobs',
-              label: t('trainEarlierJobs', { count: jobs.length - 1 }),
-              children: (
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  {jobs.slice(1).map((job) => <JobView key={job.id} job={job} onCancel={cancel} compact />)}
-                </Space>
-              ),
-            }]}
+            columns={modelColumns}
+            dataSource={[...finetuned, ...baseModels]}
+            pagination={false}
+            loading={loadingModels}
+            locale={{ emptyText: <Empty description={t('trainNoModels')} /> }}
+            scroll={{ x: 'max-content' }}
           />
-        )}
-      </Space>
 
-      <TestModal model={testing} onClose={() => setTesting(null)} />
-    </Card>
+          {jobs.length > 1 && (
+            <Collapse
+              size="small"
+              items={[{
+                key: 'jobs',
+                label: t('trainEarlierJobs', { count: jobs.length - 1 }),
+                children: (
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {jobs.slice(1).map((job) => <JobView key={job.id} job={job} onCancel={cancel} compact />)}
+                  </Space>
+                ),
+              }]}
+            />
+          )}
+        </Space>
+      </Card>
+
+      <TestCard ref={testRef} models={[...finetuned, ...baseModels]} value={testId} onChange={setTestId} describe={pairLabel}>
+        {(model) => <TranslationTest model={model} />}
+      </TestCard>
+    </Space>
   );
 });
 
 export default TrainingPanel;
 
-function TestModal({ model, onClose }) {
+/** Translate a few lines with the chosen model, next to what went in. */
+function TranslationTest({ model }) {
   const { t } = useLanguage();
   const [text, setText] = useState('');
   const [result, setResult] = useState(null);
@@ -441,16 +452,15 @@ function TestModal({ model, onClose }) {
   const [pair, setPair] = useState({ source: '', target: '' });
 
   // A multilingual base model has no direction of its own: pick one.
-  const open = Boolean(model && isOpenMultilingual(model));
+  const open = isOpenMultilingual(model);
   useEffect(() => {
     setResult(null);
-    if (!model) return;
     const languages = model.languages || [];
     setPair(open
       ? { source: 'en', target: ['ko', 'zh', 'es', 'ja'].find((code) => languages.includes(code)) || languages[0] || '' }
       : { source: model.source, target: model.target });
-  }, [model?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const languageOptions = (model?.languages || []).map((code) => ({ value: code, label: code }));
+  }, [model.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const languageOptions = (model.languages || []).map((code) => ({ value: code, label: code }));
 
   const run = async () => {
     const texts = text.split(/\r?\n/).filter((line) => line.trim());
@@ -471,61 +481,54 @@ function TestModal({ model, onClose }) {
   };
 
   return (
-    <Modal
-      open={Boolean(model)}
-      title={model ? `${model.name} (${open ? t('trainMultilingual', { count: model.languages?.length || '' }) : `${model.source} → ${model.target}`})` : ''}
-      onCancel={onClose}
-      footer={null}
-      width={760}
-      destroyOnClose
-    >
-      <Space direction="vertical" style={{ width: '100%' }}>
-        {open && (
-          <Space wrap>
-            <Select
-              showSearch
-              style={{ width: 120 }}
-              value={pair.source}
-              options={languageOptions}
-              onChange={(source) => setPair((current) => ({ ...current, source }))}
-            />
-            →
-            <Select
-              showSearch
-              style={{ width: 120 }}
-              value={pair.target}
-              options={languageOptions}
-              onChange={(target) => setPair((current) => ({ ...current, target }))}
-            />
-          </Space>
-        )}
-        <TextArea
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          autoSize={{ minRows: 4, maxRows: 10 }}
-          placeholder={t('trainTestPlaceholder')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-              event.preventDefault();
-              run();
-            }
-          }}
-        />
-        <Button type="primary" icon={<TranslationOutlined />} loading={busy} onClick={run}>{t('trainTranslate')}</Button>
-        {result && (
-          <Table
-            rowKey={(_, index) => index}
-            size="small"
-            pagination={false}
-            dataSource={result.texts.map((source, index) => ({ source, output: result.translations[index] }))}
-            columns={[
-              { title: result.source, dataIndex: 'source' },
-              { title: result.target, dataIndex: 'output' },
-            ]}
-            footer={() => <Text type="secondary">{`${result.seconds} s · ${result.device}`}</Text>}
+    <Space direction="vertical" style={{ width: '100%' }}>
+      {open ? (
+        <Space wrap>
+          <Select
+            showSearch
+            style={{ width: 120 }}
+            value={pair.source}
+            options={languageOptions}
+            onChange={(source) => setPair((current) => ({ ...current, source }))}
           />
-        )}
-      </Space>
-    </Modal>
+          →
+          <Select
+            showSearch
+            style={{ width: 120 }}
+            value={pair.target}
+            options={languageOptions}
+            onChange={(target) => setPair((current) => ({ ...current, target }))}
+          />
+        </Space>
+      ) : (
+        <Tag>{`${model.source} → ${model.target}`}</Tag>
+      )}
+      <TextArea
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        autoSize={{ minRows: 4, maxRows: 10 }}
+        placeholder={t('trainTestPlaceholder')}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            run();
+          }
+        }}
+      />
+      <Button type="primary" icon={<TranslationOutlined />} loading={busy} onClick={run}>{t('trainTranslate')}</Button>
+      {result && (
+        <Table
+          rowKey={(_, index) => index}
+          size="small"
+          pagination={false}
+          dataSource={result.texts.map((source, index) => ({ source, output: result.translations[index] }))}
+          columns={[
+            { title: result.source, dataIndex: 'source' },
+            { title: result.target, dataIndex: 'output' },
+          ]}
+          footer={() => <Text type="secondary">{`${result.seconds} s · ${result.device}`}</Text>}
+        />
+      )}
+    </Space>
   );
 }

@@ -414,7 +414,9 @@ the progress, the loss after each epoch, and a few held-back sentences
 translated before and after training. **Cancel** stops the run and discards
 it. The finished model appears in the list below, where you can:
 
-- **Test** it by translating a few sentences.
+- **Test** it by translating a few sentences, in the **Test a model** section
+  under the panel (the row's Test button picks the model there and scrolls to
+  it; you can also pick any model from its list).
 - **Export ONNX**, then download the zip. It holds `encoder_model.onnx`,
   `decoder_model.onnx` (and, when the server has Optimum installed, the faster
   decoder variants), the tokenizer and a README showing how to load it.
@@ -471,8 +473,10 @@ the **Train** tab:
   and press **Train**. The panel shows progress and each epoch's figures:
   loss, and for YOLO the mAP score; for speech, the error rate on held-back
   clips before and after training. **Cancel** stops a run and discards it.
-- **Test** runs a finished model: for YOLO on an image you choose, drawing
-  what it finds; for speech on WAV files you choose, showing the transcript.
+- **Test** runs a finished model in the **Test a model** section under the
+  Train panel: for YOLO on an image you choose, drawing what it finds; for
+  speech on WAV files you choose, showing the transcript. Pick the model there,
+  or press a row's Test button to jump to it with that model chosen.
 - **Export ONNX**, then download the zip: `model.onnx` and `classes.txt` for
   YOLO; `encoder_model.onnx`, `decoder_model.onnx` and the processor files for
   Whisper. Each export is checked against the original model on a file from

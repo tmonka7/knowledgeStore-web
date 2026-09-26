@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Collapse, Empty, Input, InputNumber, Modal, Popconfirm, Row, Select, Slider, Space, Table,
+  Alert, Button, Card, Col, Collapse, Empty, Input, InputNumber, Popconfirm, Row, Select, Slider, Space, Table,
   Tag, Tooltip, Typography,
 } from 'antd';
 import { DeleteOutlined, ReloadOutlined, RocketOutlined, UploadOutlined } from '@ant-design/icons';
 import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
 import ModelActions from '../ml/ModelActions';
+import TestCard from '../ml/TestCard';
 import useMlArea from '../ml/useMlArea';
 import { colorForClass } from '../../lib/objectDetector';
 import { formatBytes } from '../../lib/mlUpload';
@@ -31,7 +32,13 @@ export default function YoloTrainingPanel() {
   const [form, setForm] = useState({
     datasetId: '', baseModelId: '', name: '', epochs: 50, imgsz: 640, batchSize: 8, device: 'auto',
   });
-  const [testing, setTesting] = useState(null);
+  const [testId, setTestId] = useState('');
+  const testRef = useRef(null);
+  // A row's Test button picks that model in the Test section below and scrolls to it.
+  const openTest = (model) => {
+    setTestId(model.id);
+    testRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const set = (patch) => setForm((current) => ({ ...current, ...patch }));
 
   const ready = datasets.filter((dataset) => dataset.complete);
@@ -94,7 +101,7 @@ export default function YoloTrainingPanel() {
       key: 'actions',
       width: 280,
       render: (_, model) => (
-        <ModelActions model={model} area={area} busy={busyModelIds.has(model.id)} onTest={setTesting} />
+        <ModelActions model={model} area={area} busy={busyModelIds.has(model.id)} onTest={openTest} />
       ),
     },
   ];
@@ -251,6 +258,16 @@ export default function YoloTrainingPanel() {
         </Space>
       </Card>
 
+      <TestCard
+        ref={testRef}
+        models={[...models.filter((model) => model.kind === 'finetuned'), ...baseModels]}
+        value={testId}
+        onChange={setTestId}
+        describe={(model) => (taskOfModel(model) === 'segment' ? t('yoloSegment') : t('yoloDetect'))}
+      >
+        {(model) => <YoloTest model={model} area={area} />}
+      </TestCard>
+
       <Card bordered={false} title={t('mlServerDatasets')}>
         <Table
           rowKey="id"
@@ -262,14 +279,12 @@ export default function YoloTrainingPanel() {
           scroll={{ x: 'max-content' }}
         />
       </Card>
-
-      <YoloTestModal model={testing} area={area} onClose={() => setTesting(null)} />
     </Space>
   );
 }
 
 /** Pick an image, run the model on it, and draw what it found. */
-function YoloTestModal({ model, area, onClose }) {
+function YoloTest({ model, area }) {
   const { t } = useLanguage();
   const [file, setFile] = useState(null);
   const [url, setUrl] = useState('');
@@ -299,69 +314,67 @@ function YoloTestModal({ model, area, onClose }) {
   const detections = result?.detections || [];
 
   return (
-    <Modal open={Boolean(model)} title={model?.name} onCancel={onClose} footer={null} width={820} destroyOnClose>
-      <Space direction="vertical" style={{ width: '100%' }}>
-        <Space wrap>
-          <Button icon={<UploadOutlined />} onClick={() => document.getElementById('yolo-test-input')?.click()}>
-            {t('yoloChooseImage')}
-          </Button>
-          <input
-            id="yolo-test-input"
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={(event) => {
-              const chosen = event.target.files?.[0];
-              event.target.value = '';
-              if (!chosen) return;
-              setFile(chosen);
-              setResult(null);
-              run(chosen);
-            }}
-          />
-          <Text type="secondary">{t('yoloConfidence')}</Text>
-          <Slider min={0.05} max={0.95} step={0.05} value={confidence} onChange={setConfidence} style={{ width: 160 }} />
-          <Button type="primary" loading={busy} disabled={!file} onClick={() => run()}>{t('yoloDetectButton')}</Button>
-        </Space>
-
-        {url && (
-          <div style={{ position: 'relative', width: '100%', lineHeight: 0 }}>
-            <img src={url} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
-            {/* Detections are normalised 0..1, so a 1x1 viewBox lays them over the image at any size. */}
-            <svg viewBox="0 0 1 1" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-              {detections.map((detection, index) => {
-                const [x1, y1, x2, y2] = detection.box;
-                const color = colorForClass(detection.classId);
-                return (
-                  <g key={index}>
-                    {detection.polygon?.length ? (
-                      <polygon
-                        points={detection.polygon.map(([x, y]) => `${x},${y}`).join(' ')}
-                        fill={color}
-                        fillOpacity={0.25}
-                        stroke={color}
-                        strokeWidth={2}
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    ) : null}
-                    <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-        )}
-
-        {result && (
-          <Space wrap>
-            {detections.length ? detections.map((detection, index) => (
-              <Tag key={index} color={colorForClass(detection.classId)}>
-                {`${detection.name} ${(detection.confidence * 100).toFixed(0)}%`}
-              </Tag>
-            )) : <Text type="secondary">{t('yoloNothingFound')}</Text>}
-          </Space>
-        )}
+    <Space direction="vertical" style={{ width: '100%' }}>
+      <Space wrap>
+        <Button icon={<UploadOutlined />} onClick={() => document.getElementById('yolo-test-input')?.click()}>
+          {t('yoloChooseImage')}
+        </Button>
+        <input
+          id="yolo-test-input"
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={(event) => {
+            const chosen = event.target.files?.[0];
+            event.target.value = '';
+            if (!chosen) return;
+            setFile(chosen);
+            setResult(null);
+            run(chosen);
+          }}
+        />
+        <Text type="secondary">{t('yoloConfidence')}</Text>
+        <Slider min={0.05} max={0.95} step={0.05} value={confidence} onChange={setConfidence} style={{ width: 160 }} />
+        <Button type="primary" loading={busy} disabled={!file} onClick={() => run()}>{t('yoloDetectButton')}</Button>
       </Space>
-    </Modal>
+
+      {url && (
+        <div style={{ position: 'relative', width: '100%', maxWidth: 820, lineHeight: 0 }}>
+          <img src={url} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+          {/* Detections are normalised 0..1, so a 1x1 viewBox lays them over the image at any size. */}
+          <svg viewBox="0 0 1 1" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+            {detections.map((detection, index) => {
+              const [x1, y1, x2, y2] = detection.box;
+              const color = colorForClass(detection.classId);
+              return (
+                <g key={index}>
+                  {detection.polygon?.length ? (
+                    <polygon
+                      points={detection.polygon.map(([x, y]) => `${x},${y}`).join(' ')}
+                      fill={color}
+                      fillOpacity={0.25}
+                      stroke={color}
+                      strokeWidth={2}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ) : null}
+                  <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      )}
+
+      {result && (
+        <Space wrap>
+          {detections.length ? detections.map((detection, index) => (
+            <Tag key={index} color={colorForClass(detection.classId)}>
+              {`${detection.name} ${(detection.confidence * 100).toFixed(0)}%`}
+            </Tag>
+          )) : <Text type="secondary">{t('yoloNothingFound')}</Text>}
+        </Space>
+      )}
+    </Space>
   );
 }

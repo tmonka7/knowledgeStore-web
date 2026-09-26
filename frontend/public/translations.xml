@@ -905,4 +905,6 @@
   <text id="deviceMps" en="Apple GPU (MPS)" es="GPU de Apple (MPS)" zh="Apple GPU (MPS)" jp="Apple GPU (MPS)" />
   <text id="deviceNoGpu" en="GPU — not available on this server" es="GPU: no disponible en este servidor" zh="GPU：此服务器不可用" jp="GPU: このサーバーでは利用不可" />
   <text id="deviceCheckAgain" en="Check the server GPUs again" es="Volver a comprobar las GPU del servidor" zh="重新检测服务器 GPU" jp="サーバーの GPU を再確認" />
+  <text id="mlTestTitle" en="Test a model" es="Probar un modelo" zh="测试模型" jp="モデルをテスト" />
+  <text id="mlTestModel" en="Model" es="Modelo" zh="模型" jp="モデル" />
 </translations>
