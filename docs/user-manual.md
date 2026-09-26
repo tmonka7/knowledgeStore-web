@@ -493,6 +493,36 @@ Only one training or export job runs on the server at a time, across the
 Transformers, YOLO and Speech to Text pages. YOLO training uses Ultralytics,
 which is licensed AGPL-3.0 — see the note on the Train tab.
 
+## 8f. Converting audio and video
+
+**Tools → Converting** has three tabs: Image, Video and Audio. Video and
+Audio are converted on the server.
+
+1. Choose a file. It plays in the page, and its length and size are shown.
+   The Audio tab also takes a video, and keeps only its sound.
+2. Set the options. Only what the server can produce is listed.
+   - **Video**: format and codec; **Constant quality** (a CRF slider — lower
+     is better and larger) or a **Target bitrate** in kb/s, with an estimate
+     of the file size; **Encoding speed** (slower gives a smaller file at the
+     same quality); resolution; frame rate; rotate and flip; and under
+     **Sound**, the audio codec, bitrate, channels, sample rate and volume,
+     or switch the sound off. GIFs have no sound and are made 480 px wide at
+     12 fps unless you choose otherwise.
+   - **Audio**: format; bitrate (MP3, M4A, OGG, Opus) or bit depth (WAV,
+     FLAC); FLAC compression level; sample rate; mono or stereo; volume;
+     **Normalise loudness**; fade in and fade out.
+   - **Trim**: drag the range or type the start and end in seconds.
+3. Press **Convert**. The conversion appears on the right and goes through
+   **Upload → Queue → Convert → Done**. While it converts you see the
+   percentage, the position in the file, the speed (2× means twice real
+   time), the size so far and about how long is left. **Cancel** stops it.
+4. When it is done, play the result in the page, then **Download** it. The
+   sizes before and after are shown.
+
+Your settings are remembered in this browser; **Reset settings** goes back to
+the defaults. Converted files are deleted from the server after an hour, and
+the bin button removes one straight away.
+
 ## 9. Other pages
 
 | Page | What it does |

@@ -2,7 +2,10 @@ import express from 'express';
 import multer from 'multer';
 import os from 'node:os';
 import { convertFont, fontCapabilities } from '../controllers/lvglController.js';
-import { convertCapabilities, convertVideo } from '../controllers/convertController.js';
+import {
+  cancelConvertJob, convertCapabilities, convertedFile, createConvertJob, deleteConvertJob, getConvertJob, listConvertJobs,
+} from '../controllers/convertController.js';
+import { MAX_UPLOAD_MB } from '../helpers/mediaConvert.js';
 import {
   cancelTranslationJob,
   createTranslationDatasetRecord,
@@ -36,12 +39,12 @@ const fontUpload = multer({
   limits: { fileSize: 16 * 1024 * 1024 },
 });
 
-// Video is the opposite: files are far too large to hold in memory, and ffmpeg
-// wants a path to read anyway. convertVideo unlinks both temp files when it is
-// done, whether or not the conversion succeeded.
-const videoUpload = multer({
+// Audio and video are the opposite: files are far too large to hold in
+// memory, and ffmpeg wants a path to read anyway. The conversion job deletes
+// the upload once it has finished with it.
+const mediaUpload = multer({
   dest: os.tmpdir(),
-  limits: { fileSize: 512 * 1024 * 1024 },
+  limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024, files: 1 },
 });
 
 router.get('/tools/lvgl/capabilities', requireAuth, requirePermission('lvgl-tool:view'), fontCapabilities);
@@ -53,14 +56,18 @@ router.post(
   convertFont,
 );
 
-router.get('/tools/convert/capabilities', requireAuth, requirePermission('convert-tool:view'), convertCapabilities);
-router.post(
-  '/tools/convert/video',
-  requireAuth,
-  requirePermission('convert-tool:view'),
-  videoUpload.single('video'),
-  convertVideo,
-);
+const convertView = [requireAuth, requirePermission('convert-tool:view')];
+router.get('/tools/convert/capabilities', ...convertView, asyncRoute(convertCapabilities));
+router.get('/tools/convert/jobs', ...convertView, asyncRoute(listConvertJobs));
+router.post('/tools/convert/jobs', ...convertView, mediaUpload.single('file'), asyncRoute(createConvertJob));
+router.get('/tools/convert/jobs/:id', ...convertView, asyncRoute(getConvertJob));
+router.post('/tools/convert/jobs/:id/cancel', ...convertView, asyncRoute(cancelConvertJob));
+router.delete('/tools/convert/jobs/:id', ...convertView, asyncRoute(deleteConvertJob));
+// No auth middleware: the page's <video>/<audio> player and the download link
+// are plain browser requests without the Authorization header. The token, an
+// unguessable 48-hex string given only to the job's owner, grants access, and
+// dies with the job.
+router.get('/tools/convert/files/:token', convertedFile);
 
 // Translation datasets are personal, like the YOLO and TTS drafts, so the
 // page's own permission covers managing them. Running Python does not: it

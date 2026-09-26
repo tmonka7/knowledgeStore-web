@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  Alert, Button, Card, Col, ColorPicker, InputNumber, Progress, Row, Select, Slider, Space, Tabs, Typography, message,
+  Alert, Button, Card, Col, ColorPicker, InputNumber, Row, Select, Slider, Space, Tabs, Typography, message,
 } from 'antd';
-import { DownloadOutlined, FileImageOutlined, SwapOutlined, VideoCameraAddOutlined } from '@ant-design/icons';
+import {
+  DownloadOutlined, FileImageOutlined, SoundOutlined, SwapOutlined, VideoCameraAddOutlined,
+} from '@ant-design/icons';
 import api from '../api';
+import AudioConverter from '../components/convert/AudioConverter';
+import VideoConverter from '../components/convert/VideoConverter';
 import { IMAGE_FORMATS, convertImage, loadImageFile } from '../lib/imageConvert';
 import { useLanguage } from '../i18n';
 
@@ -300,148 +304,20 @@ function ImageConverter() {
   );
 }
 
-/** Video tab — uploads to the API, which runs ffmpeg. */
-function VideoConverter() {
+export default function ConvertToolPage() {
   const { t } = useLanguage();
-  const [file, setFile] = useState(null);
-  const [format, setFormat] = useState('mp4');
-  const [capabilities, setCapabilities] = useState(null);
-  const [uploadPercent, setUploadPercent] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
+  // Which formats and codecs the server's ffmpeg has; shared by Video and Audio.
+  const [caps, setCaps] = useState(null);
   useEffect(() => {
     let cancelled = false;
     api.get('/tools/convert/capabilities')
-      .then(({ data }) => { if (!cancelled) setCapabilities(data); })
-      .catch(() => { if (!cancelled) setCapabilities({ video: false, formats: [], message: 'Could not reach the conversion API.' }); });
-    return () => { cancelled = true; };
-  }, []);
-
-  const run = async () => {
-    if (!file) {
-      setError(t('chooseVideoFirst'));
-      return;
-    }
-
-    setBusy(true);
-    setError('');
-    setUploadPercent(0);
-    try {
-      const form = new FormData();
-      form.append('video', file);
-      form.append('format', format);
-
-      const response = await api.post('/tools/convert/video', form, {
-        responseType: 'blob',
-        onUploadProgress: (event) => {
-          if (event.total) setUploadPercent(Math.round((event.loaded / event.total) * 100));
-        },
+      .then(({ data }) => { if (!cancelled) setCaps(data); })
+      .catch((error) => {
+        if (!cancelled) setCaps({ available: false, message: error.response?.data?.message || t('convertApiUnreachable') });
       });
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-      const extension = format;
-      downloadBlob(`${baseName(file.name)}.${extension}`, response.data);
-      message.success(t('conversionFinished'));
-    } catch (caught) {
-      // responseType blob means an error body arrives as a Blob, not JSON.
-      let text = 'That video could not be converted.';
-      const payload = caught?.response?.data;
-      if (payload instanceof Blob) {
-        try {
-          const parsed = JSON.parse(await payload.text());
-          if (parsed?.message) text = parsed.message;
-        } catch {
-          // Leave the default message when the body is not JSON.
-        }
-      } else if (payload?.message) {
-        text = payload.message;
-      }
-      setError(text);
-    } finally {
-      setBusy(false);
-      setUploadPercent(0);
-    }
-  };
-
-  const unavailable = capabilities && !capabilities.video;
-  const formatOptions = capabilities?.formats?.length
-    ? capabilities.formats
-    : [{ value: 'mp4', label: 'MP4' }, { value: 'avi', label: 'AVI' }];
-
-  return (
-    <Row gutter={[16, 16]}>
-      <Col span={24} lg={10}>
-        <Card title={t('sourceVideo')} bordered={false}>
-          <Space direction="vertical" style={{ width: '100%' }} size="middle">
-            {unavailable && (
-              <Alert type="warning" showIcon message={t('videoConversionUnavailable')} description={capabilities.message} />
-            )}
-
-            <label className="mail-file-picker" htmlFor="convert-video-upload" style={{ width: '100%' }}>
-              <VideoCameraAddOutlined />
-              <span>{file ? `${file.name} (${formatBytes(file.size)})` : t('selectVideoFile')}</span>
-            </label>
-            <input
-              id="convert-video-upload"
-              type="file"
-              accept="video/*"
-              className="mail-file-input"
-              onChange={(event) => {
-                setFile(event.target.files?.[0] || null);
-                setError('');
-              }}
-            />
-
-            <Select value={format} onChange={setFormat} style={{ width: '100%' }} options={formatOptions} />
-
-            <Button
-              type="primary"
-              className="vision-btn-primary"
-              onClick={run}
-              loading={busy}
-              disabled={!file || unavailable}
-              block
-            >
-              {t('convertVideo')}
-            </Button>
-
-            {busy && (
-              <div>
-                <Progress percent={uploadPercent} status={uploadPercent < 100 ? 'active' : 'normal'} />
-                <Text type="secondary">
-                  {uploadPercent < 100
-                    ? t('uploading')
-                    : t('transcodingOnServer')}
-                </Text>
-              </div>
-            )}
-
-            {error && <Alert type="error" showIcon message={error} />}
-          </Space>
-        </Card>
-      </Col>
-
-      <Col span={24} lg={14}>
-        <Card title={t('howThisWorks')} bordered={false}>
-          <Space direction="vertical" size="middle">
-            <Text>
-              {t('videoConversionDescription')}
-            </Text>
-            <Alert
-              type="info"
-              showIcon
-              message={t('limits')}
-              description={t('conversionLimits')}
-            />
-          </Space>
-        </Card>
-      </Col>
-    </Row>
-  );
-}
-
-export default function ConvertToolPage() {
-  const { t } = useLanguage();
   return (
     <div className="vision-page vision-stack">
       <div className="vision-page-header">
@@ -456,7 +332,8 @@ export default function ConvertToolPage() {
       <Tabs
         items={[
           { key: 'image', label: <span><FileImageOutlined /> {t('image')}</span>, children: <ImageConverter /> },
-          { key: 'video', label: <span><VideoCameraAddOutlined /> {t('video')}</span>, children: <VideoConverter /> },
+          { key: 'video', label: <span><VideoCameraAddOutlined /> {t('video')}</span>, children: <VideoConverter caps={caps} /> },
+          { key: 'audio', label: <span><SoundOutlined /> {t('convertAudioTab')}</span>, children: <AudioConverter caps={caps} /> },
         ]}
       />
     </div>

@@ -972,6 +972,40 @@ An SVG converted *to* SVG is resized, not traced. Rasterising a drawing that is
 already made of shapes and then guessing those shapes back would lose every one
 of them.
 
+## Converting audio and video
+
+**Tools -> Converting** has Video and Audio tabs next to Image. Both run ffmpeg
+on the server (`backend/src/helpers/mediaConvert.js`), from `ffmpeg-static` or
+the binary in `FFMPEG_PATH`.
+
+- **Video**: MP4, MKV, MOV, WebM, AVI or animated GIF; H.264, H.265, VP9, VP8,
+  AV1 or MPEG-4; constant quality (CRF) or a target bitrate; encoding speed;
+  resolution (presets or custom, proportions kept); frame rate; rotate and
+  flip; the sound's codec, bitrate, channels, sample rate and volume, or no
+  sound; trim.
+- **Audio**: MP3, M4A (AAC), OGG (Vorbis), Opus, WAV (16/24-bit, 32-bit float)
+  or FLAC; bitrate, bit depth, FLAC compression level, sample rate, channels,
+  volume, loudness normalisation (EBU R128), fade in/out, trim. A video file
+  works as the source: its sound is extracted.
+
+Only codecs the installed ffmpeg can encode are offered — `GET
+/tools/convert/capabilities` reads `ffmpeg -encoders`.
+
+A conversion is a job, not one long request. `POST /tools/convert/jobs` stores
+the upload and answers at once; ffmpeg runs with `-progress pipe:1`, and the
+page polls `GET /tools/convert/jobs` every second to show upload → queue →
+convert → done with the percentage, speed, fps, size so far and time left.
+At most `CONVERT_MAX_JOBS` run at once and the rest wait in line. A job can be
+cancelled (ffmpeg is killed). The finished file is played in the page and
+downloaded from `/tools/convert/files/<token>`, which needs no Authorization
+header so a `<video>` element can use it; the token is 48 random hex
+characters given only to the job's owner, and the file is deleted after
+`CONVERT_KEEP_MINUTES`. Jobs are kept in memory: a restart forgets them and
+clears the temp folder.
+
+Every ffmpeg argument is built from whitelisted choices and clamped numbers
+and passed to `spawn` without a shell.
+
 ## TTS speech datasets
 
 **Tools -> AI -> TTS** transcribes a folder of speech into a training dataset.

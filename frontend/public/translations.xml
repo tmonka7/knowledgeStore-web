@@ -907,4 +907,85 @@
   <text id="deviceCheckAgain" en="Check the server GPUs again" es="Volver a comprobar las GPU del servidor" zh="重新检测服务器 GPU" jp="サーバーの GPU を再確認" />
   <text id="mlTestTitle" en="Test a model" es="Probar un modelo" zh="测试模型" jp="モデルをテスト" />
   <text id="mlTestModel" en="Model" es="Modelo" zh="模型" jp="モデル" />
+  <text id="convertApiUnreachable" en="Could not reach the conversion API." es="No se pudo contactar con la API de conversion." zh="无法连接转换 API。" jp="変換 API に接続できませんでした。" />
+  <text id="convertAudioTab" en="Audio" es="Audio" zh="音频" jp="音声" />
+  <text id="convertAudio" en="Convert audio" es="Convertir audio" zh="转换音频" jp="音声を変換" />
+  <text id="convertSourceAudio" en="Source audio" es="Audio de origen" zh="源音频" jp="元の音声" />
+  <text id="convertSelectAudioFile" en="Select an audio (or video) file" es="Selecciona un archivo de audio (o video)" zh="选择音频（或视频）文件" jp="音声（または動画）ファイルを選択" />
+  <text id="convertAudioFromVideo" en="A video file works too: its sound is extracted." es="Tambien sirve un video: se extrae su sonido." zh="也可以选择视频文件：将提取其中的声音。" jp="動画ファイルも使えます。音声を取り出します。" />
+  <text id="convertOutput" en="Output" es="Salida" zh="输出" jp="出力" />
+  <text id="convertFormat" en="Format" es="Formato" zh="格式" jp="形式" />
+  <text id="convertVideoCodec" en="Video codec" es="Codec de video" zh="视频编码" jp="動画コーデック" />
+  <text id="convertAudioCodec" en="Audio codec" es="Codec de audio" zh="音频编码" jp="音声コーデック" />
+  <text id="convertResolution" en="Resolution" es="Resolucion" zh="分辨率" jp="解像度" />
+  <text id="convertFrameRate" en="Frame rate" es="Fotogramas por segundo" zh="帧率" jp="フレームレート" />
+  <text id="convertOriginal" en="Original" es="Original" zh="原始" jp="元のまま" />
+  <text id="convertOriginalSize" en="Original ({size})" es="Original ({size})" zh="原始（{size}）" jp="元のまま（{size}）" />
+  <text id="convertCustom" en="Custom…" es="Personalizado…" zh="自定义…" jp="カスタム…" />
+  <text id="convertAuto" en="auto" es="auto" zh="自动" jp="自動" />
+  <text id="convertCustomHelp" en="Leave one blank to keep the proportions." es="Deja uno vacio para mantener la proporcion." zh="留空其中一项可保持比例。" jp="片方を空欄にすると縦横比を保ちます。" />
+  <text id="convertGifDefaultFps" en="12 fps (GIF default)" es="12 fps (predeterminado GIF)" zh="12 fps（GIF 默认）" jp="12 fps（GIF の既定）" />
+  <text id="convertGifHelp" en="GIFs have no sound and grow large quickly: they are made 480 px wide at 12 fps unless you choose otherwise. Trim to the part you need." es="Los GIF no tienen sonido y pesan mucho: se crean de 480 px de ancho a 12 fps salvo que elijas otra cosa. Recorta solo la parte que necesites." zh="GIF 没有声音且体积增长很快：默认宽 480 像素、12 fps。请只截取需要的片段。" jp="GIF には音声がなく、すぐに大きくなります。指定がなければ幅 480 px・12 fps で作成します。必要な部分だけに切り詰めてください。" />
+  <text id="convertConstantQuality" en="Constant quality" es="Calidad constante" zh="恒定质量" jp="品質固定" />
+  <text id="convertTargetBitrate" en="Target bitrate" es="Bitrate objetivo" zh="目标码率" jp="目標ビットレート" />
+  <text id="convertBetter" en="better" es="mejor" zh="更好" jp="高画質" />
+  <text id="convertSmaller" en="smaller" es="mas pequeno" zh="更小" jp="小さく" />
+  <text id="convertFaster" en="faster" es="mas rapido" zh="更快" jp="速く" />
+  <text id="convertCrfHelp" en="CRF {value}: lower means better picture and a larger file." es="CRF {value}: mas bajo es mejor imagen y archivo mas grande." zh="CRF {value}：数值越低画质越好、文件越大。" jp="CRF {value}：小さいほど高画質でファイルが大きくなります。" />
+  <text id="convertEstimate" en="About {size}" es="Aprox. {size}" zh="约 {size}" jp="約 {size}" />
+  <text id="convertSpeed" en="Encoding speed (slower = smaller file at the same quality)" es="Velocidad (mas lento = archivo menor con la misma calidad)" zh="编码速度（越慢，同等画质下文件越小）" jp="エンコード速度（遅いほど同じ画質で小さく）" />
+  <text id="convertSpeed_fastest" en="Fastest" es="La mas rapida" zh="最快" jp="最速" />
+  <text id="convertSpeed_fast" en="Fast" es="Rapida" zh="快" jp="速い" />
+  <text id="convertSpeed_medium" en="Medium" es="Media" zh="中等" jp="標準" />
+  <text id="convertSpeed_slow" en="Slow" es="Lenta" zh="慢" jp="遅い" />
+  <text id="convertSpeed_slowest" en="Slowest" es="La mas lenta" zh="最慢" jp="最も遅い" />
+  <text id="convertRotate" en="Rotate" es="Rotar" zh="旋转" jp="回転" />
+  <text id="convertNone" en="None" es="Ninguno" zh="无" jp="なし" />
+  <text id="convertFlip" en="Flip" es="Voltear" zh="翻转" jp="反転" />
+  <text id="convertFlipH" en="Horizontal" es="Horizontal" zh="水平" jp="左右" />
+  <text id="convertFlipV" en="Vertical" es="Vertical" zh="垂直" jp="上下" />
+  <text id="convertSound" en="Sound" es="Sonido" zh="声音" jp="音声" />
+  <text id="convertAudioBitrate" en="Audio bitrate" es="Bitrate de audio" zh="音频码率" jp="音声ビットレート" />
+  <text id="convertLossless" en="Lossless" es="Sin perdida" zh="无损" jp="ロスレス" />
+  <text id="convertChannels" en="Channels" es="Canales" zh="声道" jp="チャンネル" />
+  <text id="convertMono" en="Mono" es="Mono" zh="单声道" jp="モノラル" />
+  <text id="convertStereo" en="Stereo" es="Estereo" zh="立体声" jp="ステレオ" />
+  <text id="convertSampleRate" en="Sample rate" es="Frecuencia de muestreo" zh="采样率" jp="サンプルレート" />
+  <text id="convertVolume" en="Volume {value}" es="Volumen {value}" zh="音量 {value}" jp="音量 {value}" />
+  <text id="convertBitDepth" en="Bit depth" es="Profundidad de bits" zh="位深" jp="ビット深度" />
+  <text id="convertFloat32" en="32-bit float" es="32 bits flotante" zh="32 位浮点" jp="32 ビット浮動小数点" />
+  <text id="convertCompression" en="Compression level {value} (lossless either way)" es="Nivel de compresion {value} (sin perdida en todo caso)" zh="压缩级别 {value}（均为无损）" jp="圧縮レベル {value}（いずれもロスレス）" />
+  <text id="convertLevels" en="Levels" es="Niveles" zh="电平" jp="レベル" />
+  <text id="convertNormalize" en="Normalise loudness (EBU R128, -16 LUFS)" es="Normalizar sonoridad (EBU R128, -16 LUFS)" zh="响度标准化（EBU R128，-16 LUFS）" jp="ラウドネスを正規化（EBU R128、-16 LUFS）" />
+  <text id="convertFadeIn" en="Fade in" es="Fundido de entrada" zh="淡入" jp="フェードイン" />
+  <text id="convertFadeOut" en="Fade out" es="Fundido de salida" zh="淡出" jp="フェードアウト" />
+  <text id="convertTrim" en="Trim" es="Recortar" zh="裁剪时间" jp="トリミング" />
+  <text id="convertStart" en="Start" es="Inicio" zh="开始" jp="開始" />
+  <text id="convertEnd" en="End" es="Fin" zh="结束" jp="終了" />
+  <text id="convertToEnd" en="to the end" es="hasta el final" zh="到结尾" jp="最後まで" />
+  <text id="convertOutputLength" en="Length: {time}" es="Duracion: {time}" zh="时长：{time}" jp="長さ: {time}" />
+  <text id="convertResetSettings" en="Reset settings" es="Restablecer ajustes" zh="重置设置" jp="設定をリセット" />
+  <text id="convertConversions" en="Conversions" es="Conversiones" zh="转换任务" jp="変換" />
+  <text id="convertNoJobs" en="Nothing converted yet. Choose a file, set the options and convert." es="Aun no hay conversiones. Elige un archivo, ajusta las opciones y convierte." zh="还没有转换。选择文件、设置参数后开始转换。" jp="まだ変換はありません。ファイルを選び、設定して変換してください。" />
+  <text id="convertKeptFor" en="Converted files are kept on the server for {minutes} minutes." es="Los archivos convertidos se guardan en el servidor {minutes} minutos." zh="转换后的文件在服务器上保留 {minutes} 分钟。" jp="変換後のファイルはサーバーに {minutes} 分間保存されます。" />
+  <text id="convertTooBig" en="This file is larger than the {size} MB the server accepts." es="Este archivo supera los {size} MB que acepta el servidor." zh="该文件超过服务器允许的 {size} MB。" jp="このファイルはサーバーの上限 {size} MB を超えています。" />
+  <text id="convertNoPreview" en="The browser cannot play this file, but the server may still convert it." es="El navegador no puede reproducir este archivo, pero el servidor puede convertirlo." zh="浏览器无法播放该文件，但服务器仍可能可以转换。" jp="ブラウザでは再生できませんが、サーバーでは変換できる場合があります。" />
+  <text id="convertUploadFailed" en="The file could not be uploaded." es="No se pudo subir el archivo." zh="文件上传失败。" jp="ファイルをアップロードできませんでした。" />
+  <text id="convertCancel" en="Cancel" es="Cancelar" zh="取消" jp="キャンセル" />
+  <text id="convertRemove" en="Remove from the list and delete the file" es="Quitar de la lista y borrar el archivo" zh="从列表移除并删除文件" jp="一覧から削除してファイルも消す" />
+  <text id="convertStepUpload" en="Upload" es="Subida" zh="上传" jp="アップロード" />
+  <text id="convertStepQueue" en="Queue" es="Cola" zh="排队" jp="待機" />
+  <text id="convertStepConvert" en="Convert" es="Conversion" zh="转换" jp="変換" />
+  <text id="convertStepDone" en="Done" es="Listo" zh="完成" jp="完了" />
+  <text id="convertStatus_queued" en="Waiting" es="En espera" zh="等待中" jp="待機中" />
+  <text id="convertStatus_running" en="Converting" es="Convirtiendo" zh="转换中" jp="変換中" />
+  <text id="convertStatus_done" en="Done" es="Listo" zh="完成" jp="完了" />
+  <text id="convertStatus_failed" en="Failed" es="Error" zh="失败" jp="失敗" />
+  <text id="convertStatus_cancelled" en="Cancelled" es="Cancelado" zh="已取消" jp="キャンセル済み" />
+  <text id="convertQueued" en="Waiting for another conversion to finish (number {position} in line)." es="Esperando a que termine otra conversion (puesto {position} en la cola)." zh="正在等待其他转换完成（排第 {position} 位）。" jp="他の変換の完了を待っています（{position} 番目）。" />
+  <text id="convertStarting" en="Starting…" es="Iniciando…" zh="正在开始…" jp="開始しています…" />
+  <text id="convertSoFar" en="{size} so far" es="{size} hasta ahora" zh="已输出 {size}" jp="ここまで {size}" />
+  <text id="convertEta" en="about {time} left" es="quedan aprox. {time}" zh="约剩 {time}" jp="残り約 {time}" />
+  <text id="convertFailed" en="The conversion failed" es="La conversion fallo" zh="转换失败" jp="変換に失敗しました" />
+  <text id="convertDoneStats" en="{before} → {after} ({percent} of the original) in {time}" es="{before} → {after} ({percent} del original) en {time}" zh="{before} → {after}（原文件的 {percent}），用时 {time}" jp="{before} → {after}（元の {percent}）、所要 {time}" />
 </translations>
