@@ -13,11 +13,14 @@ export const PERMISSION_CATALOG = [
   { key: 'schedule', label: 'Schedule', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'lvgl-tool', label: 'Tools / LVGL image/font converter', actions: ['view'] },
   { key: 'convert-tool', label: 'Tools / Converting', actions: ['view'] },
-  { key: 'yolo', label: 'Tools / YOLO dataset', actions: ['view'] },
+  // 'train' on yolo, tts and transformers runs the project's own training,
+  // test and ONNX-export scripts: safe, but it occupies the server's CPU or
+  // GPU for hours, so an administrator grants it per account.
+  { key: 'yolo', label: 'Tools / YOLO dataset', actions: ['view', 'train'] },
   // The key stays 'tts': it is stored on every user document as 'tts:view',
   // and renaming it would silently revoke the permission for everyone who has
   // it. Only the label an administrator reads has changed.
-  { key: 'tts', label: 'Tools / AI / Speech To Text dataset', actions: ['view'] },
+  { key: 'tts', label: 'Tools / AI / Speech To Text dataset', actions: ['view', 'train'] },
   // 'execute' runs arbitrary Python on the API host; 'train' runs the
   // project's own fine-tuning and ONNX export, which is safe but ties up the
   // CPU or GPU for hours. Neither is in the defaults below: an administrator

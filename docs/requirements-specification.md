@@ -224,6 +224,8 @@ polled), mobile applications, and single sign-on.
 | FR-SYS-04 | Running Python against a dataset requires `transformers:execute`, which is never a default permission. A run has a time limit, a per-user and a server-wide concurrency limit, and does not receive the server's environment secrets. |
 | FR-SYS-05 | With `transformers:train`, a user can fine-tune a local Opus-MT model on a saved dataset, watch its progress, cancel it, test the result and export it to ONNX. None of this may use the network: models are read from `backend/python/models`, installed beforehand with `download_models.py`. |
 | FR-SYS-06 | An interrupted, failed or cancelled training or export must never appear as a model: output is written aside and moved into place only on success. |
+| FR-SYS-07 | With `yolo:view` / `tts:view`, a user can save a labelled image folder / transcribed clip folder to the server as a private dataset. Re-saving uploads only changed files and removes files no longer in the folder. Uploaded paths must stay inside the dataset folder. |
+| FR-SYS-08 | With `yolo:train` / `tts:train`, a user can fine-tune an Ultralytics YOLO model (detection or segmentation) / a Whisper model on such a dataset, test it on an image / WAV file, and export it to ONNX, offline. Each page sees only its own models. |
 
 ### 3.12 Internationalisation (FR-I18N)
 

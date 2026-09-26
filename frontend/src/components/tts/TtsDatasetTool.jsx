@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Empty, Input, List, Modal, Progress, Row, Space, Tag, Tooltip, Typography, message,
+  Alert, Button, Card, Col, Empty, Input, List, Modal, Progress, Row, Select, Space, Tag, Tooltip, Typography, message,
 } from 'antd';
 import {
-  CheckCircleFilled, DownloadOutlined, FolderOpenOutlined, LeftOutlined, RightOutlined, SoundOutlined,
+  CheckCircleFilled, CloudUploadOutlined, DownloadOutlined, FolderOpenOutlined, LeftOutlined, RightOutlined, SoundOutlined,
 } from '@ant-design/icons';
 import {
   buildManifestJsonl, buildMetadataCsv, clipId, datasetSummary, flattenText,
 } from '../../lib/speechDataset';
 import { formatSeconds, inspectWav, isWavFile, wavProblem } from '../../lib/wavInspect';
 import { useLanguage } from '../../i18n';
+import SaveToServerModal from '../ml/SaveToServerModal';
+import { COMMON_LANGUAGES } from '../../lib/translationDataset';
 
 const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -254,6 +256,40 @@ export default function TtsDatasetTool() {
     message.success(t('manifestSaved'));
   };
 
+  /*
+   * Saving to the server for training: every clip goes up (only those the
+   * server lacks are sent), with the transcripts as they stand — including
+   * the one being typed. Whisper needs to be told the spoken language.
+   */
+  const [savingToServer, setSavingToServer] = useState(false);
+  const [spokenLanguage, setSpokenLanguage] = useState(() => {
+    try {
+      return localStorage.getItem('tts-spoken-language') || 'en';
+    } catch {
+      return 'en';
+    }
+  });
+  const pickLanguage = (code) => {
+    setSpokenLanguage(code);
+    try {
+      localStorage.setItem('tts-spoken-language', code);
+    } catch {
+      /* A remembered choice is a convenience. */
+    }
+  };
+  const prepareServerSave = () => ({
+    files: settled.map((clip) => ({ path: clip.name, file: clip.file })),
+    finish: {
+      suffix: 'transcripts',
+      body: {
+        language: spokenLanguage,
+        transcripts: Object.fromEntries(settled
+          .filter((clip) => flattenText(clip.text))
+          .map((clip) => [clip.name, flattenText(clip.text)])),
+      },
+    },
+  });
+
   const clearAll = () => {
     Modal.confirm({
       title: t('clearTranscriptsTitle'),
@@ -356,6 +392,14 @@ export default function TtsDatasetTool() {
               onClick={exportManifest}
             >
               manifest.jsonl
+            </Button>
+            <Button
+              icon={<CloudUploadOutlined />}
+              block
+              disabled={!summary.done}
+              onClick={() => setSavingToServer(true)}
+            >
+              {t('mlSaveToServer')}
             </Button>
             <Button block danger disabled={!summary.done} onClick={clearAll}>
               {t('clearEveryTranscript')}
@@ -467,6 +511,27 @@ export default function TtsDatasetTool() {
           )}
         </Card>
       </Col>
+
+      <SaveToServerModal
+        open={savingToServer}
+        onClose={() => setSavingToServer(false)}
+        area="speech"
+        defaultName={folderName}
+        canSave={summary.done > 0}
+        prepare={prepareServerSave}
+        extra={(
+          <Space wrap>
+            <Text type="secondary">{t('mlSpokenLanguage')}</Text>
+            <Select
+              showSearch
+              style={{ minWidth: 200 }}
+              value={spokenLanguage}
+              onChange={pickLanguage}
+              options={COMMON_LANGUAGES.map(([code, label]) => ({ value: code, label: `${code} · ${label}` }))}
+            />
+          </Space>
+        )}
+      />
     </Row>
   );
 }

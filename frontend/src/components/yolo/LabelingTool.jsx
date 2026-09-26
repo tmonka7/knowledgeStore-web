@@ -3,12 +3,13 @@ import {
   Alert, Button, Card, Col, Empty, Input, List, Modal, Progress, Row, Select, Space, Tag, Tooltip, Typography, message,
 } from 'antd';
 import {
-  DeleteOutlined, DownloadOutlined, FolderOpenOutlined, LeftOutlined, RightOutlined, UndoOutlined,
+  CloudUploadOutlined, DeleteOutlined, DownloadOutlined, FolderOpenOutlined, LeftOutlined, RightOutlined, UndoOutlined,
 } from '@ant-design/icons';
 import LabelCanvas from './LabelCanvas';
+import SaveToServerModal from '../ml/SaveToServerModal';
 import { colorForClass } from '../../lib/objectDetector';
 import {
-  TASKS, buildCsv, buildYoloZip, datasetSummary, shapeForTask,
+  TASKS, buildCsv, buildLabelFile, buildYoloZip, datasetSummary, shapeForTask,
 } from '../../lib/yoloDataset';
 import { useLanguage } from '../../i18n';
 
@@ -289,6 +290,27 @@ export default function LabelingTool() {
     message.success(t('yoloLabelsSaved'));
   };
 
+  /*
+   * Saving to the server for training: every image in the folder goes up
+   * (only those the server lacks are actually sent), with a label file for
+   * each image that has been looked at — the same rule the zip export uses,
+   * so an empty label still marks a background image.
+   */
+  const [savingToServer, setSavingToServer] = useState(false);
+  const prepareServerSave = () => ({
+    files: images.map((image) => ({ path: image.name, file: image.file })),
+    finish: {
+      suffix: 'labels',
+      body: {
+        classes,
+        task,
+        labels: Object.fromEntries(images
+          .filter((image) => image.visited || image.shapes.length)
+          .map((image) => [image.name, buildLabelFile(image, task)])),
+      },
+    },
+  });
+
   const clearAll = () => {
     Modal.confirm({
       title: t('clearAllLabelsTitle'),
@@ -542,12 +564,29 @@ export default function LabelingTool() {
             >
               {t('yoloLabelsZip')}
             </Button>
+            <Button
+              icon={<CloudUploadOutlined />}
+              block
+              disabled={!images.length}
+              onClick={() => setSavingToServer(true)}
+            >
+              {t('mlSaveToServer')}
+            </Button>
             <Button block danger disabled={!summary.shapes} onClick={clearAll}>
               {t('clearEveryLabel')}
             </Button>
           </Space>
         </Card>
       </Col>
+
+      <SaveToServerModal
+        open={savingToServer}
+        onClose={() => setSavingToServer(false)}
+        area="yolo"
+        defaultName={folderName}
+        canSave={summary.visited > 0}
+        prepare={prepareServerSave}
+      />
     </Row>
   );
 }

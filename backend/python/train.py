@@ -89,7 +89,10 @@ def main():
          device=device.type, trainPairs=len(training), validationPairs=len(validation))
 
     tokenizer = AutoTokenizer.from_pretrained(args.base_model, local_files_only=True)
-    model = AutoModelForSeq2SeqLM.from_pretrained(args.base_model, local_files_only=True).to(device)
+    # Always train in float32. Some checkpoints are stored in float16 (the
+    # Opus-MT "tiny" models, for one), recent transformers keep that precision
+    # on load, and float16 training overflows to NaN within a step or two.
+    model = AutoModelForSeq2SeqLM.from_pretrained(args.base_model, local_files_only=True).float().to(device)
     # Multilingual models tag the source and the labels with their language,
     # and are forced to start the output in the target language.
     generate_args = setup_languages(tokenizer, model, args.source, args.target)
@@ -114,6 +117,11 @@ def main():
         running, seen = 0.0, 0
         for chunk in batches(training, args.batch_size):
             loss = model(**encode(tokenizer, chunk, args.max_length, device)).loss
+            # A NaN loss poisons every weight it touches, and the model saved
+            # afterwards translates into nothing. Stop instead of saving that.
+            if not torch.isfinite(loss):
+                fail(f"Training diverged at epoch {epoch}, step {step + 1} (the loss is {loss.item()}). "
+                     "Nothing was saved. Try a lower learning rate or a smaller batch size.")
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()

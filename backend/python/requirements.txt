@@ -1,4 +1,5 @@
-# Python side of Tools > AI > Transformers (training, translation, ONNX export).
+# Python side of Tools > AI: Transformers (translation), YOLO and Speech to Text
+# — training, testing and ONNX export, all offline.
 #   pip install -r backend/python/requirements.txt
 # Install on a machine with internet access, together with
 #   python backend/python/download_models.py en-es ...
@@ -14,7 +15,15 @@ safetensors
 numpy
 
 # ONNX export. Without optimum the export falls back to torch.onnx; without
-# onnxruntime the exported model is written but not test-run.
+# onnxruntime the exported model is written but not test-run. onnxslim tidies
+# YOLO exports (Ultralytics would otherwise try to pip-install it offline).
 onnx
 onnxruntime
+onnxslim
 optimum[onnxruntime]
+
+# YOLO training, testing and export. Licensed AGPL-3.0: distributing this app,
+# or running it as a service for others, brings AGPL obligations unless you
+# hold an Ultralytics enterprise licence. Speech to Text needs nothing extra:
+# Whisper comes with transformers.
+ultralytics>=8.4

@@ -8,6 +8,7 @@ to an offline machine.
     python download_models.py en-es en-zh
     python download_models.py en-ja=Helsinki-NLP/opus-mt-en-jap
     python download_models.py m2m100
+    python download_models.py yolo26n yolo26n-seg whisper-tiny
     python download_models.py --list
     python download_models.py --verify [--repair]
 
@@ -19,6 +20,11 @@ the ones your datasets use (Opus-MT calls Japanese "jap", for example).
 multilingual model that translates between any two of 100 languages. It is
 the fallback for pairs Opus-MT has no working model for, such as en-ko.
 "multi=<repo>" fetches another model of the same family.
+
+For the YOLO and Speech to Text tools: "yolo26n" / "yolo26n-seg" (or any other
+Ultralytics weights name, e.g. "yolo11s") fetch detection / segmentation
+weights from Ultralytics' GitHub releases (AGPL-3.0), and "whisper-tiny" (or
+whisper-base, whisper-small) fetches OpenAI's Whisper speech-recognition model.
 
 Every file is checked against the size the hub reports, and an interrupted
 download resumes where it stopped. --verify checks the models already on disk
@@ -43,11 +49,16 @@ HUB = os.environ.get("HF_ENDPOINT", "https://huggingface.co").rstrip("/")
 BASE_DIR = os.path.join(MODELS_DIR, "base")
 ATTEMPTS = 5
 
-# Other frameworks' copies of the same weights, benchmark outputs, and
-# repository clutter.
-SKIP = re.compile(r"(^\.|\.md$|^benchmark_|tf_model\.h5$|flax_model\.msgpack$|rust_model\.ot$|\.onnx$|^onnx/)")
+# Other frameworks' copies of the same weights (TensorFlow, Flax, Rust, ONNX,
+# TFLite, Marian's own .npz), benchmark and test-set outputs, and repository
+# clutter. vocab.spm duplicates source.spm/target.spm, which are what is read.
+SKIP = re.compile(r"(^\.|\.md$|^benchmark_|^flores_|tf_model\.h5$|flax_model\.msgpack$|rust_model\.ot$"
+                  r"|\.onnx$|^onnx/|\.tflite$|\.npz$|\.npz\.decoder\.yml$|^vocab\.spm$)")
 
 MULTILINGUAL = {"m2m100": "facebook/m2m100_418M"}
+SPEECH = {name: f"openai/{name}" for name in ("whisper-tiny", "whisper-base", "whisper-small", "whisper-medium")}
+YOLO_NAME = re.compile(r"yolo[0-9a-z]*[nsmlx](-seg)?")
+YOLO_RELEASES = "https://api.github.com/repos/ultralytics/assets/releases"
 
 
 def request(url, headers=None):
@@ -70,6 +81,10 @@ def repo_files(repo):
 
 
 def fetch(repo, name, target, expected):
+    return fetch_url(f"{HUB}/{repo}/resolve/main/{name}", name, target, expected)
+
+
+def fetch_url(url, name, target, expected):
     """Download one file to `target`, resuming and retrying until it is whole.
 
     urllib does not raise when a connection drops mid-file — the body simply
@@ -86,7 +101,7 @@ def fetch(repo, name, target, expected):
         try:
             if not expected or have < expected:
                 headers = {"Range": f"bytes={have}-"} if have else {}
-                with request(f"{HUB}/{repo}/resolve/main/{name}", headers) as response:
+                with request(url, headers) as response:
                     if have and response.status != 206:
                         have = 0  # The server ignored the range: start over.
                     total = expected or (have + int(response.headers.get("Content-Length") or 0))
@@ -115,7 +130,7 @@ def fetch(repo, name, target, expected):
             print(f"\r    {name}: stopped at {size:,} of {expected:,} bytes; resuming {attempt}/{ATTEMPTS}")
             continue
         os.replace(part, target)
-        problem = weights_problem(target) if target.endswith((".bin", ".safetensors")) else ""
+        problem = weights_problem(target) if target.endswith((".bin", ".pt", ".safetensors")) else ""
         if problem:
             os.remove(target)
             raise SystemExit(f"{name}: the downloaded file is {problem}. Run the command again.")
@@ -136,6 +151,10 @@ def multilingual_languages(folder):
 
 def download(spec):
     name, _, repo = spec.partition("=")
+    if YOLO_NAME.fullmatch(name):
+        return fetch_yolo(name)
+    if name in SPEECH:
+        return fetch_repo(SPEECH[name], task="speech")
     if name in MULTILINGUAL or name == "multi":
         return fetch_repo(repo or MULTILINGUAL.get(name, ""), multilingual=True)
     match = re.fullmatch(r"([A-Za-z]{2,3}(?:_[A-Za-z]+)?)-([A-Za-z]{2,3}(?:_[A-Za-z]+)?)", name)
@@ -145,7 +164,46 @@ def download(spec):
     return fetch_repo(repo or f"Helsinki-NLP/opus-mt-{source}-{target}", source=source, target=target)
 
 
-def fetch_repo(repo, source=None, target=None, multilingual=False):
+def yolo_asset(name):
+    """(download URL, size) of <name>.pt in Ultralytics' asset releases, newest first."""
+    with request(f"{YOLO_RELEASES}?per_page=20") as response:
+        releases = json.load(response)
+    for release in releases:
+        for asset in release.get("assets", []):
+            if asset.get("name") == f"{name}.pt":
+                return asset["browser_download_url"], asset.get("size")
+    raise SystemExit(f"{name}.pt is not in Ultralytics' recent releases. Check the name, e.g. yolo26n or yolo11s-seg.")
+
+
+def fetch_yolo(name):
+    """Ultralytics weights: one .pt file, for detection or (-seg) segmentation."""
+    folder = os.path.join(BASE_DIR, name)
+    meta = read_meta(folder)
+    if meta.get("complete") and meta.get("files") and not model_problems(folder):
+        print(f"{name}: already downloaded and intact")
+        return
+    url, size = yolo_asset(name)
+    print(f"{name} -> {folder}")
+    os.makedirs(folder, exist_ok=True)
+    destination = os.path.join(folder, f"{name}.pt")
+    if not (os.path.exists(destination) and os.path.getsize(destination) == size and not weights_problem(destination)):
+        fetch_url(url, f"{name}.pt", destination, size)
+    write_meta(folder, {
+        **meta,
+        "id": name,
+        "kind": "base",
+        "task": "detection",
+        "yoloTask": "segment" if name.endswith("-seg") else "detect",
+        "name": f"Ultralytics {name}",
+        "repo": f"ultralytics:{name}",
+        "licence": "AGPL-3.0",
+        "complete": True,
+        "files": {f"{name}.pt": size},
+        "downloadedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
+
+
+def fetch_repo(repo, source=None, target=None, multilingual=False, task="translation"):
     """Download a repository, or bring an existing copy back to whole.
 
     Files already on disk with the right size are kept, so re-running this is
@@ -171,7 +229,7 @@ def fetch_repo(repo, source=None, target=None, multilingual=False):
         destination = os.path.join(folder, name)
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         if os.path.exists(destination) and (size is None or os.path.getsize(destination) == size):
-            if not (destination.endswith((".bin", ".safetensors")) and weights_problem(destination)):
+            if not (destination.endswith((".bin", ".pt", ".safetensors")) and weights_problem(destination)):
                 print(f"    {name}: already here")
                 continue
         fetch(repo, name, destination, size)
@@ -180,13 +238,16 @@ def fetch_repo(repo, source=None, target=None, multilingual=False):
         **meta,
         "id": os.path.basename(folder),
         "kind": "base",
+        "task": task,
         "name": repo,
         "repo": repo,
         "complete": True,
         "files": {name: size for name, size in files if size is not None},
         "downloadedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
-    if multilingual:
+    if task == "speech":
+        meta.update(multilingual=True)  # Whisper: the language is chosen per dataset.
+    elif multilingual:
         meta.update(multilingual=True, languages=multilingual_languages(folder))
     else:
         meta.update(source=source, target=target)
@@ -203,11 +264,20 @@ def each_model():
                 yield kind, folder, meta
 
 
+def describe(meta):
+    task = meta.get("task", "translation")
+    if task == "detection":
+        return f"yolo {meta.get('yoloTask', 'detect')}"
+    if task == "speech":
+        return f"speech {meta.get('language', 'any')}"
+    if meta.get("multilingual") and not meta.get("source"):
+        return f"{len(meta.get('languages', []))} languages"
+    return f"{meta.get('source')}->{meta.get('target')}"
+
+
 def list_models():
     for kind, folder, meta in each_model():
-        pair = (f"{len(meta.get('languages', []))} languages" if meta.get("multilingual") and not meta.get("source")
-                else f"{meta.get('source')}->{meta.get('target')}")
-        print(f"{kind:9} {pair:14} {meta.get('name', os.path.basename(folder))}")
+        print(f"{kind:9} {describe(meta):14} {meta.get('name', os.path.basename(folder))}")
 
 
 def verify(repair):
@@ -219,7 +289,8 @@ def verify(repair):
         note = ""
         # Downloads made before sizes were recorded: ask the hub, when it can
         # be reached, and record the answer so later checks work offline.
-        if not problems and kind == "base" and not meta.get("files") and meta.get("repo"):
+        if not problems and kind == "base" and not meta.get("files") and meta.get("repo") \
+                and not meta["repo"].startswith("ultralytics:"):
             try:
                 sizes = {name: size for name, size in repo_files(meta["repo"]) if size is not None}
             except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError):
@@ -234,8 +305,12 @@ def verify(repair):
         print(f"DAMAGED  {label}: {'; '.join(problems)}")
         if not repair:
             continue
-        if kind == "base" and meta.get("repo"):
-            fetch_repo(meta["repo"], meta.get("source"), meta.get("target"), bool(meta.get("multilingual")))
+        if kind == "base" and str(meta.get("repo", "")).startswith("ultralytics:"):
+            fetch_yolo(meta["repo"].split(":", 1)[1])
+            damaged -= not model_problems(folder)
+        elif kind == "base" and meta.get("repo"):
+            fetch_repo(meta["repo"], meta.get("source"), meta.get("target"),
+                       bool(meta.get("multilingual")) and meta.get("task") != "speech", meta.get("task", "translation"))
             damaged -= not model_problems(folder)
         else:
             print("         A fine-tuned model cannot be downloaded again: delete it in the app and retrain it.")
@@ -246,7 +321,8 @@ def verify(repair):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("pairs", nargs="*", help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, or m2m100")
+    parser.add_argument("pairs", nargs="*",
+                        help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, m2m100, yolo26n, yolo26n-seg, whisper-tiny")
     parser.add_argument("--list", action="store_true", help="show the models already on disk")
     parser.add_argument("--verify", action="store_true", help="check the models on disk for damaged files")
     parser.add_argument("--repair", action="store_true", help="with --verify: re-download damaged files")

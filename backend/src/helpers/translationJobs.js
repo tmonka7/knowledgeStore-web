@@ -23,7 +23,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PYTHON_BIN, childEnv, runProcess } from './pythonRunner.js';
 
-const PYTHON_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../python');
+export const PYTHON_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../python');
 export const MODELS_DIR = path.resolve(process.env.TRANSLATION_MODELS_DIR || path.join(PYTHON_DIR, 'models'));
 const META_FILE = 'ks-model.json';
 
@@ -43,7 +43,7 @@ export class JobError extends Error {
   }
 }
 
-const pythonEnv = () => childEnv({
+export const pythonEnv = () => childEnv({
   TRANSLATION_MODELS_DIR: MODELS_DIR,
   HF_HUB_OFFLINE: '1',
   TRANSFORMERS_OFFLINE: '1',
@@ -51,7 +51,7 @@ const pythonEnv = () => childEnv({
 
 /* ------------------------------------------------------------------ models */
 
-const readMeta = async (folder) => {
+export const readMeta = async (folder) => {
   try {
     return JSON.parse(await fs.readFile(path.join(folder, META_FILE), 'utf8'));
   } catch {
@@ -59,7 +59,16 @@ const readMeta = async (folder) => {
   }
 };
 
-const exists = (target) => fs.access(target).then(() => true, () => false);
+export const exists = (target) => fs.access(target).then(() => true, () => false);
+
+/*
+ * One models folder serves three tools. ks-model.json says which a model
+ * belongs to: "translation" (the default, as models downloaded before the
+ * field existed are all translation models), "detection" for YOLO, and
+ * "speech" for Whisper. Every lookup is scoped to one task, so the YOLO page
+ * can never list, train on or delete a translation model, and so on.
+ */
+const taskOf = (meta) => meta.task || 'translation';
 
 const listKind = async (kind) => {
   const root = path.join(MODELS_DIR, kind);
@@ -82,31 +91,32 @@ const listKind = async (kind) => {
 };
 
 /** Base models are shared; fine-tuned ones are listed to their owner only. */
-export const listModels = async (ownerId) => {
+export const listModels = async (ownerId, task = 'translation') => {
   const [base, finetuned] = await Promise.all([listKind('base'), listKind('finetuned')]);
   return [
-    ...base,
+    ...base.filter((model) => taskOf(model) === task),
     ...finetuned
-      .filter((model) => model.ownerId === ownerId)
+      .filter((model) => model.ownerId === ownerId && taskOf(model) === task)
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
   ].map(({ ownerId: _owner, ...model }) => model);
 };
 
-/** Resolves a model id the caller may use, or throws. */
-export const findModel = async (ownerId, id) => {
+/** Resolves a model id the caller may use for `task`, or throws. */
+export const findModel = async (ownerId, id, task = 'translation') => {
   if (!SAFE_ID.test(String(id || ''))) throw new JobError('Unknown model.', 404);
   for (const kind of ['finetuned', 'base']) {
     const folder = path.join(MODELS_DIR, kind, id);
     const meta = await readMeta(folder);
     if (!meta) continue;
     if (kind === 'finetuned' && meta.ownerId !== ownerId) break;
+    if (taskOf(meta) !== task) break;
     return { ...meta, id, kind, folder };
   }
   throw new JobError('Unknown model.', 404);
 };
 
-export const deleteModel = async (ownerId, id) => {
-  const model = await findModel(ownerId, id);
+export const deleteModel = async (ownerId, id, task = 'translation') => {
+  const model = await findModel(ownerId, id, task);
   if (model.kind !== 'finetuned') throw new JobError('Downloaded base models are removed on the server, not here.', 403);
   if ([...jobs.values()].some((job) => job.status === 'running' && job.modelId === id)) {
     throw new JobError('That model is being exported. Wait for it to finish.', 409);
@@ -116,8 +126,8 @@ export const deleteModel = async (ownerId, id) => {
   await fs.rm(path.join(MODELS_DIR, 'onnx', `${id}.zip`), { force: true });
 };
 
-export const onnxArchive = async (ownerId, id) => {
-  const model = await findModel(ownerId, id);
+export const onnxArchive = async (ownerId, id, task = 'translation') => {
+  const model = await findModel(ownerId, id, task);
   const archive = path.join(MODELS_DIR, 'onnx', `${model.id}.zip`);
   if (!await exists(archive)) throw new JobError('This model has not been exported to ONNX yet.', 404);
   return { model, stream: createReadStream(archive), size: (await fs.stat(archive)).size };
@@ -132,10 +142,10 @@ export const onnxArchive = async (ownerId, id) => {
 const DOWNLOAD_TICKET_MS = 60 * 1000;
 const downloadTickets = new Map();
 
-export const createDownloadTicket = async (ownerId, id) => {
-  await onnxArchive(ownerId, id).then(({ stream }) => stream.destroy());
+export const createDownloadTicket = async (ownerId, id, task = 'translation') => {
+  await onnxArchive(ownerId, id, task).then(({ stream }) => stream.destroy());
   const ticket = randomUUID();
-  downloadTickets.set(ticket, { ownerId, id, expires: Date.now() + DOWNLOAD_TICKET_MS });
+  downloadTickets.set(ticket, { ownerId, id, task, expires: Date.now() + DOWNLOAD_TICKET_MS });
   setTimeout(() => downloadTickets.delete(ticket), DOWNLOAD_TICKET_MS).unref?.();
   return ticket;
 };
@@ -144,7 +154,7 @@ export const redeemDownloadTicket = async (ticket) => {
   const entry = downloadTickets.get(String(ticket || ''));
   downloadTickets.delete(String(ticket || ''));
   if (!entry || entry.expires < Date.now()) throw new JobError('This download link has expired. Start the download again.', 410);
-  return onnxArchive(entry.ownerId, entry.id);
+  return onnxArchive(entry.ownerId, entry.id, entry.task);
 };
 
 /* -------------------------------------------------------------------- jobs */
@@ -156,14 +166,15 @@ const publicJob = (job) => {
   return rest;
 };
 
-export const listJobs = (ownerId) => [...jobs.values()]
-  .filter((job) => job.ownerId === ownerId)
+/** The caller's jobs for one tool ("translation", "detection" or "speech"). */
+export const listJobs = (ownerId, task = 'translation') => [...jobs.values()]
+  .filter((job) => job.ownerId === ownerId && job.task === task)
   .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   .map(publicJob);
 
-export const getJob = (ownerId, id) => {
+export const getJob = (ownerId, id, task = 'translation') => {
   const job = jobs.get(id);
-  if (!job || job.ownerId !== ownerId) throw new JobError('Unknown job.', 404);
+  if (!job || job.ownerId !== ownerId || job.task !== task) throw new JobError('Unknown job.', 404);
   return publicJob(job);
 };
 
@@ -227,7 +238,9 @@ const lineReader = (stream, onLine) => {
  * Start a script as a job. `finish(job)` runs after a clean exit and may throw
  * to fail the job; `cleanup(job)` runs whatever the outcome.
  */
-const startJob = ({ ownerId, kind, title, args, modelId = null, details = {}, finish, cleanup }) => {
+export const startJob = ({
+  ownerId, task = 'translation', kind, title, args, modelId = null, details = {}, finish, cleanup,
+}) => {
   const running = [...jobs.values()].filter((job) => job.status === 'running');
   if (running.some((job) => job.ownerId === ownerId)) {
     throw new JobError('You already have a training or export job running.', 429);
@@ -239,6 +252,7 @@ const startJob = ({ ownerId, kind, title, args, modelId = null, details = {}, fi
   const job = {
     id: randomUUID(),
     ownerId,
+    task,
     kind,
     title,
     modelId,
@@ -318,9 +332,9 @@ const startJob = ({ ownerId, kind, title, args, modelId = null, details = {}, fi
   return publicJob(job);
 };
 
-export const cancelJob = (ownerId, id) => {
+export const cancelJob = (ownerId, id, task = 'translation') => {
   const job = jobs.get(id);
-  if (!job || job.ownerId !== ownerId) throw new JobError('Unknown job.', 404);
+  if (!job || job.ownerId !== ownerId || job.task !== task) throw new JobError('Unknown job.', 404);
   if (job.status === 'running') {
     job.cancelled = true;
     job.child?.kill('SIGKILL');
@@ -349,7 +363,7 @@ const supportsPair = (model, source, target) => {
   return true;
 };
 
-const clampNumber = (value, fallback, min, max) => {
+export const clampNumber = (value, fallback, min, max) => {
   const number = Number(value);
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
 };

@@ -22,6 +22,7 @@ import {
   translateWithModel,
   updateTranslationDataset,
 } from '../controllers/transformersController.js';
+import { mlHandlers } from '../controllers/mlController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 import { asyncRoute } from '../helpers/asyncRoute.js';
 
@@ -97,5 +98,41 @@ router.post('/tools/transformers/translate', ...transformersTrain, asyncRoute(tr
 router.get('/tools/transformers/jobs', ...transformersTrain, asyncRoute(listTranslationJobs));
 router.get('/tools/transformers/jobs/:id', ...transformersTrain, asyncRoute(getTranslationJob));
 router.post('/tools/transformers/jobs/:id/cancel', ...transformersTrain, asyncRoute(cancelTranslationJob));
+
+/*
+ * YOLO and Speech to Text: the same shape as the Transformers routes above,
+ * with uploaded files instead of text rows. Managing your own datasets comes
+ * with the page ('yolo:view' / 'tts:view'); training, testing and export tie
+ * up the server and need 'yolo:train' / 'tts:train'.
+ */
+const DATASET_UPLOAD_LIMITS = {
+  yolo: { fileSize: 50 * 1024 * 1024, files: 64 },
+  speech: { fileSize: 200 * 1024 * 1024, files: 64 },
+};
+
+for (const [area, permission] of [['yolo', 'yolo'], ['speech', 'tts']]) {
+  const handlers = mlHandlers(area);
+  const view = [requireAuth, requirePermission(`${permission}:view`)];
+  const train = [...view, requirePermission(`${permission}:train`)];
+  const upload = multer({ dest: os.tmpdir(), limits: DATASET_UPLOAD_LIMITS[area] });
+  const base = `/tools/${area}`;
+
+  router.get(`${base}/datasets`, ...view, asyncRoute(handlers.listDatasets));
+  router.post(`${base}/datasets`, ...view, asyncRoute(handlers.createDataset));
+  router.get(`${base}/datasets/:id`, ...view, asyncRoute(handlers.getDataset));
+  router.delete(`${base}/datasets/:id`, ...view, asyncRoute(handlers.deleteDataset));
+  router.post(`${base}/datasets/:id/files`, ...view, upload.array('files'), asyncRoute(handlers.addFiles));
+  router.put(`${base}/datasets/:id/${area === 'yolo' ? 'labels' : 'transcripts'}`, ...view, asyncRoute(handlers.finishDataset));
+
+  router.get(`${base}/models`, ...train, asyncRoute(handlers.listModels));
+  router.delete(`${base}/models/:id`, ...train, asyncRoute(handlers.deleteModel));
+  router.post(`${base}/models/:id/onnx`, ...train, asyncRoute(handlers.exportOnnx));
+  router.post(`${base}/models/:id/onnx/link`, ...train, asyncRoute(handlers.onnxLink));
+  router.post(`${base}/train`, ...train, asyncRoute(handlers.train));
+  router.post(`${base}/test`, ...train, upload.array('files', 8), asyncRoute(handlers.test));
+  router.get(`${base}/jobs`, ...train, asyncRoute(handlers.listJobs));
+  router.get(`${base}/jobs/:id`, ...train, asyncRoute(handlers.getJob));
+  router.post(`${base}/jobs/:id/cancel`, ...train, asyncRoute(handlers.cancelJob));
+}
 
 export default router;

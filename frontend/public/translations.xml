@@ -293,14 +293,7 @@
   <text id="pythonTruncated" en="output cut off" es="salida recortada" zh="输出已截断" jp="出力は省略されました" />
   <text id="pythonNeedsPermission" en="Running Python on the server needs the Execute permission for Transformers. Ask an administrator to grant it." es="Ejecutar Python en el servidor requiere el permiso Ejecutar de Transformers. Pidelo a un administrador." zh="在服务器上运行 Python 需要 Transformers 的“执行”权限，请联系管理员授予。" jp="サーバーでPythonを実行するには、Transformersの「実行」権限が必要です。管理者に付与を依頼してください。" />
   <text id="yoloSubtitle" en="Quick object-detection pipeline presets for YOLO-style model exports." es="Preajustes rapidos de deteccion de objetos para exportaciones de modelos tipo YOLO." zh="适用于 YOLO 风格模型导出的快速目标检测管道预设。" jp="YOLO形式モデルのエクスポート用物体検出パイプラインプリセット。" />
-  <text id="modelSettings" en="Model settings" es="Configuracion del modelo" zh="模型设置" jp="モデル設定" />
-  <text id="inputImageOrVideoPath" en="Input image or video path" es="Ruta de imagen o video de entrada" zh="输入图像或视频路径" jp="入力画像または動画パス" />
-  <text id="outputFolder" en="Output folder" es="Carpeta de salida" zh="输出文件夹" jp="出力フォルダー" />
-  <text id="recommendedCommand" en="Recommended command" es="Comando recomendado" zh="推荐命令" jp="推奨コマンド" />
-  <text id="purpose" en="Purpose" es="Proposito" zh="用途" jp="目的" />
-  <text id="yoloPurpose" en="generate detection overlays, labels, and export-ready results for inference workflows." es="generar superposiciones de deteccion, etiquetas y resultados listos para exportar." zh="为推理工作流生成检测叠加层、标签和可导出结果。" jp="推論用の検出オーバーレイ、ラベル、エクスポート可能な結果を生成します。" />
   <text id="yoloUtility" en="YOLO utility" es="Utilidad de YOLO" zh="YOLO 工具" jp="YOLOユーティリティ" />
-  <text id="yoloDescription" en="This workspace page is a lightweight model configuration and command-generation shell for YOLO projects." es="Esta pagina es una interfaz ligera de configuracion y generacion de comandos para proyectos YOLO." zh="此工作区页面是 YOLO 项目的轻量模型配置和命令生成界面。" jp="このワークスペースページはYOLOプロジェクト用の軽量なモデル設定・コマンド生成シェルです。" />
   <text id="cameraUnavailableUploadInstead" en="Camera is not available in this browser. Upload a photo instead." es="La camara no esta disponible en este navegador. Suba una foto." zh="此浏览器中摄像头不可用，请上传照片。" jp="このブラウザーではカメラを利用できません。代わりに写真をアップロードしてください。" />
   <text id="centerFaceThenCapture" en="Center your face in the frame, then capture." es="Centre su rostro en el marco y capture." zh="将脸置于框中央，然后捕获。" jp="顔をフレーム中央に合わせて撮影してください。" />
   <text id="cameraAccessDeniedUploadInstead" en="Camera access was denied. Upload a photo instead." es="Se rechazo el acceso a la camara. Suba una foto." zh="摄像头访问被拒绝，请上传照片。" jp="カメラへのアクセスが拒否されました。代わりに写真をアップロードしてください。" />
@@ -841,7 +834,6 @@
   <text id="trainNoModels" en="No models yet" es="Aun no hay modelos" zh="暂无模型" jp="モデルはまだありません" />
   <text id="trainEarlierJobs" en="Earlier jobs ({count})" es="Trabajos anteriores ({count})" zh="之前的任务（{count}）" jp="以前のジョブ（{count}）" />
   <text id="trainEta" en="about {time} left" es="quedan unos {time}" zh="约剩 {time}" jp="残り約 {time}" />
-  <text id="trainEpochSummary" en="Epoch {epoch}: train {train}, validation {validation}" es="Epoca {epoch}: entrenamiento {train}, validacion {validation}" zh="第 {epoch} 轮：训练 {train}，验证 {validation}" jp="エポック {epoch}: 学習 {train}、検証 {validation}" />
   <text id="trainReference" en="Reference" es="Referencia" zh="参考译文" jp="参照訳" />
   <text id="trainBefore" en="Before training" es="Antes del entrenamiento" zh="训练前" jp="学習前" />
   <text id="trainAfter" en="After training" es="Despues del entrenamiento" zh="训练后" jp="学習後" />
@@ -860,4 +852,48 @@
   <text id="onnxCheckInput" en="Test sentence" es="Frase de prueba" zh="测试句子" jp="テスト文" />
   <text id="onnxCheckMatch" en="identical" es="identico" zh="一致" jp="一致" />
   <text id="onnxCheckDiffers" en="differs" es="difiere" zh="不同" jp="相違あり" />
+  <text id="mlTrainTab" en="Train" es="Entrenar" zh="训练" jp="学習" />
+  <text id="mlTranscribeTab" en="Transcribe" es="Transcribir" zh="转写" jp="書き起こし" />
+  <text id="mlSaveToServer" en="Save to server" es="Guardar en el servidor" zh="保存到服务器" jp="サーバーに保存" />
+  <text id="mlSaveToServerHelp" en="Uploads the files and labels so the server can train on them. Saving again sends only what changed." es="Sube los archivos y etiquetas para que el servidor pueda entrenar con ellos. Al guardar de nuevo solo se envia lo que cambio." zh="上传文件和标注，以便服务器用于训练。再次保存只会发送有变化的内容。" jp="ファイルとラベルをアップロードし、サーバーで学習できるようにします。再保存時は変更分のみ送信します。" />
+  <text id="mlNewDataset" en="New dataset" es="Nuevo conjunto" zh="新建数据集" jp="新規データセット" />
+  <text id="mlUpdateDataset" en="Update existing" es="Actualizar existente" zh="更新现有数据集" jp="既存を更新" />
+  <text id="mlDatasetNameRequired" en="Give the dataset a name." es="Ponle un nombre al conjunto." zh="请为数据集命名。" jp="データセットに名前を付けてください。" />
+  <text id="mlSavedToServer" en="Saved to the server: {uploaded} files uploaded, {skipped} already there." es="Guardado en el servidor: {uploaded} archivos subidos, {skipped} ya estaban." zh="已保存到服务器：上传 {uploaded} 个文件，{skipped} 个已存在。" jp="サーバーに保存しました: {uploaded} 件をアップロード、{skipped} 件は既に存在。" />
+  <text id="mlSaveFailed" en="Saving to the server failed." es="No se pudo guardar en el servidor." zh="保存到服务器失败。" jp="サーバーへの保存に失敗しました。" />
+  <text id="mlStopUpload" en="Stop" es="Detener" zh="停止" jp="停止" />
+  <text id="mlUploadChecking" en="Checking what the server already has…" es="Comprobando lo que ya tiene el servidor…" zh="正在检查服务器已有的文件…" jp="サーバーにある内容を確認中…" />
+  <text id="mlUploadProgress" en="Uploading {done} of {total} files ({size})" es="Subiendo {done} de {total} archivos ({size})" zh="正在上传 {done}/{total} 个文件（{size}）" jp="{total} 件中 {done} 件をアップロード中（{size}）" />
+  <text id="mlUploadFinishing" en="Saving labels…" es="Guardando etiquetas…" zh="正在保存标注…" jp="ラベルを保存中…" />
+  <text id="mlNothingToSave" en="Label or transcribe something first." es="Primero etiqueta o transcribe algo." zh="请先进行标注或转写。" jp="先にラベル付けか書き起こしをしてください。" />
+  <text id="mlServerDatasets" en="Datasets on the server" es="Conjuntos en el servidor" zh="服务器上的数据集" jp="サーバー上のデータセット" />
+  <text id="mlDatasetsLoadFailed" en="Unable to load the datasets." es="No se pudieron cargar los conjuntos." zh="无法加载数据集。" jp="データセットを読み込めませんでした。" />
+  <text id="mlDeleteDataset" en="Delete this dataset and its files from the server?" es="¿Eliminar este conjunto y sus archivos del servidor?" zh="从服务器删除此数据集及其文件？" jp="このデータセットとファイルをサーバーから削除しますか？" />
+  <text id="mlIncomplete" en="upload unfinished" es="subida incompleta" zh="上传未完成" jp="アップロード未完了" />
+  <text id="mlImages" en="Labelled / images" es="Etiquetadas / imagenes" zh="已标注 / 图片" jp="ラベル済み / 画像" />
+  <text id="mlClips" en="Transcribed / clips" es="Transcritos / clips" zh="已转写 / 片段" jp="書き起こし済み / クリップ" />
+  <text id="mlClip" en="Clip" es="Clip" zh="片段" jp="クリップ" />
+  <text id="mlSize" en="Size" es="Tamano" zh="大小" jp="サイズ" />
+  <text id="mlSpokenLanguage" en="Spoken language" es="Idioma hablado" zh="语音语言" jp="話されている言語" />
+  <text id="mlAnyLanguage" en="any language" es="cualquier idioma" zh="任意语言" jp="任意の言語" />
+  <text id="mlErrorColumn" en="Error rate" es="Tasa de error" zh="错误率" jp="誤り率" />
+  <text id="mlErrorRate" en="{metric} on held-back clips: {before} before training, {after} after." es="{metric} en clips reservados: {before} antes del entrenamiento, {after} despues." zh="保留片段上的 {metric}：训练前 {before}，训练后 {after}。" jp="検証用クリップの {metric}: 学習前 {before}、学習後 {after}。" />
+  <text id="mlFinalScore" en="Best weights: {values}" es="Mejores pesos: {values}" zh="最佳权重：{values}" jp="最良の重み: {values}" />
+  <text id="mlEpochSummary" en="Epoch {epoch}: {values}" es="Epoca {epoch}: {values}" zh="第 {epoch} 轮：{values}" jp="エポック {epoch}: {values}" />
+  <text id="mlTestFailed" en="The test could not be run." es="No se pudo ejecutar la prueba." zh="无法运行测试。" jp="テストを実行できませんでした。" />
+  <text id="yoloTask" en="Task" es="Tarea" zh="任务" jp="タスク" />
+  <text id="yoloDetect" en="detection" es="deteccion" zh="检测" jp="検出" />
+  <text id="yoloSegment" en="segmentation" es="segmentacion" zh="分割" jp="セグメンテーション" />
+  <text id="yoloImageSize" en="Image size" es="Tamano de imagen" zh="图像尺寸" jp="画像サイズ" />
+  <text id="yoloLicence" en="YOLO training uses Ultralytics, licensed AGPL-3.0: distributing this app or offering it as a service to others brings AGPL obligations unless you hold an Ultralytics enterprise licence." es="El entrenamiento YOLO usa Ultralytics, con licencia AGPL-3.0: distribuir esta aplicacion u ofrecerla como servicio a terceros conlleva obligaciones AGPL salvo que tengas una licencia empresarial de Ultralytics." zh="YOLO 训练使用 Ultralytics（AGPL-3.0 许可）：分发本应用或向他人提供服务时需遵守 AGPL 义务，除非拥有 Ultralytics 企业许可。" jp="YOLO の学習には AGPL-3.0 ライセンスの Ultralytics を使用します。本アプリを配布したり他者向けサービスとして提供する場合、Ultralytics のエンタープライズライセンスがない限り AGPL の義務が生じます。" />
+  <text id="yoloNoServerDatasets" en="No datasets on the server yet. Label images in the Labelling tab, then use Save to server." es="Aun no hay conjuntos en el servidor. Etiqueta imagenes en la pestana de etiquetado y usa Guardar en el servidor." zh="服务器上还没有数据集。请在标注页标注图片后点击“保存到服务器”。" jp="サーバーにデータセットがまだありません。ラベル付けタブで画像にラベルを付け、「サーバーに保存」を使ってください。" />
+  <text id="yoloTrainNeedsPermission" en="Training YOLO models needs the Train permission for YOLO. Ask an administrator to grant it." es="Entrenar modelos YOLO requiere el permiso Entrenar de YOLO. Pidelo a un administrador." zh="训练 YOLO 模型需要 YOLO 的“训练”权限，请联系管理员授予。" jp="YOLO モデルの学習には YOLO の「学習」権限が必要です。管理者に付与を依頼してください。" />
+  <text id="yoloChooseImage" en="Choose an image" es="Elegir una imagen" zh="选择图片" jp="画像を選択" />
+  <text id="yoloConfidence" en="Confidence" es="Confianza" zh="置信度" jp="信頼度" />
+  <text id="yoloDetectButton" en="Detect" es="Detectar" zh="检测" jp="検出" />
+  <text id="yoloNothingFound" en="Nothing found above this confidence." es="Nada encontrado por encima de esta confianza." zh="在此置信度以上未发现目标。" jp="この信頼度以上では何も見つかりませんでした。" />
+  <text id="speechNoServerDatasets" en="No datasets on the server yet. Transcribe clips in the Transcribe tab, then use Save to server." es="Aun no hay conjuntos en el servidor. Transcribe clips en la pestana Transcribir y usa Guardar en el servidor." zh="服务器上还没有数据集。请在转写页转写片段后点击“保存到服务器”。" jp="サーバーにデータセットがまだありません。書き起こしタブでクリップを書き起こし、「サーバーに保存」を使ってください。" />
+  <text id="speechTrainNeedsPermission" en="Training speech models needs the Train permission for Speech To Text. Ask an administrator to grant it." es="Entrenar modelos de voz requiere el permiso Entrenar de Voz a texto. Pidelo a un administrador." zh="训练语音模型需要“语音转文字”的“训练”权限，请联系管理员授予。" jp="音声モデルの学習には「音声認識」の「学習」権限が必要です。管理者に付与を依頼してください。" />
+  <text id="speechChooseWav" en="Choose WAV files" es="Elegir archivos WAV" zh="选择 WAV 文件" jp="WAV ファイルを選択" />
+  <text id="speechTestHelp" en="16 kHz mono WAV works best; up to 8 files, and each is cut at 30 seconds." es="Lo mejor es WAV mono de 16 kHz; hasta 8 archivos, cada uno se corta a los 30 segundos." zh="建议使用 16 kHz 单声道 WAV；最多 8 个文件，每个截取前 30 秒。" jp="16 kHz モノラル WAV が最適です。最大 8 ファイル、各 30 秒で切り詰めます。" />
 </translations>

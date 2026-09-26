@@ -25,7 +25,13 @@ from ks_common import META_FILE, check_model, emit, fail, go_offline, read_meta,
 
 go_offline()
 
-SAMPLE_TEXTS = {"en": "The weather is nice today.", "es": "Hoy hace buen tiempo."}
+SAMPLE_TEXTS = {
+    "en": "The weather is nice today.",
+    "es": "Hoy hace buen tiempo.",
+    "ko": "오늘은 날씨가 좋습니다.",
+    "zh": "今天天气很好。",
+    "ja": "今日はいい天気です。",
+}
 
 
 def export_with_optimum(model_dir, output):
@@ -39,7 +45,9 @@ def export_with_torch(model_dir, output):
     from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_dir, local_files_only=True).eval()
+    # float32 whatever the checkpoint stores: a float16 graph traced on the CPU
+    # is slow or unsupported in most ONNX runtimes.
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_dir, local_files_only=True).float().eval()
     model.config.use_cache = False
 
     class Encoder(torch.nn.Module):
@@ -60,7 +68,10 @@ def export_with_torch(model_dir, output):
             self.register_buffer("final_logits_bias", getattr(model, "final_logits_bias", torch.zeros(1)))
 
         def forward(self, input_ids, encoder_hidden_states, encoder_attention_mask):
-            hidden = self.decoder(input_ids=input_ids, encoder_hidden_states=encoder_hidden_states,
+            # An explicit all-ones decoder mask keeps transformers 5 from
+            # probing position ids with torch.diff, which ONNX cannot export.
+            hidden = self.decoder(input_ids=input_ids, attention_mask=torch.ones_like(input_ids),
+                                  encoder_hidden_states=encoder_hidden_states,
                                   encoder_attention_mask=encoder_attention_mask, use_cache=False,
                                   return_dict=False)[0]
             return self.lm_head(hidden) + self.final_logits_bias
@@ -121,7 +132,7 @@ def verify(model_dir, output, meta):
 
     tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
     config = AutoConfig.from_pretrained(model_dir, local_files_only=True)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_dir, local_files_only=True).eval()
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_dir, local_files_only=True).float().eval()
     source, target = check_pair(meta)
     generate_args = setup_languages(tokenizer, model, source, target)
     text = SAMPLE_TEXTS.get(source, SAMPLE_TEXTS["en"])

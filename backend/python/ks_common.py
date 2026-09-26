@@ -27,8 +27,45 @@ def go_offline():
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 
+def _finite(value):
+    """NaN and infinity as None: JSON has no NaN, and the API's parser rejects it."""
+    if isinstance(value, float) and value != value or value in (float("inf"), float("-inf")):
+        return None
+    if isinstance(value, dict):
+        return {key: _finite(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_finite(item) for item in value]
+    return value
+
+
+def go_offline_yolo():
+    """Keep Ultralytics from reaching the network, before it is imported.
+
+    Left alone it checks for updates, downloads fonts to draw plots, and
+    pip-installs packages it finds missing (onnx, onnxslim) — none of which
+    works, or should happen, on an offline server. Its settings file goes in
+    the models folder rather than the user profile.
+    """
+    go_offline()
+    os.environ["YOLO_OFFLINE"] = "1"
+    os.environ["YOLO_AUTOINSTALL"] = "false"
+    os.environ.setdefault("YOLO_VERBOSE", "false")
+    # Ultralytics only uses this folder if it already exists and is writable;
+    # otherwise it silently falls back to the user profile.
+    config_dir = os.environ.setdefault("YOLO_CONFIG_DIR", os.path.join(MODELS_DIR, ".ultralytics"))
+    os.makedirs(config_dir, exist_ok=True)
+
+
+def yolo_weights(model_dir):
+    """The .pt file in a YOLO model folder."""
+    names = sorted(name for name in os.listdir(model_dir) if name.endswith(".pt"))
+    if not names:
+        fail(f"There is no .pt weights file in {model_dir}.")
+    return os.path.join(model_dir, "model.pt" if "model.pt" in names else names[0])
+
+
 def emit(event, **data):
-    print(json.dumps({"event": event, **data}, ensure_ascii=False), flush=True)
+    print(json.dumps({"event": event, **_finite(data)}, ensure_ascii=False), flush=True)
 
 
 def fail(message, code=1):
@@ -133,7 +170,7 @@ def weights_problem(path):
       PyTorch's "unexpected EOF, expected N more bytes" when it falls short.
     """
     size = os.path.getsize(path)
-    if path.endswith(".bin"):
+    if path.endswith((".bin", ".pt")):
         with open(path, "rb") as handle:
             magic = handle.read(4)
         if magic.startswith(b"PK"):
@@ -170,7 +207,8 @@ def model_problems(model_dir):
     expected = read_meta(model_dir).get("files", {})
     names = set(os.listdir(model_dir)) if os.path.isdir(model_dir) else set()
     problems = []
-    if not any(name in names for name in WEIGHT_FILES):
+    if not any(name in names or name.endswith(".pt") for name in WEIGHT_FILES) \
+            and not any(name.endswith(".pt") for name in names):
         problems.append("the weights file is missing")
     for name, size in expected.items():
         if name in names and os.path.getsize(os.path.join(model_dir, name)) != size:
@@ -178,7 +216,7 @@ def model_problems(model_dir):
         elif name not in names:
             problems.append(f"{name} is missing")
     for name in sorted(names):
-        if name.endswith((".bin", ".safetensors")) and name not in expected:
+        if name.endswith((".bin", ".pt", ".safetensors")) and name not in expected:
             problem = weights_problem(os.path.join(model_dir, name))
             if problem:
                 problems.append(f"{name} is {problem}")

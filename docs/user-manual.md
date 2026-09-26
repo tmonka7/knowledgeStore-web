@@ -440,6 +440,48 @@ Hugging Face `Dataset`. The script sees the dataset as last saved, not unsaved
 edits. Output is shown when the script finishes. A script that runs past the
 server's time limit (5 minutes unless changed) is stopped.
 
+## 8e. YOLO and Speech to Text: training on the server
+
+Both pages label data in the browser, as before: YOLO draws boxes or outlines
+on a folder of images, and Speech to Text types a transcript for each clip in
+a folder of 16 kHz mono WAV files. To train a model, the data has to be on the
+server.
+
+### Saving a dataset to the server
+
+In the labelling or transcription view, press **Save to server**. Choose
+**New dataset** (it is named after the folder) or **Update existing**, and for
+speech pick the language spoken in the clips. The files are uploaded with a
+progress bar. Saving the same folder again later sends only what changed —
+new or edited files, and the labels or transcripts — and removes files the
+folder no longer has, so the server copy mirrors your folder. Datasets are
+private to your account.
+
+For YOLO, an image counts as labelled once you have looked at it; an image
+with no boxes is kept as a background example. For speech, clips without a
+transcript are uploaded but not trained on.
+
+### Training, testing and ONNX
+
+With the **Train** permission on the page (an administrator grants it), open
+the **Train** tab:
+
+- Pick the dataset and the model to start from — for YOLO a detection or
+  segmentation model matching the dataset's task, for speech a Whisper model —
+  and press **Train**. The panel shows progress and each epoch's figures:
+  loss, and for YOLO the mAP score; for speech, the error rate on held-back
+  clips before and after training. **Cancel** stops a run and discards it.
+- **Test** runs a finished model: for YOLO on an image you choose, drawing
+  what it finds; for speech on WAV files you choose, showing the transcript.
+- **Export ONNX**, then download the zip: `model.onnx` and `classes.txt` for
+  YOLO; `encoder_model.onnx`, `decoder_model.onnx` and the processor files for
+  Whisper. Each export is checked against the original model on a file from
+  its dataset, and the result is shown.
+
+Only one training or export job runs on the server at a time, across the
+Transformers, YOLO and Speech to Text pages. YOLO training uses Ultralytics,
+which is licensed AGPL-3.0 — see the note on the Train tab.
+
 ## 9. Other pages
 
 | Page | What it does |
@@ -469,6 +511,7 @@ them once, on a machine with internet access:
 ```
 pip install -r backend/python/requirements.txt
 python backend/python/download_models.py en-es en-zh m2m100
+python backend/python/download_models.py yolo26n yolo26n-seg whisper-tiny
 ```
 
 Name each Opus-MT language pair you need (about 300 MB each). `m2m100` adds
@@ -498,8 +541,8 @@ Click the pencil on a row to edit that account:
   them.
   **Execute** on Transformers lets the account run Python on the server as the
   API's own OS user. It is not granted by default; give it only to people you
-  would trust with a shell on that machine. **Train** lets the account
-  fine-tune and export models. That is safe, but it occupies the server's CPU
+  would trust with a shell on that machine. **Train** (on Transformers, YOLO
+  and Speech To Text) lets the account fine-tune and export models. That is safe, but it occupies the server's CPU
   or GPU for as long as training runs.
 - **Logs** — recent activity for that account.
 

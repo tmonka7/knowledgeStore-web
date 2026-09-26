@@ -777,8 +777,8 @@ export default function DashboardPage({
 
           {effectiveKey === 'lvgl-tool' && <LvglToolPage />}
           {effectiveKey === 'convert-tool' && <ConvertToolPage />}
-          {effectiveKey === 'yolo' && <YoloToolPage />}
-          {effectiveKey === 'tts' && <TtsToolPage />}
+          {effectiveKey === 'yolo' && <YoloToolPage user={user} />}
+          {effectiveKey === 'tts' && <TtsToolPage user={user} />}
           {effectiveKey === 'transformers' && <TransformersToolPage user={user} />}
 
           {effectiveKey === 'categories' && (

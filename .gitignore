@@ -18,3 +18,5 @@ service/daemon
 backend/python/models/*
 !backend/python/models/README.md
 __pycache__/
+# YOLO images and speech clips uploaded for training (backend/src/helpers/mlDatasets.js).
+backend/python/datasets/

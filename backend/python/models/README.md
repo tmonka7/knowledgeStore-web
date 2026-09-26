@@ -5,7 +5,7 @@ at run time: training, translation and ONNX export all run with Hugging Face's
 offline mode on.
 
 ```
-base/<name>/        Opus-MT models fetched by download_models.py
+base/<name>/        base models fetched by download_models.py
 finetuned/<id>/     models trained from the Transformers page
 onnx/<id>/          ONNX exports, and <id>.zip for download
 ```
@@ -16,14 +16,24 @@ machine with internet access:
 ```
 pip install -r backend/python/requirements.txt
 python backend/python/download_models.py en-es en-zh m2m100
+python backend/python/download_models.py yolo26n yolo26n-seg whisper-tiny
 python backend/python/download_models.py --list
 ```
+
+`yolo26n` / `yolo26n-seg` are Ultralytics' detection and segmentation weights
+(about 6 MB each, AGPL-3.0; any other name such as `yolo11s` also works), for
+the YOLO page. `whisper-tiny` is OpenAI's Whisper speech-recognition model
+(about 150 MB; `whisper-base` and `whisper-small` are more accurate and
+slower), for the Speech to Text page. Each model's `ks-model.json` records
+which page it belongs to (`task`: translation, detection or speech).
 
 Opus-MT models (`en-es`, `en-zh`, …) are small (about 300 MB) and made for one
 direction each. `m2m100` is facebook/m2m100_418M (MIT licence, about 1.9 GB):
 one model for any direction between 100 languages. It is what covers en→ko,
 because Helsinki-NLP's only English→Korean model (`opus-mt-tc-big-en-ko`) is
-broken on Hugging Face and translates into nonsense. Fine-tuning M2M100 on a
+broken on Hugging Face and translates into nonsense. For Korean→English there is also a small dedicated model,
+`ko-en=Helsinki-NLP/opus-mt_tiny_kor-eng` (about 50 MB, fast to train). There
+is no tiny English→Korean one. Fine-tuning M2M100 on a
 CPU needs roughly 8 GB of free RAM, and its ONNX export is about 2.8 GB.
 
 Opus-MT names a few languages differently from the codes a dataset uses; map

@@ -1,12 +1,13 @@
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Collapse, Descriptions, Empty, Input, InputNumber, Modal, Popconfirm, Progress, Row, Select,
+  Alert, Button, Card, Col, Collapse, Empty, Input, InputNumber, Modal, Popconfirm, Row, Select,
   Space, Table, Tag, Tooltip, Typography, message,
 } from 'antd';
 import {
-  CloudDownloadOutlined, DeleteOutlined, ExportOutlined, ReloadOutlined, RocketOutlined, StopOutlined, TranslationOutlined,
+  CloudDownloadOutlined, DeleteOutlined, ExportOutlined, ReloadOutlined, RocketOutlined, TranslationOutlined,
 } from '@ant-design/icons';
 import api from '../../api';
+import JobView, { MONO } from '../ml/JobView';
 import { useLanguage } from '../../i18n';
 
 const { Text, Paragraph } = Typography;
@@ -14,17 +15,10 @@ const { TextArea } = Input;
 
 const POLL_MS = 2000;
 const LEARNING_RATES = [1e-5, 2e-5, 3e-5, 5e-5, 1e-4];
-const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: 12 };
 
-const STATUS_COLOR = { running: 'processing', succeeded: 'success', failed: 'error', cancelled: 'default' };
 
 const formatBytes = (bytes) => (bytes >= 1e6 ? `${(bytes / 1e6).toFixed(0)} MB` : `${Math.ceil(bytes / 1e3)} KB`);
 
-const formatSeconds = (seconds) => {
-  if (seconds == null) return '';
-  const minutes = Math.floor(seconds / 60);
-  return minutes ? `${minutes} min ${seconds % 60} s` : `${seconds} s`;
-};
 
 // Mirrors LANGUAGE_ALIASES in backend/python/ks_common.py.
 const LANGUAGE_ALIASES = { jp: 'ja', jpn: 'ja', kor: 'ko', zho: 'zh', chi: 'zh', eng: 'en', spa: 'es' };
@@ -431,105 +425,6 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
 });
 
 export default TrainingPanel;
-
-function JobView({ job, onCancel, compact = false }) {
-  const { t } = useLanguage();
-  const progress = job.progress;
-  const percent = job.status === 'succeeded'
-    ? 100
-    : progress?.totalSteps ? Math.floor((progress.step / progress.totalSteps) * 100) : 0;
-  const onnxCheck = job.kind === 'onnx' ? job.result?.check : null;
-
-  return (
-    <Card size="small" type="inner" title={(
-      <Space wrap>
-        <Tag color={job.kind === 'train' ? 'purple' : 'cyan'}>{job.kind === 'train' ? t('trainButton') : 'ONNX'}</Tag>
-        <Text strong>{job.title}</Text>
-        <Tag color={STATUS_COLOR[job.status]}>{t(`jobStatus_${job.status}`)}</Tag>
-      </Space>
-    )}
-      extra={job.status === 'running' && (
-        <Button size="small" danger icon={<StopOutlined />} onClick={() => onCancel(job)}>{t('cancel')}</Button>
-      )}
-    >
-      <Space direction="vertical" style={{ width: '100%' }} size={8}>
-        {job.kind === 'train' && (
-          <Progress
-            percent={percent}
-            status={job.status === 'failed' ? 'exception' : job.status === 'running' ? 'active' : undefined}
-          />
-        )}
-        <Space wrap size={[16, 4]}>
-          <Text type="secondary">{job.message}</Text>
-          {progress?.loss != null && <Text>{t('trainLoss')}: {progress.loss.toFixed(4)}</Text>}
-          {job.status === 'running' && progress?.etaSeconds != null && (
-            <Text type="secondary">{t('trainEta', { time: formatSeconds(progress.etaSeconds) })}</Text>
-          )}
-          {job.details?.device && <Tag>{job.details.device}</Tag>}
-        </Space>
-        {job.error && <Alert type="error" showIcon message={job.error} />}
-
-        {!compact && job.history?.length > 0 && (
-          <Space wrap>
-            {job.history.map((entry) => (
-              <Tag key={entry.epoch}>
-                {t('trainEpochSummary', {
-                  epoch: entry.epoch,
-                  train: entry.trainLoss.toFixed(3),
-                  validation: entry.validationLoss == null ? '—' : entry.validationLoss.toFixed(3),
-                })}
-              </Tag>
-            ))}
-          </Space>
-        )}
-
-        {!compact && job.samples?.length > 0 && (
-          <Table
-            rowKey="source"
-            size="small"
-            pagination={false}
-            dataSource={job.samples}
-            columns={[
-              { title: t('translationSource'), dataIndex: 'source' },
-              { title: t('trainReference'), dataIndex: 'reference' },
-              { title: t('trainBefore'), dataIndex: 'before' },
-              { title: t('trainAfter'), dataIndex: 'after' },
-            ]}
-            scroll={{ x: 'max-content' }}
-          />
-        )}
-
-        {!compact && onnxCheck && (
-          onnxCheck.verified ? (
-            <Descriptions size="small" column={1} bordered>
-              <Descriptions.Item label={t('onnxCheckInput')}>{onnxCheck.input}</Descriptions.Item>
-              <Descriptions.Item label="ONNX">{onnxCheck.onnx}</Descriptions.Item>
-              <Descriptions.Item label="PyTorch">
-                {onnxCheck.pytorch}{' '}
-                <Tag color={onnxCheck.match ? 'green' : 'gold'}>{onnxCheck.match ? t('onnxCheckMatch') : t('onnxCheckDiffers')}</Tag>
-              </Descriptions.Item>
-            </Descriptions>
-          ) : <Alert type="info" showIcon message={onnxCheck.reason} />
-        )}
-
-        {!compact && job.log?.length > 0 && (
-          <Collapse
-            size="small"
-            items={[{
-              key: 'log',
-              label: t('trainLog', { count: job.log.length }),
-              children: (
-                <pre style={{ ...MONO, margin: 0, maxHeight: 260, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
-                  {job.log.join('\n')}
-                </pre>
-              ),
-            }]}
-          />
-        )}
-      </Space>
-    </Card>
-  );
-}
 
 function TestModal({ model, onClose }) {
   const { t } = useLanguage();
