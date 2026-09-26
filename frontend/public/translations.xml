@@ -988,4 +988,34 @@
   <text id="convertEta" en="about {time} left" es="quedan aprox. {time}" zh="约剩 {time}" jp="残り約 {time}" />
   <text id="convertFailed" en="The conversion failed" es="La conversion fallo" zh="转换失败" jp="変換に失敗しました" />
   <text id="convertDoneStats" en="{before} → {after} ({percent} of the original) in {time}" es="{before} → {after} ({percent} del original) en {time}" zh="{before} → {after}（原文件的 {percent}），用时 {time}" jp="{before} → {after}（元の {percent}）、所要 {time}" />
+  <text id="voiceTab" en="Voice recognition" es="Reconocimiento de voz" zh="语音识别" jp="音声認識" />
+  <text id="voiceTitle" en="Voice recognition (whisper.cpp)" es="Reconocimiento de voz (whisper.cpp)" zh="语音识别（whisper.cpp）" jp="音声認識（whisper.cpp）" />
+  <text id="voiceModel" en="Model" es="Modelo" zh="模型" jp="モデル" />
+  <text id="voiceLanguage" en="Spoken language" es="Idioma hablado" zh="语音语言" jp="話す言語" />
+  <text id="voiceAutoLanguage" en="Detect automatically" es="Detectar automaticamente" zh="自动检测" jp="自動検出" />
+  <text id="voiceTranslate" en="Translate to English" es="Traducir al ingles" zh="翻译成英语" jp="英語に翻訳" />
+  <text id="voiceEnglishOnly" en="English only" es="Solo ingles" zh="仅英语" jp="英語のみ" />
+  <text id="voiceMultilingual" en="multilingual" es="multilingue" zh="多语言" jp="多言語" />
+  <text id="voiceModeLive" en="Live" es="En vivo" zh="实时" jp="ライブ" />
+  <text id="voiceModeRecord" en="Record, then recognise" es="Grabar y luego reconocer" zh="录音后识别" jp="録音してから認識" />
+  <text id="voiceStart" en="Start speaking" es="Empezar a hablar" zh="开始说话" jp="話し始める" />
+  <text id="voiceStop" en="Stop" es="Detener" zh="停止" jp="停止" />
+  <text id="voiceChooseFile" en="Recognise a file" es="Reconocer un archivo" zh="识别文件" jp="ファイルを認識" />
+  <text id="voiceRecognising" en="Recognising ({count})…" es="Reconociendo ({count})…" zh="识别中（{count}）…" jp="認識中（{count}）…" />
+  <text id="voiceLiveHelp" en="Live: each phrase is recognised as soon as you pause, and added to the transcript." es="En vivo: cada frase se reconoce en cuanto haces una pausa y se anade a la transcripcion." zh="实时：每次停顿后立即识别该句并加入文字稿。" jp="ライブ：間を置くたびにその文を認識し、書き起こしに追加します。" />
+  <text id="voiceRecordHelp" en="Record: everything you say is recognised in one go when you press Stop." es="Grabar: todo lo que digas se reconoce de una vez al pulsar Detener." zh="录音：按下停止后一次性识别全部内容。" jp="録音：停止を押すと、話した内容をまとめて認識します。" />
+  <text id="voiceTranscript" en="Transcript" es="Transcripcion" zh="文字稿" jp="書き起こし" />
+  <text id="voiceTranscriptPlaceholder" en="What you say appears here. You can edit it." es="Lo que digas aparece aqui. Puedes editarlo." zh="你说的话会显示在这里，可以编辑。" jp="話した内容がここに表示されます。編集できます。" />
+  <text id="voiceCopy" en="Copy" es="Copiar" zh="复制" jp="コピー" />
+  <text id="voiceCopied" en="Copied." es="Copiado." zh="已复制。" jp="コピーしました。" />
+  <text id="voiceClear" en="Clear" es="Borrar" zh="清空" jp="クリア" />
+  <text id="voiceClips" en="Recognised clips" es="Fragmentos reconocidos" zh="已识别的片段" jp="認識したクリップ" />
+  <text id="voiceNoClips" en="Nothing recognised yet." es="Aun no se ha reconocido nada." zh="尚未识别任何内容。" jp="まだ何も認識していません。" />
+  <text id="voiceMicrophone" en="Microphone" es="Microfono" zh="麦克风" jp="マイク" />
+  <text id="voiceTook" en="{audio} of audio in {seconds} s" es="{audio} de audio en {seconds} s" zh="{audio} 音频，用时 {seconds} 秒" jp="{audio} の音声を {seconds} 秒で" />
+  <text id="voiceNothingHeard" en="No speech recognised." es="No se reconocio voz." zh="未识别到语音。" jp="音声を認識できませんでした。" />
+  <text id="voiceNoModels" en="No whisper.cpp models on the server" es="No hay modelos whisper.cpp en el servidor" zh="服务器上没有 whisper.cpp 模型" jp="サーバーに whisper.cpp モデルがありません" />
+  <text id="voiceNoModelsHelp" en="An administrator installs the engine and the ggml models once, on the server:" es="Un administrador instala el motor y los modelos ggml una vez, en el servidor:" zh="管理员需在服务器上安装一次引擎和 ggml 模型：" jp="管理者がサーバーにエンジンと ggml モデルを一度インストールします：" />
+  <text id="voiceEngineFailed" en="The whisper.cpp engine could not start" es="No se pudo iniciar el motor whisper.cpp" zh="无法启动 whisper.cpp 引擎" jp="whisper.cpp エンジンを起動できませんでした" />
+  <text id="voiceFileTooLong" en="That recording is too long (about 35 minutes at most)." es="La grabacion es demasiado larga (unos 35 minutos como maximo)." zh="录音太长（最长约 35 分钟）。" jp="録音が長すぎます（最大約 35 分）。" />
 </translations>

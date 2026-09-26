@@ -30,3 +30,8 @@ optimum[onnxruntime]
 # hold an Ultralytics enterprise licence. Speech to Text needs nothing extra:
 # Whisper comes with transformers.
 ultralytics>=8.4
+
+# Voice recognition on the Speech to Text page: whisper.cpp with the ggml
+# models (download_models.py ggml-tiny ggml-base …). Prebuilt wheels for
+# Windows, Linux and macOS; MIT licence.
+pywhispercpp

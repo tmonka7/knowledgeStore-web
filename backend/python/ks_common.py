@@ -7,6 +7,7 @@ log. A script that fails emits an "error" event and exits non-zero.
 """
 import json
 import os
+import re
 import sys
 import zipfile
 
@@ -87,6 +88,8 @@ def write_meta(model_dir, meta):
 
 
 WEIGHT_FILES = ("model.safetensors", "pytorch_model.bin")
+# The first bytes of a whisper.cpp model file (the uint32 0x67676d6c, little-endian).
+GGML_MAGIC = b"lmgg"
 
 # Bytes per element of the storage classes a legacy torch.save names.
 LEGACY_ELEMENT_SIZES = {
@@ -168,6 +171,8 @@ def weights_problem(path):
     - an older checkpoint (many Opus-MT ones) is a bare pickle stream whose
       index gives every tensor's size — see legacy_checkpoint_size — which is
       PyTorch's "unexpected EOF, expected N more bytes" when it falls short.
+    - a whisper.cpp model (ggml-*.bin) starts with "lmgg"; its length is
+      checked against the size recorded at download instead.
     """
     size = os.path.getsize(path)
     if path.endswith((".bin", ".pt")):
@@ -176,6 +181,9 @@ def weights_problem(path):
         if magic.startswith(b"PK"):
             if not zipfile.is_zipfile(path):
                 return f"cut off: its zip directory is missing ({size:,} bytes)"
+        elif magic == GGML_MAGIC:
+            if size < 1_000_000:
+                return f"cut off ({size:,} bytes)"
         elif magic.startswith(b"\x80"):
             expected = legacy_checkpoint_size(path)
             if expected == -1:
@@ -208,7 +216,7 @@ def model_problems(model_dir):
     names = set(os.listdir(model_dir)) if os.path.isdir(model_dir) else set()
     problems = []
     if not any(name in names or name.endswith(".pt") for name in WEIGHT_FILES) \
-            and not any(name.endswith(".pt") for name in names):
+            and not any(name.endswith(".pt") or re.fullmatch(r"ggml-.+\.bin", name) for name in names):
         problems.append("the weights file is missing")
     for name, size in expected.items():
         if name in names and os.path.getsize(os.path.join(model_dir, name)) != size:

@@ -1,7 +1,8 @@
 import { Alert, Tabs } from 'antd';
-import { EditOutlined, RocketOutlined } from '@ant-design/icons';
+import { AudioOutlined, EditOutlined, RocketOutlined } from '@ant-design/icons';
 import SpeechTrainingPanel from '../components/tts/SpeechTrainingPanel';
 import TtsDatasetTool from '../components/tts/TtsDatasetTool';
+import VoiceRecognition from '../components/tts/VoiceRecognition';
 import { useLanguage } from '../i18n';
 import { can } from '../permissions';
 
@@ -21,8 +22,13 @@ export default function TtsToolPage({ user }) {
       </div>
 
       <Tabs
-        defaultActiveKey="transcribe"
+        defaultActiveKey="recognize"
         items={[
+          {
+            key: 'recognize',
+            label: <span><AudioOutlined /> {t('voiceTab')}</span>,
+            children: <VoiceRecognition />,
+          },
           {
             key: 'transcribe',
             label: <span><EditOutlined /> {t('mlTranscribeTab')}</span>,

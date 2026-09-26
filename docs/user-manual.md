@@ -442,6 +442,41 @@ Hugging Face `Dataset`. The script sees the dataset as last saved, not unsaved
 edits. Output is shown when the script finishes. A script that runs past the
 server's time limit (5 minutes unless changed) is stopped.
 
+## 8d-2. Voice recognition
+
+**Tools → AI → Speech to Text → Voice recognition** turns speech into text
+with whisper.cpp on the server.
+
+1. Choose the **Model**. `ggml-tiny` is the fastest and `ggml-base` is more
+   accurate. The ones marked **English only** (`ggml-tiny.en`, `ggml-base.en`)
+   are a little better at English and know no other language.
+2. Choose the **Spoken language**, or leave it on **Detect automatically**.
+   **Translate to English** writes the English translation instead of the
+   original words.
+3. Pick how to listen:
+   - **Live**: press **Start speaking** and talk. Each phrase is recognised as
+     soon as you pause and added to the transcript while you carry on.
+   - **Record, then recognise**: everything you say until **Stop** is
+     recognised in one go.
+   - **Recognise a file**: an audio file (or the sound of a video) from your
+     computer.
+
+The browser asks for the microphone the first time; the page has to be opened
+over https (or on the server itself) for the microphone to work.
+
+The **Transcript** collects everything and can be edited. **Copy** it, or save
+it as **.txt**, or as **.srt** subtitles with the times of each sentence.
+**Recognised clips** lists each piece of audio with its text, the model and
+language, how long it took, and a player to listen to it again.
+
+If the page says no models are installed, an administrator runs, on the
+server:
+
+```
+pip install pywhispercpp
+python backend/python/download_models.py ggml-tiny ggml-base ggml-tiny.en
+```
+
 ## 8e. YOLO and Speech to Text: training on the server
 
 Both pages label data in the browser, as before: YOLO draws boxes or outlines

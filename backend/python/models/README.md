@@ -20,6 +20,24 @@ python backend/python/download_models.py yolo26n yolo26n-seg whisper-tiny
 python backend/python/download_models.py --list
 ```
 
+For Voice recognition on the Speech to Text page (whisper.cpp, MIT):
+
+```
+python backend/python/download_models.py ggml-tiny ggml-base ggml-tiny.en
+```
+
+| Model | Size | |
+| --- | --- | --- |
+| `ggml-tiny` | 75 MB | fastest; any language |
+| `ggml-tiny.en` | 75 MB | English only, a little more accurate than `ggml-tiny` on English |
+| `ggml-base` | 142 MB | better; any language |
+| `ggml-base.en` | 142 MB | English only |
+
+(`ggml-small` / `ggml-small.en`, 466 MB, also work.) They are whisper.cpp's
+own model files from `ggerganov/whisper.cpp` and are separate from the
+`whisper-*` models, which are for training. On a 16-thread CPU, `ggml-tiny`
+recognises 7 seconds of speech in about 0.6 s and `ggml-base` in about 1.8 s.
+
 `yolo26n` / `yolo26n-seg` are Ultralytics' detection and segmentation weights
 (about 6 MB each, AGPL-3.0; any other name such as `yolo11s` also works), for
 the YOLO page. `whisper-tiny` is OpenAI's Whisper speech-recognition model

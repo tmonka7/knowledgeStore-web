@@ -27,6 +27,7 @@ import {
   updateTranslationDataset,
 } from '../controllers/transformersController.js';
 import { mlHandlers } from '../controllers/mlController.js';
+import { recognizeSpeech, recognizeStatus } from '../controllers/recognizeController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 import { asyncRoute } from '../helpers/asyncRoute.js';
 
@@ -107,6 +108,17 @@ router.get('/tools/transformers/devices', ...transformersTrain, asyncRoute(train
 router.get('/tools/transformers/jobs', ...transformersTrain, asyncRoute(listTranslationJobs));
 router.get('/tools/transformers/jobs/:id', ...transformersTrain, asyncRoute(getTranslationJob));
 router.post('/tools/transformers/jobs/:id/cancel', ...transformersTrain, asyncRoute(cancelTranslationJob));
+
+/*
+ * Voice recognition with whisper.cpp (ggml models). Part of using the Speech
+ * to Text page, so 'tts:view' is enough; the worker takes one request at a
+ * time and turns the rest away once its queue is full. 64 MB of 16 kHz mono
+ * WAV is about 35 minutes of speech.
+ */
+const recognizeUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 64 * 1024 * 1024, files: 1 } });
+const speechView = [requireAuth, requirePermission('tts:view')];
+router.get('/tools/speech/recognize', ...speechView, asyncRoute(recognizeStatus));
+router.post('/tools/speech/recognize', ...speechView, recognizeUpload.single('audio'), asyncRoute(recognizeSpeech));
 
 /*
  * YOLO and Speech to Text: the same shape as the Transformers routes above,

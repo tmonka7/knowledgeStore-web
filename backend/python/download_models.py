@@ -26,6 +26,11 @@ Ultralytics weights name, e.g. "yolo11s") fetch detection / segmentation
 weights from Ultralytics' GitHub releases (AGPL-3.0), and "whisper-tiny" (or
 whisper-base, whisper-small) fetches OpenAI's Whisper speech-recognition model.
 
+For Voice recognition (whisper.cpp, run through pywhispercpp): "ggml-tiny",
+"ggml-tiny.en", "ggml-base", "ggml-base.en" (also ggml-small[.en]) fetch the
+whisper.cpp model files from ggerganov/whisper.cpp (MIT). The ".en" ones
+understand English only, a little better than the multilingual ones.
+
 Every file is checked against the size the hub reports, and an interrupted
 download resumes where it stopped. --verify checks the models already on disk
 (offline) — after copying the folder to another machine, for instance — and
@@ -58,6 +63,8 @@ SKIP = re.compile(r"(^\.|\.md$|^benchmark_|^flores_|tf_model\.h5$|flax_model\.ms
 MULTILINGUAL = {"m2m100": "facebook/m2m100_418M"}
 SPEECH = {name: f"openai/{name}" for name in ("whisper-tiny", "whisper-base", "whisper-small", "whisper-medium")}
 YOLO_NAME = re.compile(r"yolo[0-9a-z]*[nsmlx](-seg)?")
+GGML_REPO = "ggerganov/whisper.cpp"
+GGML_NAME = re.compile(r"ggml-(tiny|base|small|medium)(\.en)?")
 YOLO_RELEASES = "https://api.github.com/repos/ultralytics/assets/releases"
 
 
@@ -153,6 +160,8 @@ def download(spec):
     name, _, repo = spec.partition("=")
     if YOLO_NAME.fullmatch(name):
         return fetch_yolo(name)
+    if GGML_NAME.fullmatch(name):
+        return fetch_ggml(name)
     if name in SPEECH:
         return fetch_repo(SPEECH[name], task="speech")
     if name in MULTILINGUAL or name == "multi":
@@ -199,6 +208,43 @@ def fetch_yolo(name):
         "licence": "AGPL-3.0",
         "complete": True,
         "files": {f"{name}.pt": size},
+        "downloadedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
+
+
+def fetch_ggml(name):
+    """A whisper.cpp model: one ggml-*.bin file, for the Voice recognition tab."""
+    folder = os.path.join(BASE_DIR, name)
+    meta = read_meta(folder)
+    if meta.get("complete") and meta.get("files") and not model_problems(folder):
+        print(f"{name}: already downloaded and intact")
+        return
+    file = f"{name}.bin"
+    try:
+        size = dict(repo_files(GGML_REPO)).get(file)
+    except urllib.error.HTTPError as error:
+        raise SystemExit(f"{GGML_REPO}: HTTP {error.code}") from error
+    if size is None:
+        raise SystemExit(f"{file} is not in {HUB}/{GGML_REPO}. Try ggml-tiny, ggml-base, ggml-tiny.en or ggml-base.en.")
+    print(f"{name} -> {folder}")
+    os.makedirs(folder, exist_ok=True)
+    destination = os.path.join(folder, file)
+    if not (os.path.exists(destination) and os.path.getsize(destination) == size and not weights_problem(destination)):
+        fetch(GGML_REPO, file, destination, size)
+    size_name = name.split("-", 1)[1].split(".")[0]
+    write_meta(folder, {
+        **meta,
+        "id": name,
+        "kind": "base",
+        "task": "recognition",
+        "engine": "whisper.cpp",
+        "name": f"whisper.cpp {size_name}{' (English)' if name.endswith('.en') else ''}",
+        "file": file,
+        "englishOnly": name.endswith(".en"),
+        "repo": f"whisper.cpp:{name}",
+        "licence": "MIT",
+        "complete": True,
+        "files": {file: size},
         "downloadedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     })
 
@@ -270,6 +316,8 @@ def describe(meta):
         return f"yolo {meta.get('yoloTask', 'detect')}"
     if task == "speech":
         return f"speech {meta.get('language', 'any')}"
+    if task == "recognition":
+        return "whisper.cpp" + (" en" if meta.get("englishOnly") else "")
     if meta.get("multilingual") and not meta.get("source"):
         return f"{len(meta.get('languages', []))} languages"
     return f"{meta.get('source')}->{meta.get('target')}"
@@ -290,7 +338,7 @@ def verify(repair):
         # Downloads made before sizes were recorded: ask the hub, when it can
         # be reached, and record the answer so later checks work offline.
         if not problems and kind == "base" and not meta.get("files") and meta.get("repo") \
-                and not meta["repo"].startswith("ultralytics:"):
+                and not meta["repo"].startswith(("ultralytics:", "whisper.cpp:")):
             try:
                 sizes = {name: size for name, size in repo_files(meta["repo"]) if size is not None}
             except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError):
@@ -308,6 +356,9 @@ def verify(repair):
         if kind == "base" and str(meta.get("repo", "")).startswith("ultralytics:"):
             fetch_yolo(meta["repo"].split(":", 1)[1])
             damaged -= not model_problems(folder)
+        elif kind == "base" and str(meta.get("repo", "")).startswith("whisper.cpp:"):
+            fetch_ggml(meta["repo"].split(":", 1)[1])
+            damaged -= not model_problems(folder)
         elif kind == "base" and meta.get("repo"):
             fetch_repo(meta["repo"], meta.get("source"), meta.get("target"),
                        bool(meta.get("multilingual")) and meta.get("task") != "speech", meta.get("task", "translation"))
@@ -322,7 +373,8 @@ def verify(repair):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("pairs", nargs="*",
-                        help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, m2m100, yolo26n, yolo26n-seg, whisper-tiny")
+                        help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, m2m100, yolo26n, yolo26n-seg, whisper-tiny, "
+                             "ggml-tiny, ggml-base")
     parser.add_argument("--list", action="store_true", help="show the models already on disk")
     parser.add_argument("--verify", action="store_true", help="check the models on disk for damaged files")
     parser.add_argument("--repair", action="store_true", help="with --verify: re-download damaged files")
