@@ -47,7 +47,10 @@ const ICO_SIZES = [16, 32, 48, 64, 128, 256];
 /** ICO stores each side in one byte, and encodes 256 as 0. */
 const ICO_MAX = 256;
 
-const GIFENC_URL = '/gifenc/gifenc.esm.js';
+// Absolute (with origin) on purpose: in dev, Vite appends ?import to a
+// root-relative dynamic import, which makes it treat a /public file as source
+// and refuse to serve it. A full URL is passed through untouched.
+const GIFENC_URL = new URL('/gifenc/gifenc.esm.js', self.location.origin).href;
 
 /** What a browser uses for an <img> that declares no size of its own. */
 const SVG_FALLBACK = { width: 300, height: 150 };

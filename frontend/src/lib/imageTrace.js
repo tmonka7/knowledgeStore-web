@@ -20,7 +20,10 @@
  * says so rather than letting people discover it one 12MB file at a time.
  */
 
-const GIFENC_URL = '/gifenc/gifenc.esm.js';
+// Absolute (with origin) on purpose: in dev, Vite appends ?import to a
+// root-relative dynamic import, which makes it treat a /public file as source
+// and refuse to serve it. A full URL is passed through untouched.
+const GIFENC_URL = new URL('/gifenc/gifenc.esm.js', self.location.origin).href;
 
 /*
  * Tracing happens at this size at most, whatever the output size is.

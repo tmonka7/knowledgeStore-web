@@ -93,7 +93,10 @@ export const FLATTENS_ALPHA = new Set(['XRGB8888', 'RGB888', 'RGB565', 'RGB565_S
 /** Formats the ordered RGB565 dither applies to, matching upstream. */
 export const SUPPORTS_DITHER = new Set(['RGB565', 'RGB565_SWAPPED', 'RGB565A8', 'ARGB8565']);
 
-const GIFENC_URL = '/gifenc/gifenc.esm.js';
+// Absolute (with origin) on purpose: in dev, Vite appends ?import to a
+// root-relative dynamic import, which makes it treat a /public file as source
+// and refuse to serve it. A full URL is passed through untouched.
+const GIFENC_URL = new URL('/gifenc/gifenc.esm.js', self.location.origin).href;
 
 // 8x8 ordered-dither thresholds, copied verbatim from LVGLImage.py.
 const RED_THRESH = [
