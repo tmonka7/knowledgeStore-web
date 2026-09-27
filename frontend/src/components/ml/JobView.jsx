@@ -41,7 +41,10 @@ export default function JobView({ job, onCancel, compact = false, sampleColumns 
   const percent = job.status === 'succeeded'
     ? 100
     : progress?.totalSteps ? Math.floor((progress.step / progress.totalSteps) * 100) : 0;
-  const onnxCheck = job.kind === 'onnx' ? job.result?.check : null;
+  // ONNX and GGML exports both test-run the result against PyTorch on one clip.
+  const onnxCheck = job.kind === 'onnx' || job.kind === 'ggml' ? job.result?.check : null;
+  const kindTag = { train: [t('trainButton'), 'purple'], onnx: ['ONNX', 'cyan'], ggml: ['GGML', 'geekblue'] }[job.kind]
+    || [job.kind, 'default'];
 
   return (
     <Card
@@ -49,7 +52,7 @@ export default function JobView({ job, onCancel, compact = false, sampleColumns 
       type="inner"
       title={(
         <Space wrap>
-          <Tag color={job.kind === 'train' ? 'purple' : 'cyan'}>{job.kind === 'train' ? t('trainButton') : 'ONNX'}</Tag>
+          <Tag color={kindTag[1]}>{kindTag[0]}</Tag>
           <Text strong>{job.title}</Text>
           <Tag color={STATUS_COLOR[job.status]}>{t(`jobStatus_${job.status}`)}</Tag>
         </Space>
@@ -114,7 +117,7 @@ export default function JobView({ job, onCancel, compact = false, sampleColumns 
           onnxCheck.verified ? (
             <Descriptions size="small" column={1} bordered>
               <Descriptions.Item label={t('onnxCheckInput')}>{onnxCheck.input}</Descriptions.Item>
-              <Descriptions.Item label="ONNX">{onnxCheck.onnx}</Descriptions.Item>
+              <Descriptions.Item label={job.kind === 'ggml' ? 'whisper.cpp' : 'ONNX'}>{onnxCheck.converted ?? onnxCheck.onnx}</Descriptions.Item>
               <Descriptions.Item label="PyTorch">
                 {onnxCheck.pytorch}{' '}
                 <Tag color={onnxCheck.match ? 'green' : 'gold'}>{onnxCheck.match ? t('onnxCheckMatch') : t('onnxCheckDiffers')}</Tag>

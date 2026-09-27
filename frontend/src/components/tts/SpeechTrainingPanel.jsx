@@ -3,7 +3,9 @@ import {
   Alert, Button, Card, Col, Collapse, Empty, Input, InputNumber, List, Popconfirm, Row, Select, Space, Table,
   Tag, Tooltip, Typography,
 } from 'antd';
-import { DeleteOutlined, ReloadOutlined, RocketOutlined, UploadOutlined } from '@ant-design/icons';
+import {
+  CloudDownloadOutlined, DeleteOutlined, ReloadOutlined, RocketOutlined, SwapOutlined, UploadOutlined,
+} from '@ant-design/icons';
 import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
 import ModelActions from '../ml/ModelActions';
@@ -91,9 +93,15 @@ export default function SpeechTrainingPanel() {
     },
     {
       key: 'actions',
-      width: 280,
+      width: 420,
       render: (_, model) => (
-        <ModelActions model={model} area={area} busy={busyModelIds.has(model.id)} onTest={openTest} />
+        <ModelActions
+          model={model}
+          area={area}
+          busy={busyModelIds.has(model.id)}
+          onTest={openTest}
+          extra={<GgmlActions model={model} area={area} busy={busyModelIds.has(model.id)} />}
+        />
       ),
     },
   ];
@@ -276,6 +284,38 @@ export default function SpeechTrainingPanel() {
         />
       </Card>
     </Space>
+  );
+}
+
+const formatMb = (bytes) => `${Math.max(1, Math.round(bytes / 1e6))} MB`;
+
+/**
+ * Convert to a whisper.cpp ggml-*.bin, then download or delete it. The
+ * converted model also appears in the Voice recognition tab.
+ */
+function GgmlActions({ model, area, busy }) {
+  const { t } = useLanguage();
+  const copy = model.ggml;
+  return (
+    <>
+      {copy && (
+        <Tooltip title={formatMb(copy.bytes)}>
+          <Button size="small" icon={<CloudDownloadOutlined />} onClick={() => area.downloadGgml(model)}>GGML</Button>
+        </Tooltip>
+      )}
+      <Tooltip title={copy ? t('ggmlConvertAgain') : t('ggmlConvertHelp')}>
+        <Button size="small" icon={<SwapOutlined />} disabled={busy || area.running} onClick={() => area.convertGgml(model)}>
+          {copy ? '' : t('ggmlConvert')}
+        </Button>
+      </Tooltip>
+      {copy && (
+        <Popconfirm title={t('ggmlDelete')} onConfirm={() => area.removeGgml(model)} okButtonProps={{ danger: true }}>
+          <Tooltip title={t('ggmlDelete')}>
+            <Button size="small" icon={<DeleteOutlined />} disabled={busy}>GGML</Button>
+          </Tooltip>
+        </Popconfirm>
+      )}
+    </>
   );
 }
 

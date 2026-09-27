@@ -2,7 +2,8 @@ import {
   addFiles, createDataset, deleteDataset, getDataset, listDatasets, saveTranscripts, saveYoloLabels,
 } from '../helpers/mlDatasets.js';
 import {
-  startSpeechExport, startSpeechTraining, startYoloExport, startYoloTraining, transcribe, yoloPredict,
+  createGgmlTicket, deleteSpeechGgml, deleteSpeechModel, ggmlCopies, redeemGgmlTicket, startSpeechExport,
+  startSpeechGgml, startSpeechTraining, startYoloExport, startYoloTraining, transcribe, yoloPredict,
 } from '../helpers/mlJobs.js';
 import {
   JobError, cancelJob, createDownloadTicket, deleteModel, getJob, listJobs, listModels, probeDevices,
@@ -59,9 +60,16 @@ export const mlHandlers = (area) => {
       res.json({ dataset });
     },
 
-    listModels: async (req, res) => res.json({ models: await listModels(req.user.sub, task) }),
+    listModels: async (req, res) => {
+      const models = await listModels(req.user.sub, task);
+      if (area !== 'speech') return res.json({ models });
+      // Each speech model says whether (and how big) its whisper.cpp copy is.
+      const copies = await ggmlCopies(req.user.sub);
+      return res.json({ models: models.map((model) => ({ ...model, ggml: copies[model.id] || null })) });
+    },
     deleteModel: async (req, res) => {
-      await deleteModel(req.user.sub, req.params.id, task);
+      if (area === 'speech') await deleteSpeechModel(req.user.sub, req.params.id);
+      else await deleteModel(req.user.sub, req.params.id, task);
       res.json({ ok: true });
     },
     train: async (req, res) => {
@@ -95,4 +103,27 @@ export const mlHandlers = (area) => {
     getJob: (req, res) => res.json({ job: getJob(req.user.sub, req.params.id, task) }),
     cancelJob: (req, res) => res.json({ job: cancelJob(req.user.sub, req.params.id, task) }),
   };
+};
+
+/*
+ * whisper.cpp (ggml) copies of Speech to Text models, for Voice recognition.
+ * POST …/models/:id/ggml starts the conversion.
+ */
+export const ggmlHandlers = {
+  convert: async (req, res) => res.status(202).json({
+    job: await startSpeechGgml({ ownerId: req.user.sub, modelId: req.params.id }),
+  }),
+  link: async (req, res) => {
+    const ticket = await createGgmlTicket(req.user.sub, req.params.id);
+    res.json({ path: `/tools/speech/ggml-download/${ticket}` });
+  },
+  remove: async (req, res) => {
+    await deleteSpeechGgml(req.user.sub, req.params.id);
+    res.json({ ok: true });
+  },
+  /** No auth middleware: a plain browser download; the one-use ticket is the credential. */
+  download: async (req, res) => {
+    const file = redeemGgmlTicket(req.params.ticket);
+    res.download(file.path, file.name);
+  },
 };

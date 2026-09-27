@@ -26,7 +26,7 @@ import {
   translateWithModel,
   updateTranslationDataset,
 } from '../controllers/transformersController.js';
-import { mlHandlers } from '../controllers/mlController.js';
+import { ggmlHandlers, mlHandlers } from '../controllers/mlController.js';
 import { recognizeSpeech, recognizeStatus } from '../controllers/recognizeController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 import { asyncRoute } from '../helpers/asyncRoute.js';
@@ -155,6 +155,14 @@ for (const [area, permission] of [['yolo', 'yolo'], ['speech', 'tts']]) {
   router.get(`${base}/jobs`, ...train, asyncRoute(handlers.listJobs));
   router.get(`${base}/jobs/:id`, ...train, asyncRoute(handlers.getJob));
   router.post(`${base}/jobs/:id/cancel`, ...train, asyncRoute(handlers.cancelJob));
+
+  if (area === 'speech') {
+    // whisper.cpp (ggml-*.bin) copies of speech models, for Voice recognition.
+    router.post(`${base}/models/:id/ggml`, ...train, asyncRoute(ggmlHandlers.convert));
+    router.post(`${base}/models/:id/ggml/link`, ...train, asyncRoute(ggmlHandlers.link));
+    router.delete(`${base}/models/:id/ggml`, ...train, asyncRoute(ggmlHandlers.remove));
+    router.get(`${base}/ggml-download/:ticket`, asyncRoute(ggmlHandlers.download));
+  }
 }
 
 export default router;

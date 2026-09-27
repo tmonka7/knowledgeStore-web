@@ -103,6 +103,38 @@ export default function useMlArea(area, t) {
     }
   };
 
+  // Speech to Text only: a whisper.cpp (ggml-*.bin) copy for Voice recognition.
+  const convertGgml = async (model) => {
+    try {
+      const { data } = await api.post(`${base}/models/${model.id}/ggml`);
+      addJob(data.job);
+    } catch (error) {
+      message.error(error.response?.data?.message || t('ggmlFailedToStart'));
+    }
+  };
+
+  const downloadGgml = async (model) => {
+    try {
+      const { data } = await api.post(`${base}/models/${model.id}/ggml/link`);
+      const link = document.createElement('a');
+      link.href = `${api.defaults.baseURL.replace(/\/$/, '')}${data.path}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      message.error(error.response?.data?.message || t('onnxDownloadFailed'));
+    }
+  };
+
+  const removeGgml = async (model) => {
+    try {
+      await api.delete(`${base}/models/${model.id}/ggml`);
+      loadModels();
+    } catch (error) {
+      message.error(error.response?.data?.message || error.message);
+    }
+  };
+
   const removeModel = async (model) => {
     try {
       await api.delete(`${base}/models/${model.id}`);
@@ -149,5 +181,6 @@ export default function useMlArea(area, t) {
   return {
     models, jobs, datasets, loading, running, reload, loadDatasets,
     train, exportOnnx, downloadOnnx, removeModel, removeDataset, cancel, test,
+    convertGgml, downloadGgml, removeGgml,
   };
 }

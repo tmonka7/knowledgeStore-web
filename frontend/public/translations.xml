@@ -1018,4 +1018,9 @@
   <text id="voiceNoModelsHelp" en="An administrator installs the engine and the ggml models once, on the server:" es="Un administrador instala el motor y los modelos ggml una vez, en el servidor:" zh="管理员需在服务器上安装一次引擎和 ggml 模型：" jp="管理者がサーバーにエンジンと ggml モデルを一度インストールします：" />
   <text id="voiceEngineFailed" en="The whisper.cpp engine could not start" es="No se pudo iniciar el motor whisper.cpp" zh="无法启动 whisper.cpp 引擎" jp="whisper.cpp エンジンを起動できませんでした" />
   <text id="voiceFileTooLong" en="That recording is too long (about 35 minutes at most)." es="La grabacion es demasiado larga (unos 35 minutos como maximo)." zh="录音太长（最长约 35 分钟）。" jp="録音が長すぎます（最大約 35 分）。" />
+  <text id="ggmlConvert" en="GGML" es="GGML" zh="GGML" jp="GGML" />
+  <text id="ggmlConvertHelp" en="Convert to a whisper.cpp ggml .bin; it also appears under Voice recognition" es="Convertir a un .bin ggml de whisper.cpp; tambien aparece en Reconocimiento de voz" zh="转换为 whisper.cpp ggml .bin，也会出现在语音识别中" jp="whisper.cpp の ggml .bin に変換（音声認識にも表示されます）" />
+  <text id="ggmlConvertAgain" en="Convert to ggml again (replaces the copy)" es="Convertir a ggml de nuevo (reemplaza la copia)" zh="重新转换为 ggml（替换原副本）" jp="ggml に再変換（コピーを置き換え）" />
+  <text id="ggmlDelete" en="Delete the ggml copy" es="Borrar la copia ggml" zh="删除 ggml 副本" jp="ggml コピーを削除" />
+  <text id="ggmlFailedToStart" en="The ggml conversion could not be started." es="No se pudo iniciar la conversion a ggml." zh="无法开始 ggml 转换。" jp="ggml 変換を開始できませんでした。" />
 </translations>

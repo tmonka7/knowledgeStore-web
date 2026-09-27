@@ -12,7 +12,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { runProcess } from './pythonRunner.js';
 import {
-  JobError, MODELS_DIR, PYTHON_DIR, clampNumber, deviceArgs, findModel, pythonEnv, startJob,
+  JobError, MODELS_DIR, PYTHON_DIR, clampNumber, deleteModel, deviceArgs, findModel, listModels, pythonEnv, startJob,
 } from './translationJobs.js';
 import { datasetFolder, getDataset, sampleFile } from './mlDatasets.js';
 
@@ -76,22 +76,24 @@ const startTrainingJob = async ({ ownerId, task, kind, title, script, args, deta
   });
 };
 
+/** A file from the model's own dataset to test an export on, or null. */
+const sampleFor = async (ownerId, task, model) => {
+  if (!model.datasetId) return null;
+  const area = task === 'detection' ? 'yolo' : 'speech';
+  try {
+    return await sampleFile(await datasetFolder(ownerId, area, model.datasetId), area);
+  } catch {
+    return null; // The dataset was deleted since; export untested.
+  }
+};
+
 /** An ONNX export job for any model of `task`; tested on a dataset file when one is known. */
 const startExportJob = async ({ ownerId, task, modelId, script, extraArgs = [] }) => {
   const model = await findModel(ownerId, modelId, task);
   const onnxRoot = path.join(MODELS_DIR, 'onnx');
   const output = path.join(onnxRoot, `${model.id}.partial`);
   await fs.mkdir(onnxRoot, { recursive: true });
-
-  let sample = null;
-  if (model.datasetId) {
-    try {
-      sample = await sampleFile(await datasetFolder(ownerId, task === 'detection' ? 'yolo' : 'speech', model.datasetId),
-        task === 'detection' ? 'yolo' : 'speech');
-    } catch {
-      sample = null; // The dataset was deleted since; export untested.
-    }
-  }
+  const sample = await sampleFor(ownerId, task, model);
 
   return startJob({
     ownerId,
@@ -235,6 +237,119 @@ export const startSpeechTraining = async ({ ownerId, datasetId, baseModelId, nam
 export const startSpeechExport = ({ ownerId, modelId }) => startExportJob({
   ownerId, task: 'speech', modelId, script: 'speech_export.py',
 });
+
+/*
+ * whisper.cpp copies of Whisper models, for Voice recognition. A converted
+ * model is a model of its own (task "recognition", owned by whoever converted
+ * it, so it is listed in their Voice recognition tab) that remembers its
+ * source in `ggmlOf`. One per source model and owner: converting again
+ * replaces it.
+ */
+const GGML_FILE = 'ggml-model.bin';
+
+const ggmlIdFor = (model, ownerId) => (model.kind === 'finetuned' ? `${model.id}.ggml` : `${model.id}.ggml-${ownerId}`);
+
+/** { [source model id]: { id, bytes } } for the caller's converted models. */
+export const ggmlCopies = async (ownerId) => {
+  const copies = {};
+  for (const model of await listModels(ownerId, 'recognition')) {
+    if (model.ggmlOf) copies[model.ggmlOf] = { id: model.id, bytes: model.files?.[model.file] || 0 };
+  }
+  return copies;
+};
+
+/** Half precision only: whisper.cpp aborts on f32 convolution kernels (see speech_ggml.py). */
+export const startSpeechGgml = async ({ ownerId, modelId }) => {
+  const model = await findModel(ownerId, modelId, 'speech');
+  const id = ggmlIdFor(model, ownerId);
+  const root = path.join(MODELS_DIR, 'finetuned');
+  const partial = path.join(root, `${id}.partial`);
+  await fs.rm(partial, { recursive: true, force: true });
+  await fs.mkdir(partial, { recursive: true });
+  const sample = await sampleFor(ownerId, 'speech', model);
+
+  return startJob({
+    ownerId,
+    task: 'speech',
+    kind: 'ggml',
+    title: `GGML: ${model.name || model.id}`,
+    modelId: model.id,
+    details: {},
+    args: ['speech_ggml.py', '--model', model.folder, '--output', path.join(partial, GGML_FILE),
+      ...(sample ? ['--sample', sample] : [])],
+    finish: async (job) => {
+      const bytes = (await fs.stat(path.join(partial, GGML_FILE))).size;
+      await fs.writeFile(path.join(partial, 'ks-model.json'), JSON.stringify({
+        id,
+        kind: 'finetuned',
+        ownerId,
+        task: 'recognition',
+        engine: 'whisper.cpp',
+        name: `${model.name || model.id} (ggml)`,
+        file: GGML_FILE,
+        englishOnly: Boolean(job.result?.englishOnly),
+        language: model.language || null,
+        ggmlOf: model.id,
+        precision: 'f16',
+        files: { [GGML_FILE]: bytes },
+        complete: true,
+        createdAt: new Date().toISOString(),
+      }, null, 2));
+      const folder = path.join(root, id);
+      await fs.rm(folder, { recursive: true, force: true });
+      await fs.rename(partial, folder);
+    },
+    cleanup: async () => {
+      await fs.rm(partial, { recursive: true, force: true });
+    },
+  });
+};
+
+/** The caller's ggml copy of a speech model, or a 404. */
+const ggmlCopyOf = async (ownerId, modelId) => {
+  const source = await findModel(ownerId, modelId, 'speech');
+  try {
+    return { source, copy: await findModel(ownerId, ggmlIdFor(source, ownerId), 'recognition') };
+  } catch {
+    throw new JobError('This model has not been converted to ggml yet.', 404);
+  }
+};
+
+export const deleteSpeechGgml = async (ownerId, modelId) => {
+  const { copy } = await ggmlCopyOf(ownerId, modelId);
+  await deleteModel(ownerId, copy.id, 'recognition');
+};
+
+/** A deleted speech model takes its ggml copy with it. */
+export const deleteSpeechModel = async (ownerId, modelId) => {
+  const copy = await ggmlCopyOf(ownerId, modelId).then(({ copy: found }) => found, () => null);
+  await deleteModel(ownerId, modelId, 'speech');
+  if (copy) await deleteModel(ownerId, copy.id, 'recognition').catch(() => {});
+};
+
+// One-use links, as for the ONNX zips: the browser downloads the file natively.
+const GGML_TICKET_MS = 60 * 1000;
+const ggmlTickets = new Map();
+
+export const createGgmlTicket = async (ownerId, modelId) => {
+  const { source, copy } = await ggmlCopyOf(ownerId, modelId);
+  const ticket = randomUUID();
+  const slug = String(source.name || source.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'model';
+  ggmlTickets.set(ticket, {
+    path: path.join(copy.folder, copy.file || GGML_FILE),
+    name: `ggml-${slug}.bin`,
+    expires: Date.now() + GGML_TICKET_MS,
+  });
+  setTimeout(() => ggmlTickets.delete(ticket), GGML_TICKET_MS).unref?.();
+  return ticket;
+};
+
+export const redeemGgmlTicket = (ticket) => {
+  const entry = ggmlTickets.get(String(ticket || ''));
+  ggmlTickets.delete(String(ticket || ''));
+  if (!entry || entry.expires < Date.now()) throw new JobError('This download link has expired. Start the download again.', 410);
+  return entry;
+};
 
 export const transcribe = async ({ ownerId, modelId, uploads, language }) => {
   const model = await findModel(ownerId, modelId, 'speech');

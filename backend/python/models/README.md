@@ -38,6 +38,12 @@ own model files from `ggerganov/whisper.cpp` and are separate from the
 `whisper-*` models, which are for training. On a 16-thread CPU, `ggml-tiny`
 recognises 7 seconds of speech in about 0.6 s and `ggml-base` in about 1.8 s.
 
+A Whisper model trained on the Speech to Text page (or a `whisper-*` base
+model) can be turned into one of these files with its **GGML** button;
+`speech_ggml.py` does the conversion. For `openai/whisper-tiny` the result
+matches `ggml-tiny.bin` exactly (same tensors and size). Converted copies are
+stored in `finetuned/<model id>.ggml` and belong to the user who made them.
+
 `yolo26n` / `yolo26n-seg` are Ultralytics' detection and segmentation weights
 (about 6 MB each, AGPL-3.0; any other name such as `yolo11s` also works), for
 the YOLO page. `whisper-tiny` is OpenAI's Whisper speech-recognition model

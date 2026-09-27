@@ -516,6 +516,16 @@ the **Train** tab:
   YOLO; `encoder_model.onnx`, `decoder_model.onnx` and the processor files for
   Whisper. Each export is checked against the original model on a file from
   its dataset, and the result is shown.
+- **GGML** (Speech to Text only) converts the model to a whisper.cpp
+  `ggml-*.bin` file. The converted model appears straight away in the
+  **Voice recognition** tab's model list, named after the original with
+  "(ggml)", and the row gets a **GGML** download button (and a second
+  **GGML** button with a bin icon to delete the copy). Like ONNX export, it
+  transcribes a clip from the model's dataset with both the original and the
+  new file, and shows the two results. Converting again replaces the copy,
+  and deleting a model deletes its copy too. Base models such as
+  `whisper-tiny` can be converted as well; they have no dataset, so that test
+  is skipped. The file is half precision (f16), like whisper.cpp's own models.
 
 **Train on** chooses the device, on all three Train panels (Transformers
 too): **Automatic** uses the server's first NVIDIA GPU when there is one and

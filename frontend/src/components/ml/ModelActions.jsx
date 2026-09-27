@@ -5,8 +5,11 @@ import {
 import { useLanguage } from '../../i18n';
 import { formatBytes } from '../../lib/mlUpload';
 
-/** Test / ONNX export and download / delete, for one row of a models table. */
-export default function ModelActions({ model, area, busy, onTest }) {
+/**
+ * Test / ONNX export and download / delete, for one row of a models table.
+ * `extra` goes before the delete button (Speech to Text puts GGML there).
+ */
+export default function ModelActions({ model, area, busy, onTest, extra = null }) {
   const { t } = useLanguage();
   const exporting = busy || area.running;
 
@@ -23,6 +26,7 @@ export default function ModelActions({ model, area, busy, onTest }) {
           {model.onnxBytes ? '' : t('onnxExport')}
         </Button>
       </Tooltip>
+      {extra}
       {model.kind === 'finetuned' && (
         <Popconfirm title={t('trainDeleteModel')} onConfirm={() => area.removeModel(model)} okButtonProps={{ danger: true }}>
           <Button size="small" danger icon={<DeleteOutlined />} disabled={busy} />

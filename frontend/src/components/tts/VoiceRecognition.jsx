@@ -265,7 +265,7 @@ export default function VoiceRecognition() {
                 loading={!status}
                 options={models.map((item) => ({
                   value: item.id,
-                  label: `${item.id} · ${item.englishOnly ? t('voiceEnglishOnly') : t('voiceMultilingual')} · ${formatMb(item.bytes)}`,
+                  label: `${item.id.startsWith('ggml-') ? item.id : item.name} · ${item.englishOnly ? t('voiceEnglishOnly') : t('voiceMultilingual')} · ${formatMb(item.bytes)}`,
                 }))}
                 notFoundContent={t('voiceNoModels')}
               />
