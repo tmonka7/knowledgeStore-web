@@ -353,7 +353,7 @@ function SpeechTest({ model, compare, area }) {
   useEffect(() => () => results.forEach((row) => URL.revokeObjectURL(row.url)), [results]);
 
   const transcript = (text) => (text == null
-    ? <Text type="danger">{t('mlTestFailed')}</Text>
+    ? <Text type="danger">{t('mlTestFileFailed')}</Text>
     : text || <Text type="secondary">{t('pythonNoOutput')}</Text>);
 
   return (

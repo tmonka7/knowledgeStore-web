@@ -8,14 +8,17 @@ import { formatBytes } from '../../lib/mlUpload';
 /**
  * Test / ONNX export and download / delete, for one row of a models table.
  * `extra` goes before the delete button (Speech to Text puts GGML there).
+ * Without `onTest` there is no Test button; `deletable={false}` hides Delete.
  */
-export default function ModelActions({ model, area, busy, onTest, extra = null }) {
+export default function ModelActions({
+  model, area, busy, onTest, extra = null, deletable = true,
+}) {
   const { t } = useLanguage();
   const exporting = busy || area.running;
 
   return (
     <Space wrap>
-      <Button size="small" icon={<ExperimentOutlined />} onClick={() => onTest(model)}>{t('trainTest')}</Button>
+      {onTest && <Button size="small" icon={<ExperimentOutlined />} onClick={() => onTest(model)}>{t('trainTest')}</Button>}
       {model.onnxBytes ? (
         <Tooltip title={formatBytes(model.onnxBytes)}>
           <Button size="small" icon={<CloudDownloadOutlined />} onClick={() => area.downloadOnnx(model)}>ONNX</Button>
@@ -27,7 +30,7 @@ export default function ModelActions({ model, area, busy, onTest, extra = null }
         </Button>
       </Tooltip>
       {extra}
-      {model.kind === 'finetuned' && (
+      {deletable && model.kind === 'finetuned' && (
         <Popconfirm title={t('trainDeleteModel')} onConfirm={() => area.removeModel(model)} okButtonProps={{ danger: true }}>
           <Button size="small" danger icon={<DeleteOutlined />} disabled={busy} />
         </Popconfirm>

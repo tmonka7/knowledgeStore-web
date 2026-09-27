@@ -11,6 +11,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Speaker } from '../models/speakerModel.js';
 import { DATASETS_DIR } from './mlDatasets.js';
+import { startExportJob } from './mlJobs.js';
 import { createPythonWorker } from './pythonWorker.js';
 import { JobError, findModel, listModels } from './translationJobs.js';
 
@@ -79,6 +80,25 @@ export const speakerStatus = async (ownerId) => {
     maxSamples: MAX_SAMPLES,
   };
 };
+
+/** The speaker models this account may use, each with the size of its ONNX export (0 if none). */
+export const speakerModels = (ownerId) => listModels(ownerId, TASK);
+
+/** The caller's voice sample with the most speech, to test an ONNX export on; null if none. */
+const exportSample = async (ownerId) => {
+  const samples = (await Speaker.find({ ownerId })).flatMap((speaker) => speaker.samples)
+    .sort((a, b) => (b.speechSeconds || 0) - (a.speechSeconds || 0));
+  for (const sample of samples) {
+    const file = audioPath(ownerId, sample.id);
+    if (await fs.stat(file).then(() => true, () => false)) return file;
+  }
+  return null;
+};
+
+/** Export a speaker model to ONNX (speaker_export.py): a job, like the other exports. */
+export const startSpeakerExport = async ({ ownerId, modelId }) => startExportJob({
+  ownerId, task: TASK, modelId, script: 'speaker_export.py', sample: await exportSample(ownerId),
+});
 
 /** A clip's voiceprint: { embedding, seconds, speechSeconds, model }. */
 const embed = async (ownerId, audioPath, chosen = null) => {

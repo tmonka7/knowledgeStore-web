@@ -909,7 +909,7 @@
   <text id="mlTestModel" en="Model" es="Modelo" zh="模型" jp="モデル" />
   <text id="mlTestCompare" en="Compare with" es="Comparar con" zh="对比" jp="比較対象" />
   <text id="mlTestNoCompare" en="No comparison" es="Sin comparacion" zh="不对比" jp="比較しない" />
-  <text id="mlTestFailed" en="This model failed on this file." es="Este modelo fallo con este archivo." zh="该模型处理此文件失败。" jp="このモデルはこのファイルで失敗しました。" />
+  <text id="mlTestFileFailed" en="This model failed on this file." es="Este modelo fallo con este archivo." zh="该模型处理此文件失败。" jp="このモデルはこのファイルで失敗しました。" />
   <text id="speakerOneModel" en="Only one speaker model is on the server, so there is nothing to compare it with yet." es="Solo hay un modelo de hablantes en el servidor, asi que aun no hay con que compararlo." zh="服务器上只有一个说话人模型，暂时无可对比。" jp="サーバーには話者モデルが 1 つしかないため、まだ比較できません。" />
   <text id="convertApiUnreachable" en="Could not reach the conversion API." es="No se pudo contactar con la API de conversion." zh="无法连接转换 API。" jp="変換 API に接続できませんでした。" />
   <text id="convertAudioTab" en="Audio" es="Audio" zh="音频" jp="音声" />
@@ -1080,6 +1080,12 @@
   <text id="speakerIdentifying" en="Identifying ({count})…" es="Identificando ({count})…" zh="识别中（{count}）…" jp="識別中（{count}）…" />
   <text id="speakerLastHeard" en="Last heard" es="Ultimo en hablar" zh="最近说话" jp="直近の話者" />
   <text id="speakerLiveEmpty" en="Nothing heard yet." es="Aun no se ha oido nada." zh="尚未听到任何声音。" jp="まだ何も聞こえていません。" />
+  <text id="speakerModelsTab" en="Models" es="Modelos" zh="模型" jp="モデル" />
+  <text id="speakerModelsTitle" en="Speaker models" es="Modelos de hablantes" zh="说话人模型" jp="話者モデル" />
+  <text id="speakerArchitecture" en="Architecture" es="Arquitectura" zh="架构" jp="アーキテクチャ" />
+  <text id="speakerModelSize" en="Size" es="Tamano" zh="大小" jp="サイズ" />
+  <text id="speakerExports" en="Exports" es="Exportaciones" zh="导出" jp="エクスポート" />
+  <text id="speakerOnnxHelp" en="Export ONNX turns a model into one ONNX file that takes 16 kHz mono audio and returns its 192-number voiceprint, for use outside this app (onnxruntime in any language). The export is checked against the original on one of your voice samples; the zip's README explains how to compare voiceprints." es="Exportar ONNX convierte un modelo en un archivo ONNX que recibe audio mono de 16 kHz y devuelve su huella de voz de 192 numeros, para usarlo fuera de esta aplicacion (onnxruntime en cualquier lenguaje). La exportacion se comprueba con el original en una de tus muestras de voz; el README del zip explica como comparar huellas." zh="导出 ONNX 会把模型转换为一个 ONNX 文件：输入 16 kHz 单声道音频，输出 192 维声纹，可在本应用之外使用（任意语言的 onnxruntime）。导出结果会用你的一个语音样本与原模型对比检查；zip 中的 README 说明如何比较声纹。" jp="ONNX エクスポートは、16 kHz モノラル音声を受け取り 192 次元の声紋を返す 1 つの ONNX ファイルにモデルを変換します。このアプリの外（各言語の onnxruntime）で使えます。エクスポートはあなたの音声サンプルの 1 つで元のモデルと照合され、zip 内の README に声紋の比較方法があります。" />
   <text id="speakerNoModel" en="The speaker model is not installed on the server" es="El modelo de hablantes no esta instalado en el servidor" zh="服务器上未安装说话人模型" jp="サーバーに話者モデルがインストールされていません" />
   <text id="speakerNoModelHelp" en="An administrator installs SpeechBrain and the ECAPA-TDNN model once, on the server:" es="Un administrador instala SpeechBrain y el modelo ECAPA-TDNN una vez, en el servidor:" zh="管理员需在服务器上安装一次 SpeechBrain 和 ECAPA-TDNN 模型：" jp="管理者がサーバーに SpeechBrain と ECAPA-TDNN モデルを一度インストールします：" />
   <text id="speakerEngineFailed" en="Speaker recognition could not start" es="No se pudo iniciar el reconocimiento de hablante" zh="无法启动说话人识别" jp="話者認識を開始できませんでした" />

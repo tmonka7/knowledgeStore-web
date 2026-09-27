@@ -20,8 +20,11 @@ numpy
 # ONNX export. Without optimum the export falls back to torch.onnx; without
 # onnxruntime the exported model is written but not test-run. onnxslim tidies
 # YOLO exports (Ultralytics would otherwise try to pip-install it offline).
+# onnxscript powers PyTorch's newer exporter, which the speaker (ECAPA)
+# export needs to fit the filterbank into the graph.
 onnx
 onnxruntime
+onnxscript
 onnxslim
 optimum[onnxruntime]
 

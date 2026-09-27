@@ -87,13 +87,16 @@ const sampleFor = async (ownerId, task, model) => {
   }
 };
 
-/** An ONNX export job for any model of `task`; tested on a dataset file when one is known. */
-const startExportJob = async ({ ownerId, task, modelId, script, extraArgs = [] }) => {
+/**
+ * An ONNX export job for any model of `task`; tested on `sample`, else on a
+ * file of the model's dataset when one is known.
+ */
+export const startExportJob = async ({ ownerId, task, modelId, script, extraArgs = [], sample: given = null }) => {
   const model = await findModel(ownerId, modelId, task);
   const onnxRoot = path.join(MODELS_DIR, 'onnx');
   const output = path.join(onnxRoot, `${model.id}.partial`);
   await fs.mkdir(onnxRoot, { recursive: true });
-  const sample = await sampleFor(ownerId, task, model);
+  const sample = given || await sampleFor(ownerId, task, model);
 
   return startJob({
     ownerId,

@@ -1,7 +1,10 @@
 import { Alert, Button, Tabs, Typography } from 'antd';
-import { AudioOutlined, ReloadOutlined, SearchOutlined, TeamOutlined } from '@ant-design/icons';
+import {
+  AudioOutlined, AppstoreOutlined, ReloadOutlined, SearchOutlined, TeamOutlined,
+} from '@ant-design/icons';
 import IdentifyPanel from '../components/speaker/IdentifyPanel';
 import LivePanel from '../components/speaker/LivePanel';
+import ModelsPanel from '../components/speaker/ModelsPanel';
 import SpeakersPanel from '../components/speaker/SpeakersPanel';
 import useSpeakers from '../components/speaker/useSpeakers';
 import { MONO } from '../components/ml/JobView';
@@ -55,6 +58,7 @@ export default function SpeakerToolPage() {
           { key: 'speakers', label: <span><TeamOutlined /> {t('speakerSpeakers')}</span>, children: <SpeakersPanel area={area} /> },
           { key: 'identify', label: <span><SearchOutlined /> {t('speakerIdentifyTab')}</span>, children: <IdentifyPanel area={area} /> },
           { key: 'live', label: <span><AudioOutlined /> {t('speakerLiveTab')}</span>, children: <LivePanel area={area} /> },
+          { key: 'models', label: <span><AppstoreOutlined /> {t('speakerModelsTab')}</span>, children: <ModelsPanel /> },
         ]}
       />
     </div>

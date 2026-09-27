@@ -245,6 +245,10 @@ export const startJob = ({
   if (running.some((job) => job.ownerId === ownerId)) {
     throw new JobError('You already have a training or export job running.', 429);
   }
+  // A base model's export is shared by every account and written to one place.
+  if (modelId && running.some((job) => job.modelId === modelId && job.kind === kind)) {
+    throw new JobError('Someone is exporting that model right now. Try again when it finishes.', 409);
+  }
   if (running.length >= MAX_JOBS) {
     throw new JobError('The server is busy with another training or export job. Try again when it finishes.', 429);
   }

@@ -511,6 +511,17 @@ model.
 soon as there is a pause, building a list of who spoke when, and the totals
 show how long each person talked.
 
+**Models.** Lists the speaker models on the server. **Export ONNX** turns one
+into a single ONNX file, `ecapa.onnx`, that takes 16 kHz mono audio and
+returns its 192-number voiceprint, for use outside the app with onnxruntime
+in any language. The export takes about half a minute; the export's card
+shows how it compares with the original on one of your voice samples (or a
+test sound if you have none). Then **ONNX** downloads a zip with the model
+and a README that explains the silence trimming and how to compare
+voiceprints. If the server's PyTorch is too old to put the filterbank inside
+the graph, the file is `ecapa_fbank.onnx` instead, and takes filterbank
+features; the README says how to compute them.
+
 Silences are ignored, so pauses in a recording do not matter; a clip with
 less than a second of speech is refused. If the page says the model is not
 installed, an administrator runs, on the server:

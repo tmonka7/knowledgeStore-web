@@ -10,25 +10,18 @@ Protocol, one JSON object per line:
       {"id": "...", "ok": false, "error": "..."}
 The first line out is {"ready": true, ...} or {"fatal": "..."}.
 
-The model is built from its hyperparams.yaml and embedding_model.ckpt
-directly. SpeechBrain's own loader (EncoderClassifier.from_hparams) asks the
-Hugging Face Hub for the files even when given a local folder, so it fails
-offline; this gives the identical embedding (checked: max difference 0.0)
-without the network.
+The model is built offline by speaker_common.load_ecapa.
 """
 import json
 import os
 import sys
 import time
-import wave
 
 REPLY = os.fdopen(os.dup(1), "w", encoding="utf-8", buffering=1)
 os.dup2(2, 1)
 sys.stdout = sys.stderr
 
-SAMPLE_RATE = 16000
-MAX_SECONDS = 120
-FRAME = 480  # 30 ms
+from speaker_common import SAMPLE_RATE, load_ecapa, read_wav, speech_only  # noqa: E402  (after the redirect)
 
 
 def reply(message):
@@ -36,62 +29,11 @@ def reply(message):
     REPLY.flush()
 
 
-def read_wav(path):
-    """A PCM WAV as mono float32 at 16 kHz (the page sends exactly that)."""
-    import numpy as np
-
-    try:
-        with wave.open(path, "rb") as handle:
-            channels, width, rate = handle.getnchannels(), handle.getsampwidth(), handle.getframerate()
-            frames = handle.readframes(handle.getnframes())
-    except (wave.Error, EOFError) as error:
-        raise ValueError(f"not a PCM WAV file ({str(error) or 'it is cut short'})") from error
-    if width == 2:
-        audio = np.frombuffer(frames, dtype="<i2").astype(np.float32) / 32768
-    elif width == 4:
-        audio = np.frombuffer(frames, dtype="<i4").astype(np.float32) / 2147483648
-    else:
-        raise ValueError(f"{width * 8}-bit WAV is not supported; send 16-bit PCM")
-    if channels > 1:
-        audio = audio.reshape(-1, channels).mean(axis=1)
-    if rate != SAMPLE_RATE and audio.size:
-        length = int(round(audio.size * SAMPLE_RATE / rate))
-        audio = np.interp(np.linspace(0, audio.size - 1, length), np.arange(audio.size), audio).astype(np.float32)
-    return audio[: MAX_SECONDS * SAMPLE_RATE]
-
-
-def speech_only(audio):
-    """The clip without its silent stretches, and how much speech that left.
-
-    A voiceprint of a clip that is half silence is half a voiceprint of the
-    room. 30 ms frames count as speech when they are within 30 dB of the
-    loudest part; gaps shorter than 0.3 s are kept so words are not chopped.
-    """
-    import numpy as np
-
-    frames = audio.size // FRAME
-    if frames == 0:
-        return audio, 0.0
-    energy = np.sqrt((audio[: frames * FRAME].reshape(frames, FRAME) ** 2).mean(axis=1) + 1e-12)
-    loud = energy > max(energy.max() * 10 ** (-30 / 20), 1e-3)
-    keep = loud.copy()
-    bridge = int(0.3 * SAMPLE_RATE / FRAME)
-    last = None
-    for index in np.flatnonzero(loud):
-        if last is not None and 1 < index - last <= bridge:
-            keep[last:index] = True
-        last = index
-    if not keep.any():
-        return audio[:0], 0.0
-    voiced = audio[: frames * FRAME].reshape(frames, FRAME)[keep].reshape(-1)
-    return voiced, float(loud.sum() * FRAME / SAMPLE_RATE)
-
-
 def main():
     try:
         import numpy as np  # noqa: F401
         import torch
-        from hyperpyyaml import load_hyperpyyaml
+        import hyperpyyaml  # noqa: F401
     except ImportError as error:
         reply({"fatal": f"Speaker recognition needs SpeechBrain for {sys.executable} ({error}). "
                         "Run: pip install speechbrain"})
@@ -101,16 +43,11 @@ def main():
     loaded = {}
 
     def model_for(folder):
-        if folder in loaded:
-            return loaded[folder]
-        with open(os.path.join(folder, "hyperparams.yaml"), encoding="utf-8") as handle:
-            # pretrained_path pointed at the local folder: nothing is fetched.
-            hparams = load_hyperpyyaml(handle, overrides={"pretrained_path": folder.replace("\\", "/")})
-        embedding = hparams["embedding_model"]
-        embedding.load_state_dict(torch.load(os.path.join(folder, "embedding_model.ckpt"), map_location="cpu"))
-        embedding.eval()
-        loaded.clear()  # One speaker model at a time is plenty.
-        loaded[folder] = (hparams["compute_features"], hparams["mean_var_norm"], embedding)
+        if folder not in loaded:
+            # Two at a time: enough to compare a fine-tuned model with its base.
+            while len(loaded) >= 2:
+                loaded.pop(next(iter(loaded)))
+            loaded[folder] = load_ecapa(folder)
         return loaded[folder]
 
     reply({"ready": True, "python": sys.version.split()[0], "torch": torch.__version__})

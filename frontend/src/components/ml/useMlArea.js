@@ -6,12 +6,13 @@ const POLL_MS = 2000;
 
 /**
  * Models, jobs and datasets for one training area ('yolo' or 'speech'), and
- * the actions on them — the API under /tools/<area>/.
+ * the actions on them — the API under /tools/<area>/. Speaker recognition
+ * uses it for its models and exports only: `{ datasets: false }`.
  *
  * Jobs are polled only while one is running, and the model list is reloaded
  * when a job finishes, since that is when a new model or export appears.
  */
-export default function useMlArea(area, t) {
+export default function useMlArea(area, t, { datasets: withDatasets = true } = {}) {
   const base = `/tools/${area}`;
   const [models, setModels] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -51,8 +52,8 @@ export default function useMlArea(area, t) {
   const reload = useCallback(() => {
     loadModels();
     loadJobs();
-    loadDatasets();
-  }, [loadModels, loadJobs, loadDatasets]);
+    if (withDatasets) loadDatasets();
+  }, [loadModels, loadJobs, loadDatasets, withDatasets]);
 
   useEffect(() => { reload(); }, [reload]);
 

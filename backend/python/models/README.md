@@ -33,6 +33,13 @@ server loads it from `hyperparams.yaml` and `embedding_model.ckpt` directly,
 because SpeechBrain's own loader contacts the Hugging Face Hub even for a
 local folder; the voiceprints are identical.
 
+The Models tab exports it to ONNX with `speaker_export.py` into
+`models/onnx/<id>/` and `<id>.zip`: one graph from audio to voiceprint
+(`ecapa.onnx`, about 84 MB). That needs PyTorch's newer exporter (the
+`onnxscript` package), because the filterbank's STFT cannot go through the
+older one; without it the graph starts from filterbank features instead
+(`ecapa_fbank.onnx`).
+
 For Voice recognition on the Speech to Text page (whisper.cpp, MIT):
 
 ```

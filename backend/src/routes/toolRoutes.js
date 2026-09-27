@@ -137,6 +137,12 @@ router.post('/tools/speaker/speakers/:id/samples', ...speakerView, speakerUpload
 router.delete('/tools/speaker/speakers/:id/samples/:sampleId', ...speakerView, asyncRoute(speaker.removeSample));
 router.get('/tools/speaker/samples/:sampleId/audio', ...speakerView, asyncRoute(speaker.playSample));
 router.post('/tools/speaker/identify', ...speakerView, speakerUpload.single('audio'), asyncRoute(speaker.recognise));
+router.get('/tools/speaker/models', ...speakerView, asyncRoute(speaker.models));
+router.post('/tools/speaker/models/:id/onnx', ...speakerView, asyncRoute(speaker.exportOnnx));
+router.post('/tools/speaker/models/:id/onnx/link', ...speakerView, asyncRoute(speaker.onnxLink));
+router.get('/tools/speaker/jobs', ...speakerView, asyncRoute(speaker.jobs));
+router.get('/tools/speaker/jobs/:id', ...speakerView, asyncRoute(speaker.job));
+router.post('/tools/speaker/jobs/:id/cancel', ...speakerView, asyncRoute(speaker.cancel));
 
 /*
  * YOLO and Speech to Text: the same shape as the Transformers routes above,

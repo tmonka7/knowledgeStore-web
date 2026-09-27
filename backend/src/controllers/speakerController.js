@@ -2,10 +2,12 @@
 
 import fs from 'node:fs/promises';
 import {
-  addSample, createSpeaker, deleteSample, deleteSpeaker, identify, listSpeakers, sampleAudio, speakerStatus,
-  updateSpeaker,
+  TASK, addSample, createSpeaker, deleteSample, deleteSpeaker, identify, listSpeakers, sampleAudio, speakerModels,
+  speakerStatus, startSpeakerExport, updateSpeaker,
 } from '../helpers/speakerRecognition.js';
-import { JobError } from '../helpers/translationJobs.js';
+import {
+  JobError, cancelJob, createDownloadTicket, getJob, listJobs,
+} from '../helpers/translationJobs.js';
 
 /** Run `work` on the uploaded clip, then remove it unless `work` moved it. */
 const withClip = async (req, work) => {
@@ -52,3 +54,21 @@ export const recognise = async (req, res) => res.json(await withClip(req, (file)
   speakerId: req.body?.speakerId || undefined,
   modelId: req.body?.modelId || undefined,
 })));
+
+/* ONNX export of a speaker model: the same job and download flow as the Train tabs. */
+
+export const models = async (req, res) => res.json({ models: await speakerModels(req.user.sub) });
+
+export const exportOnnx = async (req, res) => res.status(202).json({
+  job: await startSpeakerExport({ ownerId: req.user.sub, modelId: req.params.id }),
+});
+
+/** POST …/models/:id/onnx/link — a one-use, one-minute URL for the zip. */
+export const onnxLink = async (req, res) => {
+  const ticket = await createDownloadTicket(req.user.sub, req.params.id, TASK);
+  res.json({ path: `/tools/transformers/onnx-download/${ticket}` });
+};
+
+export const jobs = (req, res) => res.json({ jobs: listJobs(req.user.sub, TASK) });
+export const job = (req, res) => res.json({ job: getJob(req.user.sub, req.params.id, TASK) });
+export const cancel = (req, res) => res.json({ job: cancelJob(req.user.sub, req.params.id, TASK) });
