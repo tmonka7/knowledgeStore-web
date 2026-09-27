@@ -5,6 +5,9 @@ import { DEFAULT_USER_PERMISSIONS, sanitizePermissions } from '../helpers/permis
 import { USER_GENDERS } from '../helpers/userProfile.js';
 import { ACCOUNT_STATUSES, DEFAULT_ACCOUNT_STATUS } from '../helpers/accountStatus.js';
 
+// Mirrors PRESENCE_CHOICES in helpers/presence.js, which imports this model.
+const PRESENCE_CHOICES = ['auto', 'busy', 'away', 'invisible'];
+
 const userSchema = new mongoose.Schema({
   id: { type: String, unique: true, required: true, default: () => randomUUID() },
   username: { type: String, required: true, unique: true, lowercase: true, trim: true },
@@ -17,6 +20,16 @@ const userSchema = new mongoose.Schema({
   // helpers/accountStatusBackfill.js — without that they would all read as
   // 'pending' and everybody would be locked out by an upgrade.
   status: { type: String, enum: ACCOUNT_STATUSES, default: DEFAULT_ACCOUNT_STATUS, index: true },
+  // Why an administrator blocked (denied) the account, shown to its owner
+  // when they are signed out and when they try to sign in; who did it, and
+  // when. Cleared when the account is allowed again.
+  blockReason: { type: String, default: '', trim: true, maxlength: 300 },
+  blockedAt: { type: Date, default: null },
+  blockedBy: { type: String, default: '' },
+  // Connection status (helpers/presence.js): what the owner chose to show —
+  // 'auto' follows whether the app is open — and when it was last open.
+  presence: { type: String, enum: PRESENCE_CHOICES, default: 'auto' },
+  lastSeenAt: { type: Date, default: null },
   // Personal details. All optional: an account is usable without any of them,
   // and '' is the stored form of "not given" so a read never has to cope with
   // both undefined and null. `birthday` is a 'YYYY-MM-DD' string rather than a

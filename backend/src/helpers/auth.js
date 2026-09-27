@@ -12,6 +12,11 @@ export const sanitizeUser = (user) => ({
   fullName: user.fullName,
   role: user.role,
   status: user.status || 'pending',
+  blockReason: user.blockReason || '',
+  blockedAt: user.blockedAt || null,
+  blockedBy: user.blockedBy || '',
+  presence: user.presence || 'auto',
+  lastSeenAt: user.lastSeenAt || null,
   gender: user.gender || '',
   birthday: user.birthday || '',
   phone: user.phone || '',
@@ -67,7 +72,7 @@ export const requireAuth = async (req, res, next) => {
       // `accountStatus` lets the browser sign the person out and say which of
       // the two it was instead of showing a generic failure.
       return res.status(403).json({
-        message: statusRefusal(account.status),
+        message: statusRefusal(account.status, account.blockReason),
         accountStatus: account.status,
       });
     }

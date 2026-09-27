@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Checkbox, DatePicker, Form, Input, Modal, Select, Table, Tooltip, Typography, message } from 'antd';
 import dayjs from 'dayjs';
+import PresenceDot, { usePresenceLabel } from '../components/PresenceDot';
+import { usePresence } from '../lib/presence';
 import {
   AppstoreFilled,
   CameraFilled,
@@ -336,10 +338,64 @@ export default function UsersPage({
     }
   };
 
-  const changeStatus = async (record, status) => {
+  const connections = usePresence().people;
+  const presenceLabel = usePresenceLabel();
+
+  const changeStatus = async (record, status, reason = '') => {
     setBusyId(record.id);
-    await handleSetUserStatus?.(record.id, status);
+    await handleSetUserStatus?.(record.id, status, reason);
     setBusyId('');
+  };
+
+  /*
+   * Blocking an account that is in use: asked, with an optional reason the
+   * person is shown when they are signed out (within seconds, wherever they
+   * are signed in) and when they try to sign in again.
+   */
+  const confirmBlock = (record) => {
+    let reason = '';
+    const connected = connections[record.id]?.connected;
+    Modal.confirm({
+      title: t('blockUserTitle', { name: record.fullName }),
+      icon: <ExclamationCircleFilled />,
+      content: (
+        <div>
+          <p>{connected ? t('blockUserConnected') : t('blockUserText')}</p>
+          <Input.TextArea
+            maxLength={300}
+            showCount
+            autoSize={{ minRows: 2, maxRows: 4 }}
+            placeholder={t('blockReasonPlaceholder')}
+            style={{ marginBottom: 20 }}
+            onChange={(event) => { reason = event.target.value; }}
+          />
+        </div>
+      ),
+      okText: t('blockUser'),
+      okButtonProps: { danger: true },
+      cancelText: t('cancel'),
+      onOk: () => changeStatus(record, 'denied', reason.trim()),
+    });
+  };
+
+  const connectionColumn = {
+    title: t('connection'),
+    key: 'connection',
+    width: 190,
+    render: (_, record) => {
+      if ((record.status || 'pending') !== 'allowed') return <span className="vision-cell-muted">—</span>;
+      const presence = connections[record.id];
+      // Administrators see through "appear offline": whether someone is really there.
+      const hidden = presence?.connected && presence.state === 'offline';
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <PresenceDot presence={hidden ? { state: 'online' } : presence} />
+          <span>
+            {hidden ? t('presenceHidden') : presenceLabel(presence)}
+          </span>
+        </span>
+      );
+    },
   };
 
   /*
@@ -412,12 +468,28 @@ export default function UsersPage({
   const columns = isAdmin
     ? [
       ...userTableColumns,
+      connectionColumn,
       {
         title: t('status'),
         key: 'status',
         width: 120,
         render: (_, record) => {
           const status = record.status || 'pending';
+          // A blocked account: who blocked it, when, and why, on hover.
+          if (status === 'denied' && record.blockedAt) {
+            return (
+              <Tooltip
+                title={(
+                  <div>
+                    <div>{t('blockedBy', { name: record.blockedBy || '?', date: dayjs(record.blockedAt).format('YYYY-MM-DD HH:mm') })}</div>
+                    {record.blockReason && <div>{t('blockReasonShown', { reason: record.blockReason })}</div>}
+                  </div>
+                )}
+              >
+                <span><StatusBadge tone="red">{t('blocked')}</StatusBadge></span>
+              </Tooltip>
+            );
+          }
           return (
             <StatusBadge tone={STATUS_TONE[status]} dot={status === 'pending'}>
               {STATUS_LABEL[status]}
@@ -450,9 +522,9 @@ export default function UsersPage({
                     style={{ minWidth: 92 }}
                     loading={busyId === record.id}
                     onClick={() => changeStatus(record, 'allowed')}
-                    aria-label={`${t('allow')} ${record.fullName}`}
+                    aria-label={`${record.blockedAt ? t('unblockUser') : t('allow')} ${record.fullName}`}
                   >
-                    {t('allow')}
+                    {record.blockedAt ? t('unblockUser') : t('allow')}
                   </Button>
                 </Tooltip>
               )}
@@ -461,16 +533,17 @@ export default function UsersPage({
                    API blocks it either way, and offering a button that can
                    only fail is not a choice. */
                 !self && (
-                  <Tooltip title={t('refuseThisAccountAccess')}>
+                  // Pending: deny the request. Allowed: block an account in use, with a reason.
+                  <Tooltip title={status === 'allowed' ? t('blockUserTip') : t('refuseThisAccountAccess')}>
                     <Button
                       size="middle"
                       danger
                       style={{ minWidth: 92 }}
                       loading={busyId === record.id}
-                      onClick={() => changeStatus(record, 'denied')}
-                      aria-label={`${t('deny')} ${record.fullName}`}
+                      onClick={() => (status === 'allowed' ? confirmBlock(record) : changeStatus(record, 'denied'))}
+                      aria-label={`${status === 'allowed' ? t('blockUser') : t('deny')} ${record.fullName}`}
                     >
-                      {t('deny')}
+                      {status === 'allowed' ? t('blockUser') : t('deny')}
                     </Button>
                   </Tooltip>
                 )
@@ -500,7 +573,7 @@ export default function UsersPage({
         },
       },
     ]
-    : userTableColumns;
+    : [...userTableColumns, connectionColumn];
 
   return (
     <div className="vision-page">

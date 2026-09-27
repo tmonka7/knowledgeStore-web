@@ -28,6 +28,7 @@ import {
 } from '../controllers/transformersController.js';
 import { ggmlHandlers, mlHandlers } from '../controllers/mlController.js';
 import { recognizeSpeech, recognizeStatus } from '../controllers/recognizeController.js';
+import { synthesizeSpeech, synthesizeStatus } from '../controllers/synthesizeController.js';
 import * as speaker from '../controllers/speakerController.js';
 import * as ocr from '../controllers/ocrController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
@@ -121,6 +122,15 @@ const recognizeUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 64 * 102
 const speechView = [requireAuth, requirePermission('tts:view')];
 router.get('/tools/speech/recognize', ...speechView, asyncRoute(recognizeStatus));
 router.post('/tools/speech/recognize', ...speechView, recognizeUpload.single('audio'), asyncRoute(recognizeSpeech));
+
+/*
+ * Text to Speech (Supertonic). Its own page and permission,
+ * 'text-to-speech:view'. Nothing is kept: the WAV is written, sent and
+ * deleted within the request. The text comes as JSON, within the 3 MB limit.
+ */
+const synthesisView = [requireAuth, requirePermission('text-to-speech:view')];
+router.get('/tools/speech/synthesize', ...synthesisView, asyncRoute(synthesizeStatus));
+router.post('/tools/speech/synthesize', ...synthesisView, asyncRoute(synthesizeSpeech));
 
 /*
  * Speaker recognition (ECAPA-TDNN). Voiceprints are biometric data, so the

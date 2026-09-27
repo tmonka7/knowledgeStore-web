@@ -1143,4 +1143,54 @@
   <text id="ocrExportFailed" en="The file could not be made: {reason}" es="No se pudo crear el archivo: {reason}" zh="无法生成文件：{reason}" jp="ファイルを作成できませんでした：{reason}" />
   <text id="ocrFigure" en="Figure {number}" es="Figura {number}" zh="图 {number}" jp="図 {number}" />
   <text id="ocrLayoutMissing" en="Tables and figures cannot be found: the layout models are not installed on the server. The text is still laid out where it stood. An administrator runs:" es="No se pueden encontrar tablas ni imagenes: los modelos de diseno no estan instalados en el servidor. El texto se sigue mostrando en su sitio. Un administrador ejecuta:" zh="无法识别表格和图片：服务器上未安装版面模型。文字仍按原位置显示。管理员需运行：" jp="表と図を検出できません：サーバにレイアウトモデルがインストールされていません。文字は元の位置に表示されます。管理者が実行します：" />
+  <text id="textToSpeech" en="Text to Speech" es="Texto a voz" zh="文字转语音" jp="テキスト読み上げ" />
+  <text id="ttsSynthSubtitle" en="Read text aloud with Supertonic 3, in 31 languages and ten voices. The speech is made on the server and not kept." es="Lea un texto en voz alta con Supertonic 3, en 31 idiomas y diez voces. La voz se genera en el servidor y no se guarda." zh="使用 Supertonic 3 朗读文字，支持 31 种语言和十种声音。语音在服务器上生成，不会保存。" jp="Supertonic 3 でテキストを読み上げます（31 言語・10 種類の声）。音声はサーバで生成され、保存されません。" />
+  <text id="ttsNoModel" en="No Text to Speech model is installed on the server. An administrator runs:" es="No hay ningun modelo de texto a voz instalado en el servidor. Un administrador ejecuta:" zh="服务器上未安装文字转语音模型。管理员需运行：" jp="サーバに読み上げモデルがインストールされていません。管理者が実行します：" />
+  <text id="ttsEngineError" en="Text to Speech cannot start on the server" es="El texto a voz no puede iniciarse en el servidor" zh="服务器无法启动文字转语音" jp="サーバで読み上げを開始できません" />
+  <text id="ttsTextTitle" en="Text" es="Texto" zh="文字" jp="テキスト" />
+  <text id="ttsOpenText" en="Open text file" es="Abrir archivo de texto" zh="打开文本文件" jp="テキストファイルを開く" />
+  <text id="ttsPlaceholder" en="Type or paste the text to read aloud. Blank lines separate paragraphs." es="Escriba o pegue el texto que se leera en voz alta. Las lineas en blanco separan parrafos." zh="输入或粘贴要朗读的文字。空行分隔段落。" jp="読み上げるテキストを入力または貼り付けてください。空行で段落を区切ります。" />
+  <text id="ttsSpeak" en="Read aloud" es="Leer en voz alta" zh="朗读" jp="読み上げ" />
+  <text id="ttsStop" en="Stop" es="Detener" zh="停止" jp="停止" />
+  <text id="ttsProgress" en="Part {done} of {total} ready" es="Parte {done} de {total} lista" zh="已完成第 {done} 部分，共 {total} 部分" jp="{total} 部分中 {done} 部分完了" />
+  <text id="ttsSettings" en="Voice settings" es="Ajustes de voz" zh="语音设置" jp="音声設定" />
+  <text id="ttsLanguage" en="Language of the text" es="Idioma del texto" zh="文字的语言" jp="テキストの言語" />
+  <text id="ttsVoice" en="Voice" es="Voz" zh="声音" jp="声" />
+  <text id="ttsVoiceFemale" en="Female" es="Femenina" zh="女声" jp="女性" />
+  <text id="ttsVoiceMale" en="Male" es="Masculina" zh="男声" jp="男性" />
+  <text id="ttsSpeed" en="Speed" es="Velocidad" zh="语速" jp="速度" />
+  <text id="ttsQuality" en="Quality" es="Calidad" zh="质量" jp="品質" />
+  <text id="ttsQualityFast" en="Fast" es="Rapida" zh="快速" jp="高速" />
+  <text id="ttsQualityStandard" en="Standard" es="Normal" zh="标准" jp="標準" />
+  <text id="ttsQualityBest" en="Best" es="Maxima" zh="最佳" jp="最高" />
+  <text id="ttsModel" en="Model" es="Modelo" zh="模型" jp="モデル" />
+  <text id="ttsModelNote" en="Model: {name}" es="Modelo: {name}" zh="模型：{name}" jp="モデル：{name}" />
+  <text id="ttsHistory" en="Read aloud" es="Lecturas" zh="朗读记录" jp="読み上げ履歴" />
+  <text id="ttsHistoryEmpty" en="What you read aloud appears here, to play again or save as a WAV file." es="Lo que lea en voz alta aparece aqui, para escucharlo de nuevo o guardarlo como WAV." zh="朗读的内容会显示在这里，可再次播放或保存为 WAV 文件。" jp="読み上げた内容はここに表示され、再生や WAV 保存ができます。" />
+  <text id="ttsDownload" en="Save as WAV" es="Guardar como WAV" zh="保存为 WAV" jp="WAV で保存" />
+  <text id="ttsStopped" en="Stopped" es="Detenida" zh="已停止" jp="停止済み" />
+  <text id="ttsTook" en="made in {seconds} s" es="generado en {seconds} s" zh="用时 {seconds} 秒" jp="{seconds} 秒で生成" />
+  <text id="ttsMore" en="more" es="mas" zh="更多" jp="もっと見る" />
+  <text id="ttsDropped" en="Left out, as the voice cannot say them: {chars}" es="Omitidos, porque la voz no puede decirlos: {chars}" zh="以下字符无法朗读，已略过：{chars}" jp="読み上げできない文字を省略しました：{chars}" />
+  <text id="ttsFileTooLarge" en="The file is too large to read aloud." es="El archivo es demasiado grande para leerlo en voz alta." zh="文件过大，无法朗读。" jp="ファイルが大きすぎて読み上げできません。" />
+  <text id="ttsTextCut" en="Only the first {count} characters were kept." es="Solo se conservaron los primeros {count} caracteres." zh="仅保留了前 {count} 个字符。" jp="最初の {count} 文字のみを残しました。" />
+  <text id="presenceOnline" en="Online" es="En linea" zh="在线" jp="オンライン" />
+  <text id="presenceAway" en="Away" es="Ausente" zh="离开" jp="離席中" />
+  <text id="presenceBusy" en="Busy" es="Ocupado" zh="忙碌" jp="取り込み中" />
+  <text id="presenceOffline" en="Offline" es="Desconectado" zh="离线" jp="オフライン" />
+  <text id="presenceJustNow" en="just now" es="hace un momento" zh="刚刚" jp="たった今" />
+  <text id="presenceChoiceAuto" en="Online (automatic)" es="En linea (automatico)" zh="在线（自动）" jp="オンライン（自動）" />
+  <text id="presenceChoiceInvisible" en="Appear offline" es="Aparecer desconectado" zh="显示为离线" jp="オフライン表示" />
+  <text id="presenceHidden" en="Online (appears offline)" es="En linea (aparece desconectado)" zh="在线（显示为离线）" jp="オンライン（オフライン表示中）" />
+  <text id="connection" en="Connection" es="Conexion" zh="连接状态" jp="接続状態" />
+  <text id="blocked" en="Blocked" es="Bloqueado" zh="已封禁" jp="ブロック中" />
+  <text id="blockUser" en="Block" es="Bloquear" zh="封禁" jp="ブロック" />
+  <text id="unblockUser" en="Unblock" es="Desbloquear" zh="解除封禁" jp="ブロック解除" />
+  <text id="blockUserTip" en="Block this account: it is signed out at once and cannot sign in" es="Bloquear esta cuenta: se cierra su sesion al instante y no puede iniciar sesion" zh="封禁此账户：立即退出登录且无法再登录" jp="このアカウントをブロック：直ちにサインアウトされ、サインインできなくなります" />
+  <text id="blockUserTitle" en="Block {name}?" es="¿Bloquear a {name}?" zh="封禁 {name}？" jp="{name} をブロックしますか？" />
+  <text id="blockUserText" en="The account will not be able to sign in until it is unblocked." es="La cuenta no podra iniciar sesion hasta que se desbloquee." zh="在解除封禁之前，该账户无法登录。" jp="ブロックを解除するまで、このアカウントはサインインできません。" />
+  <text id="blockUserConnected" en="This person is connected now. They will be signed out within seconds, wherever they are signed in, and will not be able to sign in until the account is unblocked." es="Esta persona esta conectada ahora. Se cerrara su sesion en unos segundos, dondequiera que la tenga abierta, y no podra iniciar sesion hasta que se desbloquee la cuenta." zh="此人当前在线。将在几秒内于所有登录处被退出，并在解除封禁前无法登录。" jp="この人は現在接続中です。数秒以内にすべての場所でサインアウトされ、ブロック解除までサインインできません。" />
+  <text id="blockReasonPlaceholder" en="Reason, shown to the person (optional)" es="Motivo, que vera la persona (opcional)" zh="原因，将显示给对方（可选）" jp="理由（本人に表示されます・任意）" />
+  <text id="blockedBy" en="Blocked by {name} on {date}" es="Bloqueado por {name} el {date}" zh="由 {name} 于 {date} 封禁" jp="{date} に {name} がブロック" />
+  <text id="blockReasonShown" en="Reason: {reason}" es="Motivo: {reason}" zh="原因：{reason}" jp="理由：{reason}" />
 </translations>

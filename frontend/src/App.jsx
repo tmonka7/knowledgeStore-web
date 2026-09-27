@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, Form, Modal, message } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import api from './api';
+import { stopPresence } from './lib/presence';
 import AuthPage from './components/AuthPage';
 import DashboardPage from './pages/DashboardPage';
 import { can } from './permissions';
@@ -242,6 +243,7 @@ function App() {
   }, [token]);
 
   const logout = () => {
+    stopPresence({ signOut: true });
     localStorage.removeItem('token');
     setToken('');
     setUser(null);
@@ -267,7 +269,8 @@ function App() {
         const missing = status === 401 && /no longer exists/i.test(body?.message || '');
 
         if (gone || missing) {
-          message.warning(body?.message || 'Your account is no longer available.', 8);
+          // Keyed: every request in flight is refused at once, and one notice is enough.
+          message.warning({ content: body?.message || 'Your account is no longer available.', key: 'account-refused', duration: 8 });
           logout();
         }
         return Promise.reject(error);
@@ -295,7 +298,7 @@ function App() {
   const reportSignInFailure = (error, fallback) => {
     const body = error.response?.data;
     if (body?.accountStatus) {
-      message.warning(body.message, 6);
+      message.warning({ content: body.message, key: 'account-refused', duration: 6 });
       return;
     }
     message.error(body?.message || fallback);
@@ -602,10 +605,13 @@ function App() {
   };
 
   /** Allow, Deny, or back to Pending. The API refuses the cases that would lock everyone out. */
-  const handleSetUserStatus = async (id, status) => {
+  const handleSetUserStatus = async (id, status, reason = '') => {
     try {
-      await api.put(`/users/${id}/status`, { status });
-      const said = { allowed: 'allowed in', denied: 'denied', pending: 'set back to pending' }[status];
+      await api.put(`/users/${id}/status`, { status, reason });
+      const wasAllowed = users.find((item) => item.id === id)?.status === 'allowed';
+      const said = {
+        allowed: 'allowed in', denied: wasAllowed ? 'blocked; it is signed out wherever it is in use' : 'denied', pending: 'set back to pending',
+      }[status];
       message.success(`Account ${said}.`);
       await fetchUsers();
       return true;

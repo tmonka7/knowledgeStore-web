@@ -160,10 +160,31 @@ change it, edit the record and pick again.
 > everyone, because that is the default. If one of your older records should
 > not be, edit it and choose **Selected people**.
 
+## 6b. Your connection status
+
+The dot on your picture at the top right is your connection status, as others
+see it beside your name in Chat and on the Users page:
+
+| Dot | Status | Meaning |
+|---|---|---|
+| green | **Online** | You have the application open. |
+| amber | **Away** | The application is open, but its tab is hidden or you have not touched it for five minutes. |
+| red | **Busy** | You chose Busy. |
+| grey | **Offline** | You are signed out or the application is closed — with when you were last seen. |
+
+Open the menu under your name and choose the first item to change it:
+**Online (automatic)** follows what you are doing, as above; **Busy** and
+**Away** show that whatever you are doing; **Appear offline** shows you as
+Offline, without a last-seen time, while you carry on working (administrators
+can still see that you are connected). The choice is remembered for your next
+sign-in.
+
 ## 7. Chat
 
 Chat is for direct messages between two people on this installation. A
 conversation is private to the two of you; administrators cannot read it.
+Each person's picture carries their connection status (see 6b), and the
+conversation's header says it in words.
 
 ### Starting a conversation
 
@@ -605,8 +626,9 @@ tab-separated rows (it pastes into a spreadsheet as a table). **Export** saves:
 - **Web page (.html)** — the pages exactly as the Layout view draws them.
 - **Plain text (.txt)**.
 
-**Keep layout** finds the titles, tables and figures; it adds a few seconds a
-page. Turn it off to read only the lines. **Rotated text** also reads lines
+**Keep layout** finds the titles, tables and figures; it adds about two
+seconds a page. Turn it off to read only the lines, which is fastest (about
+two seconds for a full A4 page, less for a sparse one). **Rotated text** also reads lines
 that are upside down. Lines the model could not really read (specks and stray
 marks) are left out. Photos from a phone are turned the way the phone shows
 them.
@@ -624,6 +646,45 @@ not installed, an administrator runs, on the server:
 ```
 pip install paddlepaddle paddleocr
 python backend/python/download_models.py paddleocr
+```
+
+The same command also fetches faster (ONNX) copies of the models; with them,
+reading is several times faster, with the same result. Running it again on a
+server that already has the models adds just those copies.
+
+## 8d-5. Text to Speech (reading text aloud)
+
+**Tools > AI > Text to Speech** reads text aloud with Supertonic 3, a speech
+model that runs on the server. Type or paste the text, or **Open text file**
+(.txt), choose the **Language of the text** and a **Voice** (five female and
+five male), and press **Read aloud** (or Ctrl+Enter).
+
+Long text is read a part at a time: the first words play within a second or
+two while the rest is being made, and the page shows how many parts are
+ready. **Stop** stops both the reading and the playback; what was made so far
+is kept.
+
+**Speed** makes the voice faster or slower. **Quality** trades time for
+clarity: *Fast* takes about half the time of *Standard*, *Best* about twice.
+
+Each reading is kept below the text, in the order made (the last ten), to play
+again or **Save as WAV** (44.1 kHz). They are kept only in the browser: they
+are gone when the page is closed. Nothing is kept on the server.
+
+Supertonic reads 31 languages: English, Korean, Japanese, Arabic, Bulgarian,
+Czech, Danish, German, Greek, Spanish, Estonian, Finnish, French, Hindi,
+Croatian, Hungarian, Indonesian, Italian, Lithuanian, Latvian, Dutch, Polish,
+Portuguese, Romanian, Russian, Slovak, Slovenian, Swedish, Turkish, Ukrainian
+and Vietnamese. It does not read Chinese. Choose the language the text is
+written in: text read as another language sounds wrong. Characters the voice
+cannot say (another script, symbols, emoji) are left out, and the page says
+which.
+
+If the page says no model is installed, an administrator runs, on the server:
+
+```
+pip install onnxruntime
+python backend/python/download_models.py supertonic-3
 ```
 
 ## 8e. YOLO and Speech to Text: training on the server
@@ -808,6 +869,21 @@ this page that is a job rather than a statistic.
 **Allow** and **Deny** are buttons on the row — no dialog, because approving a
 morning's registrations should not mean opening five of them. Denying is not
 permanent: press **Allow** to let the account back in.
+
+**Blocking an account in use.** On an Allowed account the button is **Block**.
+It asks first, and takes an optional reason, which the person is shown. If
+they are connected (the dialog says so), they are signed out within seconds
+wherever they are signed in, and taken out of any meeting they are in. They
+cannot sign in again until the account is unblocked; when they try, they are
+shown the reason. A blocked account shows **Blocked** in the Status column;
+hover it to see who blocked it, when and why. **Unblock** lets it back in and
+clears the reason.
+
+**Connection.** The Connection column shows whether each person has the
+application open now — **Online**, **Away**, **Busy** — or **Offline**, with
+when they were last seen. Someone who chose to appear offline shows to you as
+**Online (appears offline)**: as an administrator you see whether they are
+really there.
 
 Two things you cannot do, because they would leave the installation with no way
 back in: deny your own account, and deny or delete the last administrator who

@@ -168,6 +168,28 @@ export const roomCounts = () => {
  * The close code is deliberate so the browser can tell "the meeting is over"
  * apart from "the network dropped" and not try to reconnect.
  */
+/**
+ * Take an account out of every meeting it is in, at once — when an
+ * administrator blocks it. Its sockets close with 4003, which the page reads
+ * as "you may not be here" rather than a dropped network to reconnect over.
+ */
+export const disconnectUser = (userId, reason) => {
+  let closed = 0;
+  for (const room of rooms.values()) {
+    for (const peer of room.values()) {
+      if (peer.userId !== userId) continue;
+      send(peer, { type: 'error', code: 'blocked', message: reason });
+      try {
+        peer.socket.close(4003, 'blocked');
+      } catch {
+        // Already gone; the close handler does the bookkeeping either way.
+      }
+      closed += 1;
+    }
+  }
+  return closed;
+};
+
 export const closeRoom = (meetingId, reason = 'This meeting has ended.') => {
   const room = rooms.get(meetingId);
   if (!room) return 0;
@@ -237,7 +259,7 @@ const authenticate = async (token) => {
   if (!user) return { error: 'User no longer exists.' };
   // The same check the REST middleware makes: an account denied while its
   // owner sat on the meetings page must not be able to open a socket.
-  if (!isUsableAccount(user)) return { error: statusRefusal(user.status) };
+  if (!isUsableAccount(user)) return { error: statusRefusal(user.status, user.blockReason) };
   if (!hasPermission(user, 'meetings:view')) {
     return { error: 'You do not have permission to join meetings.' };
   }

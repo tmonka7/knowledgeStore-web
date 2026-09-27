@@ -11,6 +11,8 @@ import {
 } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { languageOptions, useLanguage } from '../i18n';
+import PresenceDot from './PresenceDot';
+import { CHOICE_STATE, usePresence } from '../lib/presence';
 
 const { Header } = Layout;
 
@@ -47,6 +49,7 @@ export default function TopHeader({
   onMailSelect,
 }) {
   const { language, setLanguage, t } = useLanguage();
+  const presence = usePresence();
   const [clock, setClock] = useState(() => formatClock(new Date()));
 
   /*
@@ -265,7 +268,16 @@ export default function TopHeader({
 
         <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
           <button type="button" className="vision-user-pill" aria-label={t('openUserMenu')}>
-            <Avatar size={28} className="vision-user-avatar" icon={<UserOutlined />} />
+            {/* The status others see, on the avatar. */}
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Avatar size={28} className="vision-user-avatar" icon={<UserOutlined />} />
+              <PresenceDot
+                presence={presence.me || { state: CHOICE_STATE[presence.choice] }}
+                size={9}
+                ring
+                style={{ position: 'absolute', right: -1, bottom: -1 }}
+              />
+            </span>
             <span className="vision-user-name">{user?.fullName || t('administrator')}</span>
             <DownOutlined className="vision-user-caret" />
           </button>

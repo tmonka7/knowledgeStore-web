@@ -27,6 +27,12 @@ export const OCR_LANGUAGES = ['en', 'zh', 'ko', 'ja', 'ru'];
 const worker = createPythonWorker({
   script: 'ocr_worker.py',
   label: 'OCR',
+  // The worker sees only the variables it is given (see childEnv).
+  env: {
+    OCR_ENGINE: process.env.OCR_ENGINE || '',
+    OCR_LAYOUT_THREADS: process.env.OCR_LAYOUT_THREADS || '',
+    OCR_MKLDNN: process.env.OCR_MKLDNN || '',
+  },
   idleMs: Math.max(60, Number(process.env.OCR_IDLE_SECONDS) || 600) * 1000,
   maxWaiting: Math.max(1, Number(process.env.OCR_MAX_QUEUE) || 16),
 });

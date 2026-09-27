@@ -28,6 +28,7 @@ import projectRoutes from './routes/projectRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import meetingRoutes from './routes/meetingRoutes.js';
+import presenceRoutes from './routes/presenceRoutes.js';
 import { ensureSeedAdmin, ensureSeedCategories } from './models/store.js';
 import { startChatRetention } from './helpers/chatRetention.js';
 import { startCameraRecorders } from './helpers/cameraRecorder.js';
@@ -125,6 +126,8 @@ app.use(cors({
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  // Text to Speech answers with the WAV itself and says in these what it left out.
+  exposedHeaders: ['X-Speech-Took', 'X-Speech-Dropped', 'X-Speech-Voice'],
 }));
 // Registering, and an administrator editing an account, may carry voice clips
 // (a few hundred KB each) on top of a face photo; everything else keeps 3 MB.
@@ -151,6 +154,7 @@ app.use('/api', projectRoutes);
 app.use('/api', contactRoutes);
 app.use('/api', postRoutes);
 app.use('/api', meetingRoutes);
+app.use('/api', presenceRoutes);
 
 // Without this, CORS/body-parser failures return an HTML error page that the
 // frontend cannot read, so every failure looks the same to the user.

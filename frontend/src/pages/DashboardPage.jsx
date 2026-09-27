@@ -40,6 +40,10 @@ import AppLayout from '../components/AppLayout';
 import HtmlEditor from '../components/HtmlEditor';
 import ShareWithField, { describeSharing } from '../components/records/ShareWithField';
 import { can, canPage } from '../permissions';
+import PresenceDot from '../components/PresenceDot';
+import {
+  CHOICE_STATE, PRESENCE_CHOICES, choosePresence, startPresence, stopPresence, usePresence,
+} from '../lib/presence';
 import OverviewPage from './OverviewPage';
 import RecordsPage from './RecordsPage';
 import CategoriesPage from './CategoriesPage';
@@ -59,6 +63,7 @@ import YoloToolPage from './YoloToolPage';
 import TtsToolPage from './TtsToolPage';
 import TransformersToolPage from './TransformersToolPage';
 import OcrToolPage from './OcrToolPage';
+import TextToSpeechPage from './TextToSpeechPage';
 import MyPage from './MyPage';
 import PostsPage from './PostsPage';
 import MeetingsPage from './MeetingsPage';
@@ -158,6 +163,14 @@ export default function DashboardPage({
   onAiSearch,
 }) {
   const { t } = useLanguage();
+
+  // Connection status: heartbeats while signed in, and the chooser in the user menu.
+  const presence = usePresence();
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    startPresence(user.presence);
+    return () => stopPresence();
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Polls for anything due tomorrow. Gated on the permission so a user without
   // Schedule access never triggers the request (the API would 403 anyway).
@@ -419,6 +432,7 @@ export default function DashboardPage({
           children: [
             { key: 'yolo', label: 'YOLO' },
             { key: 'tts', label: t('speechToText') },
+            { key: 'text-to-speech', label: t('textToSpeech') },
             { key: 'speaker', label: t('speakerRecognition') },
             { key: 'transformers', label: 'Transformers' },
             { key: 'ocr', label: 'OCR' },
@@ -493,7 +507,30 @@ export default function DashboardPage({
     }
   }, [canViewActivePage, firstVisiblePage, setActiveKey]);
 
+  const choiceLabel = (choice) => t({
+    auto: 'presenceChoiceAuto', busy: 'presenceBusy', away: 'presenceAway', invisible: 'presenceChoiceInvisible',
+  }[choice]);
   const userMenuItems = [
+    {
+      key: 'presence',
+      label: (
+        <Space size={8}>
+          <PresenceDot presence={{ state: CHOICE_STATE[presence.choice] }} />
+          {choiceLabel(presence.choice)}
+        </Space>
+      ),
+      children: PRESENCE_CHOICES.map((choice) => ({
+        key: `presence-${choice}`,
+        label: (
+          <Space size={8}>
+            <PresenceDot presence={{ state: CHOICE_STATE[choice] }} />
+            {choiceLabel(choice)}
+          </Space>
+        ),
+        onClick: () => choosePresence(choice).catch((error) => message.error(error.response?.data?.message || error.message)),
+      })),
+    },
+    { type: 'divider' },
     { key: 'my-page', label: t('myPage'), onClick: () => setActiveKey('my-page') },
     { type: 'divider' },
     { key: 'logout', label: t('logout'), danger: true, onClick: logout },
@@ -786,6 +823,7 @@ export default function DashboardPage({
           {effectiveKey === 'speaker' && <SpeakerToolPage />}
           {effectiveKey === 'transformers' && <TransformersToolPage user={user} />}
           {effectiveKey === 'ocr' && <OcrToolPage />}
+          {effectiveKey === 'text-to-speech' && <TextToSpeechPage />}
 
           {effectiveKey === 'categories' && (
             <CategoriesPage

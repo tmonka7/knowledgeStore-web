@@ -36,6 +36,11 @@ const BACKFILLS = [
     permissions: ['ocr:view'],
     note: 'OCR was added to Tools / AI after these accounts were created. It keeps nothing: an image is read and deleted within the request.',
   },
+  {
+    id: 'grant-text-to-speech-view-2026-09',
+    permissions: ['text-to-speech:view'],
+    note: 'Text to Speech was added to Tools / AI after these accounts were created. It keeps nothing: the speech is made and sent within the request.',
+  },
 ];
 
 export const backfillDefaultPermissions = async () => {

@@ -16,7 +16,8 @@ Protocol, one JSON object per line:
                 "blocks": [{"type": "table", "box": [x1, y1, x2, y2], "html": "<table>…",
                             "columns": [x, …], "rows": [y, …]},
                            {"type": "figure", "box": [x1, y1, x2, y2], "image": "data:…"}]}}
-      {"id": "...", "ok": true, "done": 12, "total": 12, "pageCount": 40, "took": 31.2}
+      {"id": "...", "ok": true, "done": 12, "total": 12, "pageCount": 40, "took": 31.2,
+       "engine": "onnxruntime" | "paddle"}
       {"id": "...", "ok": false, "error": "...", "cancelled": false}
 Every page is sent as soon as it is read, so the page can show progress and
 the pages read so far; the final reply only closes the request. An image is
@@ -34,8 +35,16 @@ its grid on the page, when the cells found line up into one (else absent).
 Every line has the colour of its ink, and "bold" when its strokes are
 markedly heavier than the page's other text of that size.
 The first line out is {"ready": true, ...} or {"fatal": "..."}.
+
+Speed: a model folder with an inference.onnx (download_models.py adds one) is
+run on ONNX Runtime, which reads the same text as Paddle several times faster
+on a CPU. A pipeline uses it when every model in it has one and onnxruntime is
+installed, else Paddle; OCR_ENGINE=paddle forces Paddle. The layout model has
+no ONNX copy and stays on Paddle, on a thread of its own, so it looks at a
+page while the text of that page is read.
 """
 import collections
+import concurrent.futures
 import json
 import os
 import sys
@@ -142,7 +151,34 @@ def model_name(folder):
     return os.path.basename(os.path.normpath(folder))
 
 
+def engine_for(*folders):
+    """ONNX Runtime when every model here has an ONNX copy and it is installed; else Paddle."""
+    from importlib.util import find_spec
+
+    if os.environ.get("OCR_ENGINE", "").lower() == "paddle" or find_spec("onnxruntime") is None:
+        return "paddle"
+    if all(os.path.isfile(os.path.join(folder, "inference.onnx")) for folder in folders if folder):
+        return "onnxruntime"
+    return "paddle"
+
+
+def with_engine(make, engine, what, paddle_options=None):
+    """(model, engine): on the engine chosen, or on Paddle when ONNX Runtime cannot load it."""
+    if engine == "onnxruntime":
+        try:
+            return make({"engine": "onnxruntime"}), engine
+        except Exception:  # noqa: BLE001  (a damaged ONNX copy: Paddle still reads the page)
+            traceback.print_exc()
+            print(f"{what}: ONNX Runtime could not load it; using Paddle", file=sys.stderr, flush=True)
+    # oneDNN (MKL-DNN) fails on the PP-OCRv5 and PP-DocLayout graphs with
+    # PaddlePaddle 3.3 on the CPU ("ConvertPirAttribute2RuntimeAttribute not
+    # support"). OCR_MKLDNN=1 turns it back on where the installed version
+    # handles it.
+    return make({"enable_mkldnn": os.environ.get("OCR_MKLDNN") == "1", **(paddle_options or {})}), "paddle"
+
+
 def build(det, rec, textline):
+    """The text pipeline, and the engine it runs on."""
     from paddleocr import PaddleOCR
 
     for folder in filter(None, (det, rec, textline)):
@@ -159,14 +195,10 @@ def build(det, rec, textline):
         "use_doc_orientation_classify": False,
         "use_doc_unwarping": False,
         "use_textline_orientation": bool(textline),
-        # oneDNN (MKL-DNN) fails on the PP-OCRv5 graphs with PaddlePaddle 3.3
-        # on the CPU ("ConvertPirAttribute2RuntimeAttribute not support").
-        # OCR_MKLDNN=1 turns it back on where the installed version handles it.
-        "enable_mkldnn": os.environ.get("OCR_MKLDNN") == "1",
     }
     if textline:
         options.update(textline_orientation_model_name=model_name(textline), textline_orientation_model_dir=textline)
-    return PaddleOCR(**options)
+    return with_engine(lambda engine: PaddleOCR(**options, **engine), engine_for(det, rec, textline), model_name(rec))
 
 
 def read_image(path):
@@ -298,10 +330,17 @@ def _edges(values, tolerance):
 def layout_models(layout_dir, table_dir):
     from paddleocr import LayoutDetection, TableStructureRecognition
 
-    options = {"enable_mkldnn": os.environ.get("OCR_MKLDNN") == "1"}
-    layout = LayoutDetection(model_name=model_name(layout_dir), model_dir=layout_dir, **options)
-    table = TableStructureRecognition(model_name=model_name(table_dir), model_dir=table_dir, **options) \
-        if table_dir else None
+    # PP-DocLayout on Paddle was fastest on four threads (2.2 s a page against
+    # 2.9 s on 8 or 16, on a 16-core machine); more only contend.
+    threads = int(os.environ.get("OCR_LAYOUT_THREADS") or 0) or min(4, os.cpu_count() or 4)
+    layout, _ = with_engine(
+        lambda engine: LayoutDetection(model_name=model_name(layout_dir), model_dir=layout_dir, **engine),
+        engine_for(layout_dir), model_name(layout_dir), {"cpu_threads": threads})
+    table = None
+    if table_dir:
+        table, _ = with_engine(
+            lambda engine: TableStructureRecognition(model_name=model_name(table_dir), model_dir=table_dir, **engine),
+            engine_for(table_dir), model_name(table_dir))
     return layout, table
 
 
@@ -419,9 +458,8 @@ def crop_image(pixels, rect):
     return preview(pixels[y1:y2, x1:x2], FIGURE_WIDTH)
 
 
-def analyse_layout(models, pixels, lines):
-    """Give each line its role and find the page's tables and figures."""
-    layout, table_model = models
+def find_regions(layout, pixels):
+    """The layout model's regions of a page: titles, paragraphs, tables, figures …"""
     height, width = pixels.shape[:2]
     regions = []
     for box in layout.predict(pixels)[0]["boxes"]:
@@ -429,6 +467,11 @@ def analyse_layout(models, pixels, lines):
         rect = [max(0, x1), max(0, y1), min(width, x2), min(height, y2)]
         if rect[2] - rect[0] > 4 and rect[3] - rect[1] > 4:
             regions.append({"label": box["label"], "score": float(box["score"]), "rect": rect})
+    return regions
+
+
+def analyse_layout(table_model, pixels, lines, regions):
+    """Give each line its role and find the page's tables and figures."""
 
     # One figure where the model saw both an image and a chart in one place.
     figures = []
@@ -518,6 +561,11 @@ def main():
     started = time.time()
     try:
         import paddleocr  # noqa: F401  (loads paddle and paddlex too)
+        if find_spec("onnxruntime") is not None:
+            import onnxruntime
+
+            # Its shape warnings on SLANet are harmless and would bury real errors.
+            onnxruntime.set_default_logger_severity(3)
         load_error = None
         print(f"PaddleOCR loaded in {time.time() - started:.1f} s", file=sys.stderr, flush=True)
     except Exception as error:  # noqa: BLE001  (reported on every request instead)
@@ -526,6 +574,9 @@ def main():
 
     loaded = {}
     layouts = {}
+    # The layout models are built and run on this one thread only, so the
+    # layout of a page is found while its text is read on the main thread.
+    layout_thread = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="layout")
 
     def layout_pipeline(layout_dir, table_dir):
         key = (layout_dir, table_dir)
@@ -575,20 +626,23 @@ def main():
                 image = read_image(request["image"])
                 page_count = total = 1
             reply({"id": request_id, "progress": True, "done": 0, "total": total, "pageCount": page_count})
-            ocr = pipeline(request["det"], request["rec"], request.get("textline") or None)
-            layout = layout_pipeline(request["layout"], request.get("table") or None) if request.get("layout") else None
+            ocr, engine = pipeline(request["det"], request["rec"], request.get("textline") or None)
+            layout = layout_thread.submit(layout_pipeline, request["layout"], request.get("table") or None).result() \
+                if request.get("layout") else None
             for index in range(total):
                 check_cancelled()
                 pixels = render_page(document, index) if pdf else image
                 height, width = pixels.shape[:2]
+                regions = layout_thread.submit(find_regions, layout[0], pixels) if layout else None
                 lines = line_styles(pixels, read_lines(ocr, pixels))
                 page = {"page": index + 1, "width": width, "height": height,
                         "dpi": PDF_DPI if pdf else None,
                         "image": preview(pixels) if pdf else None, "lines": lines,
-                        "blocks": analyse_layout(layout, pixels, lines) if layout else []}
+                        "blocks": layout_thread.submit(analyse_layout, layout[1], pixels, lines,
+                                                       regions.result()).result() if layout else []}
                 reply({"id": request_id, "progress": True, "done": index + 1, "total": total, "page": page})
             reply({"id": request_id, "ok": True, "done": total, "total": total, "pageCount": page_count,
-                   "took": round(time.time() - started, 3)})
+                   "took": round(time.time() - started, 3), "engine": engine})
         except Cancelled:
             reply({"id": request_id, "ok": False, "error": "cancelled", "cancelled": True})
         except Exception as error:  # noqa: BLE001  (one bad request must not end the worker)

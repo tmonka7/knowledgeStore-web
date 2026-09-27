@@ -2,7 +2,9 @@ import bcrypt from 'bcryptjs';
 import { sanitizeUser } from '../helpers/auth.js';
 import { PERMISSION_CATALOG, sanitizePermissions } from '../helpers/permissionCatalog.js';
 import { readProfileFields } from '../helpers/userProfile.js';
-import { ACCOUNT_STATUSES } from '../helpers/accountStatus.js';
+import { ACCOUNT_STATUSES, statusRefusal } from '../helpers/accountStatus.js';
+import { leave } from '../helpers/presence.js';
+import { disconnectUser } from '../helpers/meetingSignaling.js';
 import { describeUserFootprint, purgeUser } from '../helpers/userPurge.js';
 import { User, getUsers, getUserById } from '../models/store.js';
 import { writeLog } from '../models/activityLogModel.js';
@@ -205,7 +207,13 @@ const wouldRemoveLastAdmin = async (target) => {
 };
 
 /**
- * PUT /users/:id/status — Allow, Deny, or back to Pending.
+ * PUT /users/:id/status — Allow, Deny (block), or back to Pending.
+ * { status, reason }: the reason for a block is shown to the account's owner.
+ *
+ * Blocking takes effect at once: every request the account makes from then on
+ * is refused (requireAuth reads the account each time), which signs its open
+ * app out within seconds with the reason; it is marked offline; and it is
+ * taken out of any meeting it is in.
  *
  * Its own endpoint rather than a field on the general update, because it is
  * the one change an administrator makes from a list without opening anything,
@@ -233,13 +241,27 @@ export const setUserStatus = async (req, res) => {
   }
 
   const previous = target.status;
+  const reason = String(req.body?.reason || '').replace(/\s+/g, ' ').trim().slice(0, 300);
   target.status = status;
+  if (status === 'denied') {
+    target.blockReason = reason;
+    target.blockedAt = new Date();
+    target.blockedBy = req.currentUser.username;
+  } else {
+    target.blockReason = '';
+    target.blockedAt = null;
+    target.blockedBy = '';
+  }
   await target.save();
+  if (status !== 'allowed') {
+    leave(target.id);
+    disconnectUser(target.id, statusRefusal(status, target.blockReason));
+  }
 
   await writeLog({
     source: 'users',
     action: `user:${status}`,
-    message: `${target.username}: ${previous} → ${status}`,
+    message: `${target.username}: ${previous} → ${status}${reason && status === 'denied' ? ` (${reason})` : ''}`,
     actor: { id: req.currentUser.id, username: req.currentUser.username },
   });
 

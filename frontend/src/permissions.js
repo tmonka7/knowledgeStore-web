@@ -23,6 +23,7 @@ export const PAGE_PERMISSIONS = {
   transformers: { key: 'transformers', action: 'view' },
   speaker: { key: 'speaker', action: 'view' },
   ocr: { key: 'ocr', action: 'view' },
+  'text-to-speech': { key: 'text-to-speech', action: 'view' },
   projects: { key: 'projects', action: 'view' },
   wallet: { key: 'wallet', action: 'view' },
   contacts: { key: 'contacts', action: 'view' },

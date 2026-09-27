@@ -26,12 +26,15 @@ export const isUsableAccount = (user) => user?.status === 'allowed';
  * tells somebody they have been rejected when they have not, and they will ask
  * an administrator about a decision nobody made.
  */
-export const statusRefusal = (status) => {
+export const statusRefusal = (status, reason = '') => {
   if (status === 'pending') {
     return 'Your account is waiting for an administrator to approve it. You will be able to sign in once they do.';
   }
   if (status === 'denied') {
-    return 'Access to this account has been denied. Contact an administrator if you think that is a mistake.';
+    // The reason an administrator gave when blocking the account, if any.
+    return reason
+      ? `An administrator has blocked access to this account: ${reason} Contact an administrator if you think that is a mistake.`
+      : 'Access to this account has been denied. Contact an administrator if you think that is a mistake.';
   }
   return 'This account cannot be used.';
 };

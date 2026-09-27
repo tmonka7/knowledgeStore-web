@@ -10,6 +10,7 @@ to an offline machine.
     python download_models.py m2m100
     python download_models.py yolo26n yolo26n-seg whisper-tiny
     python download_models.py paddleocr
+    python download_models.py supertonic-3
     python download_models.py --list
     python download_models.py --verify [--repair]
 
@@ -37,6 +38,14 @@ English, Korean and Russian, and the layout and table-structure models that
 keep a page's titles, tables and figures. "paddleocr-server" adds the larger
 server detection, Chinese/Japanese recognition and layout models (about
 300 MB), which are more accurate and slower.
+With the mobile models comes an ONNX copy of each (about 65 MB, converted by
+RapidOCR from the same weights, from ModelScope): with onnxruntime installed,
+OCR runs on ONNX Runtime, which reads the same text several times faster on a
+CPU than Paddle. If ModelScope cannot be reached, OCR works without them.
+
+For Text to Speech: "supertonic-3" fetches Supertone's Supertonic 3
+(Supertone/supertonic-3, OpenRAIL-M, about 400 MB): four ONNX models and ten
+preset voices, which read 31 languages aloud, run with onnxruntime.
 
 For Voice recognition (whisper.cpp, run through pywhispercpp): "ggml-tiny",
 "ggml-tiny.en", "ggml-base", "ggml-base.en" (also ggml-small[.en]) fetch the
@@ -72,9 +81,13 @@ ATTEMPTS = 5
 SKIP = re.compile(r"(^\.|\.md$|^benchmark_|^flores_|^example\d*\.(wav|flac)$|tf_model\.h5$|flax_model\.msgpack$|rust_model\.ot$"
                   r"|\.onnx$|^onnx/|\.tflite$|\.npz$|\.npz\.decoder\.yml$|^vocab\.spm$)")
 
+# Text to Speech models are ONNX only: everything but the samples and pictures.
+SYNTHESIS_SKIP = re.compile(r"(^\.|\.md$|^audio_samples/|^img/)")
+
 MULTILINGUAL = {"m2m100": "facebook/m2m100_418M"}
 SPEECH = {name: f"openai/{name}" for name in ("whisper-tiny", "whisper-base", "whisper-small", "whisper-medium")}
 SPEAKER = {"ecapa": "speechbrain/spkrec-ecapa-voxceleb"}
+SYNTHESIS = {"supertonic-3": "Supertone/supertonic-3"}
 # PaddleOCR models, each its own repository under PaddlePaddle/: its role in
 # the pipeline and, for recognition, the languages it reads. The
 # Chinese model reads Japanese and English as well.
@@ -99,6 +112,22 @@ OCR_SETS = {
                   "PP-DocLayout-M", "SLANet_plus"],
     "paddleocr-server": ["PP-OCRv5_server_det", "PP-OCRv5_server_rec", "PP-DocLayout_plus-L"],
 }
+# ONNX copies of the PaddleOCR models: RapidOCR's conversions of the same
+# weights (Apache-2.0), at fixed versions, so each file's size is known. Each
+# is saved as inference.onnx beside the model's inference.yml, which is where
+# PaddleOCR's ONNX Runtime engine looks for it; they read exactly the same
+# text as the Paddle models. PP-DocLayout has no conversion; it stays on Paddle.
+OCR_ONNX_HOST = "https://www.modelscope.cn/models/RapidAI"
+OCR_ONNX = {
+    "PP-OCRv5_mobile_det": ("RapidOCR/resolve/v3.9.2/onnx/PP-OCRv5/det/ch_PP-OCRv5_det_mobile.onnx", 4819576),
+    "PP-LCNet_x1_0_textline_ori": ("RapidOCR/resolve/v3.9.2/onnx/PP-OCRv5/cls/ch_PP-LCNet_x1_0_textline_ori_cls_server.onnx",
+                                   6776876),
+    "PP-OCRv5_mobile_rec": ("RapidOCR/resolve/v3.9.2/onnx/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile.onnx", 16631306),
+    "en_PP-OCRv5_mobile_rec": ("RapidOCR/resolve/v3.9.2/onnx/PP-OCRv5/rec/en_PP-OCRv5_rec_mobile.onnx", 7872351),
+    "korean_PP-OCRv5_mobile_rec": ("RapidOCR/resolve/v3.9.2/onnx/PP-OCRv5/rec/korean_PP-OCRv5_rec_mobile.onnx", 13488748),
+    "eslav_PP-OCRv5_mobile_rec": ("RapidOCR/resolve/v3.9.2/onnx/PP-OCRv5/rec/eslav_PP-OCRv5_rec_mobile.onnx", 7911802),
+    "SLANet_plus": ("RapidTable/resolve/v2.0.0/slanet-plus.onnx", 7758305),
+}
 YOLO_NAME = re.compile(r"yolo[0-9a-z]*[nsmlx](-seg)?")
 GGML_REPO = "ggerganov/whisper.cpp"
 GGML_NAME = re.compile(r"ggml-(tiny|base|small|medium)(\.en)?")
@@ -113,11 +142,11 @@ def request(url, headers=None):
     return urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=60)
 
 
-def repo_files(repo):
+def repo_files(repo, skip=SKIP):
     """(name, size in bytes) for every file worth downloading."""
     with request(f"{HUB}/api/models/{repo}?blobs=true") as response:
         siblings = json.load(response).get("siblings", [])
-    files = {item["rfilename"]: item.get("size") for item in siblings if not SKIP.search(item["rfilename"])}
+    files = {item["rfilename"]: item.get("size") for item in siblings if not skip.search(item["rfilename"])}
     # The same weights twice is only a bigger download: prefer safetensors.
     if "model.safetensors" in files and "pytorch_model.bin" in files:
         del files["pytorch_model.bin"]
@@ -203,9 +232,12 @@ def download(spec):
         return fetch_repo(SPEECH[name], task="speech")
     if name in SPEAKER:
         return fetch_repo(SPEAKER[name], task="speaker")
+    if name in SYNTHESIS:
+        return fetch_repo(SYNTHESIS[name], task="synthesis")
     if name in OCR_SETS or name in OCR_MODELS:
         for model in OCR_SETS.get(name, [name]):
             fetch_repo(f"PaddlePaddle/{model}", task="ocr")
+            fetch_ocr_onnx(model)
         return None
     if name in MULTILINGUAL or name == "multi":
         return fetch_repo(repo or MULTILINGUAL.get(name, ""), multilingual=True)
@@ -308,7 +340,7 @@ def fetch_repo(repo, source=None, target=None, multilingual=False, task="transla
         return
 
     try:
-        files = repo_files(repo)
+        files = repo_files(repo, SYNTHESIS_SKIP if task == "synthesis" else SKIP)
     except urllib.error.HTTPError as error:
         raise SystemExit(f"{repo}: HTTP {error.code}. Check that it exists at {HUB}/{repo}") from error
 
@@ -338,6 +370,8 @@ def fetch_repo(repo, source=None, target=None, multilingual=False, task="transla
         meta.update(multilingual=True)  # Whisper: the language is chosen per dataset.
     elif task == "speaker":
         meta.update(engine="speechbrain", architecture="ECAPA-TDNN", licence="Apache-2.0")
+    elif task == "synthesis":
+        meta.update(engine="supertonic", licence="OpenRAIL-M")
     elif task == "ocr":
         meta.update(engine="paddleocr", licence="Apache-2.0", **OCR_MODELS.get(os.path.basename(folder), {}))
     elif multilingual:
@@ -345,6 +379,30 @@ def fetch_repo(repo, source=None, target=None, multilingual=False, task="transla
     else:
         meta.update(source=source, target=target)
     write_meta(folder, meta)
+
+
+def fetch_ocr_onnx(model):
+    """Add the ONNX copy of a downloaded PaddleOCR model, if there is one.
+
+    Optional: OCR runs on Paddle without it, so a failure is a warning.
+    """
+    if model not in OCR_ONNX:
+        return
+    folder = os.path.join(BASE_DIR, model)
+    meta = read_meta(folder)
+    if not meta.get("complete"):
+        return
+    path, size = OCR_ONNX[model]
+    target = os.path.join(folder, "inference.onnx")
+    if os.path.exists(target) and os.path.getsize(target) == size:
+        print("    inference.onnx: already here")
+    else:
+        try:
+            fetch_url(f"{OCR_ONNX_HOST}/{path}", "inference.onnx", target, size)
+        except (urllib.error.URLError, http.client.HTTPException, OSError, SystemExit) as error:
+            print(f"    inference.onnx: not downloaded ({error}); OCR with {model} will run on Paddle, more slowly")
+            return
+    write_meta(folder, {**meta, "files": {**meta.get("files", {}), "inference.onnx": size}, "onnx": True})
 
 
 def each_model():
@@ -367,6 +425,8 @@ def describe(meta):
         return "whisper.cpp" + (" en" if meta.get("englishOnly") else "")
     if task == "speaker":
         return "speaker"
+    if task == "synthesis":
+        return "text to speech"
     if task == "ocr":
         return f"ocr {meta.get('ocrRole', '')} {','.join(meta.get('languages', []))}".strip()
     if meta.get("multilingual") and not meta.get("source"):
@@ -391,7 +451,8 @@ def verify(repair):
         if not problems and kind == "base" and not meta.get("files") and meta.get("repo") \
                 and not meta["repo"].startswith(("ultralytics:", "whisper.cpp:")):
             try:
-                sizes = {name: size for name, size in repo_files(meta["repo"]) if size is not None}
+                skip = SYNTHESIS_SKIP if meta.get("task") == "synthesis" else SKIP
+                sizes = {name: size for name, size in repo_files(meta["repo"], skip) if size is not None}
             except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError):
                 note = " (file sizes not checked: no sizes recorded and the hub is unreachable)"
             else:
@@ -413,6 +474,8 @@ def verify(repair):
         elif kind == "base" and meta.get("repo"):
             fetch_repo(meta["repo"], meta.get("source"), meta.get("target"),
                        bool(meta.get("multilingual")) and meta.get("task") != "speech", meta.get("task", "translation"))
+            if meta.get("task") == "ocr":
+                fetch_ocr_onnx(os.path.basename(folder))
             damaged -= not model_problems(folder)
         else:
             print("         A fine-tuned model cannot be downloaded again: delete it in the app and retrain it.")
@@ -425,7 +488,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("pairs", nargs="*",
                         help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, m2m100, yolo26n, yolo26n-seg, whisper-tiny, "
-                             "ggml-tiny, ggml-base, ecapa, paddleocr, paddleocr-server")
+                             "ggml-tiny, ggml-base, ecapa, paddleocr, paddleocr-server, supertonic-3")
     parser.add_argument("--list", action="store_true", help="show the models already on disk")
     parser.add_argument("--verify", action="store_true", help="check the models on disk for damaged files")
     parser.add_argument("--repair", action="store_true", help="with --verify: re-download damaged files")

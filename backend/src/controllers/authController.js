@@ -179,7 +179,7 @@ export const login = async (req, res) => {
     }
 
     if (!isUsableAccount(user)) {
-      return res.status(403).json({ message: statusRefusal(user.status), accountStatus: user.status });
+      return res.status(403).json({ message: statusRefusal(user.status, user.blockReason), accountStatus: user.status });
     }
 
     return signedInResponse(res, user);
@@ -240,7 +240,7 @@ export const loginWithFace = async (req, res) => {
     // braces — but it is one line, and it is the line that would matter if
     // that query were ever widened.
     if (!isUsableAccount(best.user)) {
-      return res.status(403).json({ message: statusRefusal(best.user.status), accountStatus: best.user.status });
+      return res.status(403).json({ message: statusRefusal(best.user.status, best.user.blockReason), accountStatus: best.user.status });
     }
 
     return signedInResponse(res, best.user);
@@ -267,7 +267,7 @@ export const loginWithVoice = async (req, res) => {
     if (!upload) return res.status(400).json({ message: 'No recording arrived. Try again.' });
     const { user } = await identifyVoice(upload.path, getVoiceCandidates);
     if (!isUsableAccount(user)) {
-      return res.status(403).json({ message: statusRefusal(user.status), accountStatus: user.status });
+      return res.status(403).json({ message: statusRefusal(user.status, user.blockReason), accountStatus: user.status });
     }
     return signedInResponse(res, user);
   } catch (error) {

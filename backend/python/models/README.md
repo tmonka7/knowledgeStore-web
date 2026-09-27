@@ -60,8 +60,30 @@ recognition model per script reads them — `en_PP-OCRv5_mobile_rec` (English),
 paragraphs, tables and figures, and `SLANet_plus` recognises each table's rows,
 columns and merged cells, which the worker fills with the lines read in each
 cell (`paddleocr-server` adds the larger `PP-DocLayout_plus-L`). `ocr_worker.py`
-loads them from these folders only; PaddleOCR's own download is never used. oneDNN is turned off, because PaddlePaddle 3.3 fails
-with it on these models on the CPU (`OCR_MKLDNN=1` turns it back on).
+loads them from these folders only; PaddleOCR's own download is never used.
+
+Speed: `paddleocr` also puts an `inference.onnx` in each mobile model's folder
+(RapidOCR's conversion of the same weights, from ModelScope). With
+`onnxruntime` installed (it is in requirements.txt) those models run on ONNX
+Runtime: on a 16-core CPU the text of a full A4 page is read in about 2 s
+instead of 15 s, and a table in a sixth of the time, with exactly the same
+result. `PP-DocLayout-M` has no ONNX copy and stays on Paddle (about 2 s a
+page), on its own thread while the text is read; turning **Keep layout** off
+skips it. `OCR_ENGINE=paddle` runs everything on Paddle. Paddle's oneDNN is
+turned off, because PaddlePaddle 3.3 fails with it on these models on the CPU
+(`OCR_MKLDNN=1` turns it back on).
+
+For Text to Speech (Supertone's Supertonic 3, OpenRAIL-M, about 400 MB):
+
+```
+pip install onnxruntime
+python backend/python/download_models.py supertonic-3
+```
+
+The folder `supertonic-3` holds the four ONNX models (`onnx/`) and the ten
+preset voices (`voice_styles/F1.json` … `M5.json`); `tts_worker.py` runs them
+with onnxruntime, following Supertone's reference code. It reads 31 languages,
+not Chinese, at about 0.4 s of work per second of speech on a 16-core CPU.
 
 For Voice recognition on the Speech to Text page (whisper.cpp, MIT):
 

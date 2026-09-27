@@ -10,6 +10,8 @@ import {
   SendOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import PresenceDot, { usePresenceLabel } from '../components/PresenceDot';
+import { usePresence } from '../lib/presence';
 import PageHeader from '../components/ui/PageHeader';
 import api from '../api';
 import { useLanguage } from '../i18n';
@@ -133,14 +135,22 @@ const dayLabel = (value) => {
   return date.toLocaleDateString(undefined, { dateStyle: 'medium' });
 };
 
+/** A person's photo or initials, with their connection status on it. */
 function PersonAvatar({ person, size = 42 }) {
-  if (person?.faceImage) {
-    return <img className="chat-avatar-img" src={person.faceImage} alt={person.fullName} style={{ width: size, height: size }} />;
-  }
+  const { people } = usePresence();
+  const picture = person?.faceImage
+    ? <img className="chat-avatar-img" src={person.faceImage} alt={person.fullName} style={{ width: size, height: size }} />
+    : (
+      <Avatar size={size} className="vision-chat-avatar">
+        {person ? initials(person.fullName) : <UserOutlined />}
+      </Avatar>
+    );
+  if (!person?.id) return picture;
   return (
-    <Avatar size={size} className="vision-chat-avatar">
-      {person ? initials(person.fullName) : <UserOutlined />}
-    </Avatar>
+    <span style={{ position: 'relative', display: 'inline-flex', flex: 'none' }}>
+      {picture}
+      <PresenceDot presence={people[person.id]} size={Math.max(9, Math.round(size / 4))} ring style={{ position: 'absolute', right: 0, bottom: 0 }} />
+    </span>
   );
 }
 
@@ -157,6 +167,8 @@ function PersonAvatar({ person, size = 42 }) {
  */
 export default function ChatPage({ user, initialThreadId = '', onThreadOpened }) {
   const { t } = useLanguage();
+  const { people: connections } = usePresence();
+  const presenceLabel = usePresenceLabel();
 
   const [threads, setThreads] = useState([]);
   const [people, setPeople] = useState([]);
@@ -480,6 +492,8 @@ export default function ChatPage({ user, initialThreadId = '', onThreadOpened })
                   <div>
                     <div className="vision-chat-thread-name">{activeThread.user?.fullName}</div>
                     <div className="vision-chat-thread-status">
+                      {presenceLabel(connections[activeThread.user?.id])}
+                      {' · '}
                       @{activeThread.user?.username}
                       {activeThread.user?.email ? ` · ${activeThread.user.email}` : ''}
                     </div>

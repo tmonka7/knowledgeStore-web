@@ -216,13 +216,17 @@ def model_problems(model_dir):
     expected = read_meta(model_dir).get("files", {})
     names = set(os.listdir(model_dir)) if os.path.isdir(model_dir) else set()
     problems = []
+    # An ONNX-only model (Text to Speech) has its weights in the .onnx files it lists.
     if not any(name in names or name.endswith(".pt") for name in WEIGHT_FILES) \
-            and not any(name.endswith(".pt") or re.fullmatch(r"ggml-.+\.bin", name) for name in names):
+            and not any(name.endswith(".pt") or re.fullmatch(r"ggml-.+\.bin", name) for name in names) \
+            and not any(name.endswith(".onnx") for name in expected):
         problems.append("the weights file is missing")
+    # Names may be paths within the folder (onnx/vocoder.onnx).
     for name, size in expected.items():
-        if name in names and os.path.getsize(os.path.join(model_dir, name)) != size:
-            problems.append(f"{name} is {os.path.getsize(os.path.join(model_dir, name)):,} bytes, expected {size:,}")
-        elif name not in names:
+        path = os.path.join(model_dir, name)
+        if os.path.isfile(path) and os.path.getsize(path) != size:
+            problems.append(f"{name} is {os.path.getsize(path):,} bytes, expected {size:,}")
+        elif not os.path.isfile(path):
             problems.append(f"{name} is missing")
     for name in sorted(names):
         if name.endswith((".bin", ".pt", ".safetensors")) and name not in expected:
