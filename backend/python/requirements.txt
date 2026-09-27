@@ -11,7 +11,7 @@
 # The Train panels list the GPUs this build can use (backend/python/gpu_info.py)
 # and say why when there are none — most often a CPU-only build.
 torch>=2.6
-transformers>=4.40
+transformers>=4.48  # 4.48 for Moonshine (Speech to Command)
 sentencepiece>=0.2
 sacremoses
 safetensors

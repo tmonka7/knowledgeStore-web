@@ -1281,4 +1281,77 @@
   <text id="voiceDsNoLines" en="The script is empty. Add a line or edit the script." es="El guion esta vacio. Agregue una linea o edite el guion." zh="脚本为空。请添加一行或编辑脚本。" jp="台本が空です。行を追加するか台本を編集してください。" />
   <text id="voiceDsClipShort" en="This recording looks short for the sentence. Listen to check that none of it was cut off." es="Esta grabacion parece corta para la frase. Escuchela para comprobar que no se corto." zh="这段录音相对句子偏短。请试听，确认没有被截断。" jp="文の長さに比べて録音が短いようです。途中で切れていないか聞いて確認してください。" />
   <text id="voiceDsClipLong" en="This recording looks long for the sentence. Long pauses or extra words make the voice less accurate." es="Esta grabacion parece larga para la frase. Las pausas largas o palabras de mas hacen la voz menos precisa." zh="这段录音相对句子偏长。长时间停顿或多余的词会降低声音的准确度。" jp="文の長さに比べて録音が長いようです。長い間や余分な言葉があると声の精度が下がります。" />
+  <text id="speechCommand" en="Speech to Command" es="Voz a comando" zh="语音转命令" jp="音声コマンド" />
+  <text id="cmdSubtitle" en="Say a command and Moonshine recognises it. Make your own commands, record them, and train Moonshine on them." es="Diga un comando y Moonshine lo reconoce. Cree sus propios comandos, grabelos y entrene Moonshine con ellos." zh="说出命令，Moonshine 即可识别。创建自己的命令、录制并用它们训练 Moonshine。" jp="コマンドを話すと Moonshine が認識します。独自のコマンドを作り、録音して Moonshine を学習させられます。" />
+  <text id="cmdRecognizeTab" en="Recognize" es="Reconocer" zh="识别" jp="認識" />
+  <text id="cmdCommandsTab" en="Commands" es="Comandos" zh="命令" jp="コマンド" />
+  <text id="cmdTrainNeedsPermission" en="Training needs the &quot;Speech to Command: train&quot; permission. Ask an administrator." es="Entrenar requiere el permiso &quot;Voz a comando: entrenar&quot;. Pidalo a un administrador." zh="训练需要“语音转命令：训练”权限。请联系管理员。" jp="学習には「音声コマンド：学習」の権限が必要です。管理者に依頼してください。" />
+  <text id="cmdRecognizeTitle" en="Recognize commands" es="Reconocer comandos" zh="识别命令" jp="コマンドを認識" />
+  <text id="cmdNoModels" en="No Moonshine model on the server yet. An administrator downloads one:" es="Aun no hay un modelo Moonshine en el servidor. Un administrador descarga uno:" zh="服务器上还没有 Moonshine 模型。请管理员下载：" jp="サーバーに Moonshine モデルがまだありません。管理者がダウンロードします：" />
+  <text id="cmdSet" en="Command set" es="Conjunto de comandos" zh="命令集" jp="コマンドセット" />
+  <text id="cmdPickSet" en="Choose a command set" es="Elija un conjunto de comandos" zh="选择命令集" jp="コマンドセットを選択" />
+  <text id="cmdNoSetsForLanguage" en="No command set in this model's language. Make one on the Commands tab." es="No hay conjuntos en el idioma de este modelo. Cree uno en la pestana Comandos." zh="没有此模型语言的命令集。请在“命令”标签中创建。" jp="このモデルの言語のコマンドセットがありません。「コマンド」タブで作成してください。" />
+  <text id="cmdOwnCommands" en="Its own commands ({count})" es="Sus propios comandos ({count})" zh="模型自带的命令（{count}）" jp="モデル自身のコマンド（{count}）" />
+  <text id="cmdThreshold" en="Strictness: {value}" es="Exigencia: {value}" zh="严格度：{value}" jp="厳しさ：{value}" />
+  <text id="cmdThresholdHelp" en="How closely what was said must match a command's phrase. Higher: fewer wrong commands, more &quot;no command&quot;." es="Cuanto debe parecerse lo dicho a la frase de un comando. Mas alto: menos comandos erroneos y mas &quot;ningun comando&quot;." zh="所说内容与命令短语需要多接近。越高：误识别越少，“无命令”越多。" jp="話した内容がコマンドのフレーズにどれだけ近い必要があるか。高いほど誤認識が減り、「コマンドなし」が増えます。" />
+  <text id="cmdNeedSet" en="A base model needs a command set. Make one in {language} on the Commands tab." es="Un modelo base necesita un conjunto de comandos. Cree uno en {language} en la pestana Comandos." zh="基础模型需要命令集。请在“命令”标签中创建 {language} 命令集。" jp="ベースモデルにはコマンドセットが必要です。「コマンド」タブで {language} のセットを作成してください。" />
+  <text id="cmdLicence" en="This model is under the {licence}: free for research, personal use and organisations with under US$1M a year in revenue." es="Este modelo tiene la {licence}: gratis para investigacion, uso personal y organizaciones con menos de 1 millon de USD de ingresos anuales." zh="此模型采用 {licence}：可免费用于研究、个人用途及年收入低于 100 万美元的组织。" jp="このモデルは {licence} です。研究・個人利用、年間売上 100 万米ドル未満の組織は無料で使えます。" />
+  <text id="cmdListen" en="Listen" es="Escuchar" zh="开始聆听" jp="聞き取り開始" />
+  <text id="cmdStopListening" en="Stop listening" es="Dejar de escuchar" zh="停止聆听" jp="聞き取り停止" />
+  <text id="cmdListenHelp" en="Listen hears one command after another until you stop it. Or press Record for a single one." es="Escuchar oye un comando tras otro hasta que lo detenga. O pulse Grabar para uno solo." zh="“开始聆听”会连续识别命令，直到停止。也可以按“按住说话”识别单个命令。" jp="「聞き取り開始」は止めるまで次々にコマンドを聞き取ります。1 つだけなら「録音」を押してください。" />
+  <text id="cmdListeningHelp" en="Listening. Say a command, then pause." es="Escuchando. Diga un comando y haga una pausa." zh="正在聆听。说出命令后稍作停顿。" jp="聞き取り中。コマンドを話して、少し間を置いてください。" />
+  <text id="cmdPushToTalk" en="Record one" es="Grabar uno" zh="按住说话" jp="1 つ録音" />
+  <text id="cmdSaySomething" en="Say a command." es="Diga un comando." zh="请说出命令。" jp="コマンドを話してください。" />
+  <text id="cmdRecognizing" en="Recognising…" es="Reconociendo…" zh="识别中…" jp="認識中…" />
+  <text id="cmdYouCanSay" en="You can say" es="Puede decir" zh="可以说" jp="話せるコマンド" />
+  <text id="cmdHeard" en="Heard" es="Oido" zh="已听到" jp="聞き取った内容" />
+  <text id="cmdNothingYet" en="Nothing yet." es="Nada todavia." zh="暂无。" jp="まだありません。" />
+  <text id="cmdNoCommand" en="No command" es="Ningun comando" zh="无命令" jp="コマンドなし" />
+  <text id="cmdUnsure" en="Unsure" es="Dudoso" zh="不确定" jp="不確か" />
+  <text id="cmdUnsureBetween" en="Too close between &quot;{first}&quot; and &quot;{second}&quot; to choose." es="Demasiado parecido entre &quot;{first}&quot; y &quot;{second}&quot; para elegir." zh="“{first}”和“{second}”太接近，无法选择。" jp="「{first}」と「{second}」が近すぎて選べません。" />
+  <text id="cmdRecognizeFailed" en="The command could not be recognised." es="No se pudo reconocer el comando." zh="无法识别命令。" jp="コマンドを認識できませんでした。" />
+  <text id="cmdOtherLanguages" en="Moonshine models for Korean, Japanese, Chinese, Arabic, Ukrainian and Vietnamese are downloaded the same way, e.g. {command}." es="Los modelos Moonshine para coreano, japones, chino, arabe, ucraniano y vietnamita se descargan igual, p. ej. {command}." zh="韩语、日语、中文、阿拉伯语、乌克兰语和越南语的 Moonshine 模型以同样方式下载，例如 {command}。" jp="朝鮮語・日本語・中国語・アラビア語・ウクライナ語・ベトナム語の Moonshine モデルも同様にダウンロードできます（例：{command}）。" />
+  <text id="cmdSetsTitle" en="Command sets" es="Conjuntos de comandos" zh="命令集" jp="コマンドセット" />
+  <text id="cmdSetsHelp" en="A command set lists commands and the phrases that say them. Recognising needs only the set; recordings of people saying the commands are what Train uses to make Moonshine hear them better." es="Un conjunto lista comandos y las frases que los dicen. Reconocer solo necesita el conjunto; las grabaciones de personas diciendo los comandos son lo que Entrenar usa para que Moonshine los oiga mejor." zh="命令集列出命令及其说法。识别只需要命令集；训练会使用人们说这些命令的录音，让 Moonshine 听得更准。" jp="コマンドセットはコマンドとその言い方の一覧です。認識にはセットだけで足ります。学習では、人がコマンドを話した録音を使って Moonshine の聞き取りを良くします。" />
+  <text id="cmdNewSet" en="New command set" es="Nuevo conjunto" zh="新建命令集" jp="新しいコマンドセット" />
+  <text id="cmdNoSets" en="No command sets yet. Choose New command set to start." es="Aun no hay conjuntos. Elija Nuevo conjunto para empezar." zh="还没有命令集。选择“新建命令集”开始。" jp="コマンドセットはまだありません。「新しいコマンドセット」で始めてください。" />
+  <text id="cmdCommands" en="Commands" es="Comandos" zh="命令" jp="コマンド" />
+  <text id="cmdRecordings" en="Recordings" es="Grabaciones" zh="录音" jp="録音" />
+  <text id="cmdDeleteSetConfirm" en="Delete &quot;{name}&quot; and all its recordings?" es="¿Eliminar &quot;{name}&quot; y todas sus grabaciones?" zh="删除“{name}”及其所有录音？" jp="「{name}」とそのすべての録音を削除しますか？" />
+  <text id="cmdSaveFailed" en="The command set could not be saved." es="No se pudo guardar el conjunto." zh="无法保存命令集。" jp="コマンドセットを保存できませんでした。" />
+  <text id="cmdLoadFailed" en="The command set could not be opened." es="No se pudo abrir el conjunto." zh="无法打开命令集。" jp="コマンドセットを開けませんでした。" />
+  <text id="cmdCreate" en="Create" es="Crear" zh="创建" jp="作成" />
+  <text id="cmdSetName" en="Name" es="Nombre" zh="名称" jp="名前" />
+  <text id="cmdUntitled" en="My commands" es="Mis comandos" zh="我的命令" jp="マイコマンド" />
+  <text id="cmdStartExamples" en="Start with example commands" es="Empezar con comandos de ejemplo" zh="从示例命令开始" jp="例のコマンドで始める" />
+  <text id="cmdStartEmpty" en="Start empty" es="Empezar vacio" zh="从空白开始" jp="空で始める" />
+  <text id="cmdProgress" en="{commands} commands · {recordings} recordings · {duration} of speech" es="{commands} comandos · {recordings} grabaciones · {duration} de habla" zh="{commands} 个命令 · {recordings} 条录音 · 语音 {duration}" jp="コマンド {commands} 件 · 録音 {recordings} 件 · 音声 {duration}" />
+  <text id="cmdAim" en="For training, aim for {count} or more recordings of each command, by several people. {thin} commands have fewer." es="Para entrenar, intente tener {count} o mas grabaciones de cada comando, de varias personas. {thin} comandos tienen menos." zh="训练时，建议每个命令有 {count} 条以上、来自多人的录音。有 {thin} 个命令不足。" jp="学習には、各コマンドにつき複数の人による録音を {count} 件以上用意してください。{thin} 件のコマンドが不足しています。" />
+  <text id="cmdEnough" en="Every command has enough recordings to train on." es="Todos los comandos tienen grabaciones suficientes para entrenar." zh="每个命令都有足够的录音可供训练。" jp="すべてのコマンドに学習に十分な録音があります。" />
+  <text id="cmdNoCommands" en="No commands. Add one." es="Sin comandos. Agregue uno." zh="没有命令。请添加。" jp="コマンドがありません。追加してください。" />
+  <text id="cmdAddCommand" en="Add command" es="Agregar comando" zh="添加命令" jp="コマンドを追加" />
+  <text id="cmdNewCommandName" en="Command {number}" es="Comando {number}" zh="命令 {number}" jp="コマンド {number}" />
+  <text id="cmdCommandName" en="Command" es="Comando" zh="命令" jp="コマンド" />
+  <text id="cmdPhrases" en="Phrases that say it — one per line" es="Frases que lo dicen, una por linea" zh="说法——每行一个" jp="言い方（1 行に 1 つ）" />
+  <text id="cmdPhrasesPlaceholder" en="turn on the lights&#10;lights on" es="enciende las luces&#10;luces" zh="开灯&#10;打开灯" jp="電気をつけて&#10;電気オン" />
+  <text id="cmdSayThis" en="Recording {number}: say" es="Grabacion {number}: diga" zh="第 {number} 条录音：请说" jp="録音 {number}：次を話してください" />
+  <text id="cmdRecordHint" en="Up to {seconds} seconds; it stops by itself. Each recording moves on to the next phrase." es="Hasta {seconds} segundos; se detiene solo. Cada grabacion pasa a la siguiente frase." zh="最长 {seconds} 秒，会自动停止。每次录音后切换到下一个说法。" jp="最長 {seconds} 秒で自動的に止まります。録音ごとに次の言い方に進みます。" />
+  <text id="cmdRecordingsOf" en="Recordings of this command ({count})" es="Grabaciones de este comando ({count})" zh="此命令的录音（{count}）" jp="このコマンドの録音（{count}）" />
+  <text id="cmdNoRecordings" en="No recordings yet." es="Aun no hay grabaciones." zh="还没有录音。" jp="録音はまだありません。" />
+  <text id="cmdPlay" en="Play" es="Reproducir" zh="播放" jp="再生" />
+  <text id="cmdRemoveCommand" en="Remove this command" es="Quitar este comando" zh="删除此命令" jp="このコマンドを削除" />
+  <text id="cmdRemoveCommandConfirm" en="Remove this command and its {count} recording(s)?" es="¿Quitar este comando y sus {count} grabacion(es)?" zh="删除此命令及其 {count} 条录音？" jp="このコマンドと録音 {count} 件を削除しますか？" />
+  <text id="cmdTrainTitle" en="Train a command model" es="Entrenar un modelo de comandos" zh="训练命令模型" jp="コマンドモデルを学習" />
+  <text id="cmdTrainHelp" en="Fine-tunes Moonshine on a command set's recordings, so it hears those commands, said by those people, more reliably. The result is scored on recordings held back from training: the share recognised as the right command." es="Ajusta Moonshine con las grabaciones de un conjunto, para que oiga esos comandos, dichos por esas personas, con mas fiabilidad. Se puntua con grabaciones apartadas del entrenamiento: la parte reconocida como el comando correcto." zh="用命令集的录音微调 Moonshine，使其更可靠地听懂这些人说的这些命令。结果在未参与训练的录音上评分：识别为正确命令的比例。" jp="コマンドセットの録音で Moonshine を微調整し、その人たちが話すそのコマンドをより確実に聞き取れるようにします。結果は学習に使わなかった録音で採点します（正しいコマンドと認識された割合）。" />
+  <text id="cmdNoTrainableSets" en="No command set with recordings. Record some on the Commands tab." es="No hay conjuntos con grabaciones. Grabe algunas en la pestana Comandos." zh="没有带录音的命令集。请在“命令”标签中录制。" jp="録音のあるコマンドセットがありません。「コマンド」タブで録音してください。" />
+  <text id="cmdNoModelForLanguage" en="No Moonshine model for &quot;{language}&quot; on the server. An administrator downloads it:" es="No hay modelo Moonshine para &quot;{language}&quot; en el servidor. Un administrador lo descarga:" zh="服务器上没有“{language}”的 Moonshine 模型。请管理员下载：" jp="サーバーに「{language}」の Moonshine モデルがありません。管理者がダウンロードします：" />
+  <text id="cmdExpected" en="Command" es="Comando" zh="命令" jp="コマンド" />
+  <text id="cmdAccuracyColumn" en="Right command" es="Comando correcto" zh="命令正确率" jp="正しいコマンド" />
+  <text id="cmdHeldOutHelp" en="On recordings held back from training." es="Con grabaciones apartadas del entrenamiento." zh="基于未参与训练的录音。" jp="学習に使わなかった録音での結果。" />
+  <text id="cmdNotHeldOutHelp" en="Too few recordings to hold any back: scored on the training recordings, which flatters the result." es="Muy pocas grabaciones para apartar alguna: puntuado con las de entrenamiento, lo que favorece el resultado." zh="录音太少，无法留出：在训练录音上评分，结果偏高。" jp="録音が少なく取り分けられないため、学習用の録音で採点しています（結果は甘めになります）。" />
+  <text id="cmdTrainedFrom" en="From {base}, on {set} ({count} commands)" es="Desde {base}, con {set} ({count} comandos)" zh="基于 {base}，使用 {set}（{count} 个命令）" jp="{base} から {set} で学習（コマンド {count} 件）" />
+  <text id="cmdSayCommand" en="Say a command" es="Diga un comando" zh="说出命令" jp="コマンドを話す" />
+  <text id="cmdTestSetHelp" en="A base model is given the chosen command set; a trained model uses its own commands." es="A un modelo base se le da el conjunto elegido; un modelo entrenado usa sus propios comandos." zh="基础模型使用所选命令集；训练过的模型使用自带命令。" jp="ベースモデルには選んだセットを使い、学習済みモデルは自身のコマンドを使います。" />
+  <text id="cmdEngineStarting" en="Starting the recogniser on the server (a few seconds, the first time)…" es="Iniciando el reconocedor en el servidor (unos segundos la primera vez)…" zh="正在服务器上启动识别器（首次需要几秒钟）…" jp="サーバーで認識エンジンを起動しています（初回は数秒かかります）…" />
+  <text id="cmdEngineFailed" en="The recogniser cannot run on the server." es="El reconocedor no puede funcionar en el servidor." zh="识别器无法在服务器上运行。" jp="サーバーで認識エンジンを実行できません。" />
 </translations>

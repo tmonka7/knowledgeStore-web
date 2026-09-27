@@ -92,6 +92,21 @@ the start of each job; nothing is written to the model folder. A trained
 voice is saved in `models/finetuned/<id>/` as `voice.json` (a voice style,
 like `voice_styles/F1.json`) and `target.json` (the recordings' voiceprint).
 
+For Speech to Command (Moonshine AI's Moonshine; English models MIT):
+
+```
+python backend/python/download_models.py moonshine-tiny
+```
+
+`moonshine-base` is larger (about 250 MB against 110 MB) and more accurate.
+`moonshine-tiny-ko`, `-ja`, `-zh`, `-ar`, `-uk` and `-vi` (and the same for
+base) transcribe those languages; they are under the Moonshine AI Community
+License (free under US$1M a year in revenue; commercial users register with
+Moonshine AI). They run with transformers 4.48 or later: `command_worker.py`
+keeps one loaded and matches what it hears to a command set's phrases
+(`command_common.py`), and `command_train.py` fine-tunes one on a set's
+recordings, saving it with `commands.json` in `models/finetuned/<id>/`.
+
 For Voice recognition on the Speech to Text page (whisper.cpp, MIT):
 
 ```

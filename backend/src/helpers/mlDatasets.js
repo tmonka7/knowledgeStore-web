@@ -21,6 +21,10 @@
 // recorded, and the script — the lines to read, recorded or not — is kept in
 // ks-dataset.json. See saveVoiceScript.
 //
+//   datasets/command/<id>/ks-dataset.json       name, owner, language, commands, clips
+//   datasets/command/<id>/audio/<clip id>.wav    recordings, recorded on the page like voice lines
+//   datasets/command/<id>/metadata.jsonl        {"audio", "text", "command"} per recording
+//
 // Uploading is incremental: the page asks which files the server already has
 // (by path and size) and sends only the rest, in batches, then sends the
 // labels or transcripts last. Files the page no longer has are removed at that
@@ -39,6 +43,7 @@ export const DATASET_KINDS = {
   yolo: { folder: 'images', pattern: /\.(jpe?g|png|bmp|webp|tiff?)$/i, label: 'image' },
   speech: { folder: 'audio', pattern: /\.wav$/i, label: 'WAV file' },
   voice: { folder: 'audio', pattern: /\.wav$/i, label: 'WAV file' },
+  command: { folder: 'audio', pattern: /\.wav$/i, label: 'WAV file' },
 };
 
 const rootOf = (kind) => path.join(DATASETS_DIR, kind);
@@ -399,6 +404,166 @@ export const voiceClipPath = async (ownerId, id, lineId) => {
   const file = clipFile(folder, lineId);
   if (!(await exists(file))) throw new JobError('That line has not been recorded.', 404);
   return file;
+};
+
+/*
+ * Command sets (Speech to Command): commands, each with the phrases that say
+ * it, and recordings of people saying them — audio/<clip id>.wav, each
+ * labelled with its command and the phrase spoken.
+ */
+const CLIP_ID = /^[a-z0-9]{4,40}$/;
+const COMMAND_ID = /^[A-Za-z0-9_-]{1,40}$/;
+const MAX_COMMANDS = 200;
+const MAX_PHRASES = 20;
+const MAX_CLIPS = 5000;
+
+const cleanCommands = (commands) => {
+  if (!Array.isArray(commands)) throw new JobError('The commands must be a list.');
+  if (commands.length > MAX_COMMANDS) throw new JobError(`A command set may have at most ${MAX_COMMANDS} commands.`);
+  const seen = new Set();
+  return commands.map((command) => {
+    const id = String(command?.id || '');
+    if (!COMMAND_ID.test(id) || seen.has(id)) throw new JobError('Every command needs its own id.');
+    seen.add(id);
+    const name = String(command?.name || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (!name) throw new JobError('Every command needs a name.');
+    const phrases = [...new Set((Array.isArray(command?.phrases) ? command.phrases : [])
+      .map((phrase) => String(phrase || '').replace(/\s+/g, ' ').trim().slice(0, 200))
+      .filter(Boolean))].slice(0, MAX_PHRASES);
+    return { id, name, phrases: phrases.length ? phrases : [name] };
+  });
+};
+
+/**
+ * Save a command set's details and commands, and bring the rest in line:
+ * recordings of commands no longer in the set are deleted, and metadata.jsonl
+ * (what training reads) lists every recording that is left.
+ */
+export const saveCommandSet = async (ownerId, id, fields = {}) => {
+  const { folder, meta } = await locate(ownerId, 'command', id);
+  const next = { ...meta };
+  if (fields.name !== undefined) {
+    next.name = String(fields.name || '').trim().slice(0, 120);
+    if (!next.name) throw new JobError('A name is required.');
+  }
+  if (fields.language !== undefined) {
+    const code = String(fields.language || '').trim();
+    if (!/^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$/.test(code)) throw new JobError('Pick the language the commands are spoken in.');
+    next.language = code;
+  }
+  if (fields.commands !== undefined) next.commands = cleanCommands(fields.commands);
+  next.commands = next.commands || [];
+  const known = new Set(next.commands.map((command) => command.id));
+  next.clips = (fields.clips || next.clips || []).filter((clip) => known.has(clip.command));
+
+  const audioFolder = path.join(folder, 'audio');
+  await prune(folder, 'command', next.clips.map((clip) => `${clip.id}.wav`));
+  const rows = [];
+  const kept = [];
+  let seconds = 0;
+  for (const clip of next.clips) {
+    const file = path.join(audioFolder, `${clip.id}.wav`);
+    if (!(await exists(file))) continue;
+    kept.push(clip);
+    seconds += await wavSeconds(file);
+    rows.push(JSON.stringify({ audio: `audio/${clip.id}.wav`, text: clip.text, command: clip.command }));
+  }
+  next.clips = kept;
+  await fs.writeFile(path.join(folder, 'metadata.jsonl'), rows.length ? `${rows.join('\n')}\n` : '', 'utf8');
+
+  const updated = {
+    ...next,
+    commandCount: next.commands.length,
+    recorded: kept.length,
+    transcribed: kept.length,
+    seconds: Math.round(seconds * 10) / 10,
+    ...(await summarise(folder, 'command')),
+    complete: true,
+    updatedAt: new Date().toISOString(),
+  };
+  await writeMeta(folder, updated);
+  return publicMeta(updated);
+};
+
+/** A command set for a list: everything but its commands and recordings. */
+export const commandSetSummary = ({ commands: _commands, clips: _clips, ...meta }) => meta;
+
+export const createCommandSet = async (ownerId, fields = {}) => {
+  const dataset = await createDataset(ownerId, 'command', fields);
+  try {
+    return await saveCommandSet(ownerId, dataset.id, { language: fields.language, commands: fields.commands || [] });
+  } catch (error) {
+    await deleteDataset(ownerId, 'command', dataset.id);
+    throw error;
+  }
+};
+
+/** A command set with its commands, and its recordings with their lengths. */
+export const getCommandSet = async (ownerId, id) => {
+  const { folder, meta } = await locate(ownerId, 'command', id);
+  const clips = await Promise.all((meta.clips || []).map(async (clip) => ({
+    ...clip, seconds: await wavSeconds(path.join(folder, 'audio', `${clip.id}.wav`)),
+  })));
+  return { ...publicMeta(meta), commands: meta.commands || [], clips };
+};
+
+/** Add a recording of `command` saying `text`; `upload` is a multer file holding a WAV. */
+export const addCommandClip = async (ownerId, id, { command, text }, upload) => {
+  try {
+    const { folder, meta } = await locate(ownerId, 'command', id);
+    const target = (meta.commands || []).find((item) => item.id === command);
+    if (!target) throw new JobError('That command is not in this set.', 404);
+    if ((meta.clips || []).length >= MAX_CLIPS) throw new JobError(`A command set may hold at most ${MAX_CLIPS} recordings.`);
+    const spoken = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 200) || target.phrases[0];
+    if (!upload) throw new JobError('No recording was sent.');
+    if (upload.size > MAX_CLIP_BYTES) throw new JobError('That recording is too long.');
+    const handle = await fs.open(upload.path, 'r');
+    const header = Buffer.alloc(12);
+    await handle.read(header, 0, 12, 0);
+    await handle.close();
+    if (header.toString('ascii', 0, 4) !== 'RIFF' || header.toString('ascii', 8, 12) !== 'WAVE') {
+      throw new JobError('The recording is not a WAV file.');
+    }
+    const clipId = `${Date.now().toString(36)}${randomUUID().replace(/-/g, '').slice(0, 8)}`;
+    const file = path.join(folder, 'audio', `${clipId}.wav`);
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.copyFile(upload.path, file);
+    await saveCommandSet(ownerId, id, { clips: [...(meta.clips || []), { id: clipId, command, text: spoken }] });
+    return getCommandSet(ownerId, id);
+  } finally {
+    if (upload) await fs.rm(upload.path, { force: true });
+  }
+};
+
+export const deleteCommandClip = async (ownerId, id, clipId) => {
+  const { meta } = await locate(ownerId, 'command', id);
+  if (!CLIP_ID.test(String(clipId || ''))) throw new JobError('That recording does not exist.', 404);
+  await saveCommandSet(ownerId, id, { clips: (meta.clips || []).filter((clip) => clip.id !== clipId) });
+  return getCommandSet(ownerId, id);
+};
+
+/** The path of one recording, for playing it back. */
+export const commandClipPath = async (ownerId, id, clipId) => {
+  const { folder, meta } = await locate(ownerId, 'command', id);
+  if (!CLIP_ID.test(String(clipId || '')) || !(meta.clips || []).some((clip) => clip.id === clipId)) {
+    throw new JobError('That recording does not exist.', 404);
+  }
+  return path.join(folder, 'audio', `${clipId}.wav`);
+};
+
+/*
+ * Changes to one command set, one at a time: each rewrites its list of
+ * recordings, so two recordings saved at once must not both start from the
+ * same list.
+ */
+const commandLocks = new Map();
+export const withCommandSetLock = (id, work) => {
+  const previous = commandLocks.get(id) || Promise.resolve();
+  const next = previous.then(work, work);
+  const settled = next.catch(() => {});
+  commandLocks.set(id, settled);
+  settled.then(() => { if (commandLocks.get(id) === settled) commandLocks.delete(id); });
+  return next;
 };
 
 export const deleteDataset = async (ownerId, kind, id) => {

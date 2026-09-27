@@ -41,6 +41,11 @@ const BACKFILLS = [
     permissions: ['text-to-speech:view'],
     note: 'Text to Speech was added to Tools / AI after these accounts were created. It keeps nothing: the speech is made and sent within the request.',
   },
+  {
+    id: 'grant-speech-command-view-2026-09',
+    permissions: ['speech-command:view'],
+    note: 'Speech to Command was added to Tools / AI after these accounts were created. Command sets are private to whoever makes them.',
+  },
 ];
 
 export const backfillDefaultPermissions = async () => {

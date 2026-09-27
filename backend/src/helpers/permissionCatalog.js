@@ -32,6 +32,8 @@ export const PERMISSION_CATALOG = [
   // 'train' learns a voice from someone's recordings: it copies a person's
   // voice and ties up the server, so it is granted per account, not by default.
   { key: 'text-to-speech', label: 'Tools / AI / Text to Speech', actions: ['view', 'train'] },
+  // 'train' fine-tunes a Moonshine model, which ties up the server.
+  { key: 'speech-command', label: 'Tools / AI / Speech to Command', actions: ['view', 'train'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'wallet', label: 'My Page / Wallet', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'contacts', label: 'My Page / Contacts', actions: ['view', 'create', 'edit', 'delete'] },
@@ -85,6 +87,7 @@ export const DEFAULT_USER_PERMISSIONS = [
   'transformers:view',
   'ocr:view',
   'text-to-speech:view',
+  'speech-command:view',
 ];
 
 export const sanitizePermissions = (values) => {

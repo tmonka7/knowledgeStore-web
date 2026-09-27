@@ -30,6 +30,7 @@ import { ggmlHandlers, mlHandlers } from '../controllers/mlController.js';
 import { recognizeSpeech, recognizeStatus } from '../controllers/recognizeController.js';
 import { synthesizeSpeech, synthesizeStatus } from '../controllers/synthesizeController.js';
 import * as voiceTraining from '../controllers/voiceTrainingController.js';
+import * as speechCommand from '../controllers/speechCommandController.js';
 import * as speaker from '../controllers/speakerController.js';
 import * as ocr from '../controllers/ocrController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
@@ -164,6 +165,33 @@ router.get('/tools/voice/devices', ...voiceTrain, asyncRoute(voiceTraining.voice
 router.get('/tools/voice/jobs', ...voiceTrain, asyncRoute(voiceTraining.listVoiceJobs));
 router.get('/tools/voice/jobs/:id', ...voiceTrain, asyncRoute(voiceTraining.getVoiceJob));
 router.post('/tools/voice/jobs/:id/cancel', ...voiceTrain, asyncRoute(voiceTraining.cancelVoiceJob));
+
+/*
+ * Speech to Command (Moonshine): recognising commands and keeping your own
+ * command sets come with the page ('speech-command:view'); fine-tuning a model
+ * ties up the server and needs 'speech-command:train'. Sets and trained
+ * models are private to their owner.
+ */
+const commandView = [requireAuth, requirePermission('speech-command:view')];
+const commandTrain = [...commandView, requirePermission('speech-command:train')];
+const commandUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 20 * 1024 * 1024, files: 1 } });
+router.get('/tools/command/status', ...commandView, asyncRoute(speechCommand.status));
+router.get('/tools/command/models', ...commandView, asyncRoute(speechCommand.listModels));
+router.post('/tools/command/recognize', ...commandView, commandUpload.single('audio'), asyncRoute(speechCommand.recognize));
+router.get('/tools/command/datasets', ...commandView, asyncRoute(speechCommand.listSets));
+router.post('/tools/command/datasets', ...commandView, asyncRoute(speechCommand.createSet));
+router.get('/tools/command/datasets/:id', ...commandView, asyncRoute(speechCommand.getSet));
+router.put('/tools/command/datasets/:id', ...commandView, asyncRoute(speechCommand.updateSet));
+router.delete('/tools/command/datasets/:id', ...commandView, asyncRoute(speechCommand.deleteSet));
+router.post('/tools/command/datasets/:id/clips', ...commandView, commandUpload.single('audio'), asyncRoute(speechCommand.addClip));
+router.get('/tools/command/datasets/:id/clips/:clip', ...commandView, asyncRoute(speechCommand.getClip));
+router.delete('/tools/command/datasets/:id/clips/:clip', ...commandView, asyncRoute(speechCommand.removeClip));
+router.delete('/tools/command/models/:id', ...commandTrain, asyncRoute(speechCommand.removeModel));
+router.post('/tools/command/train', ...commandTrain, asyncRoute(speechCommand.train));
+router.get('/tools/command/devices', ...commandTrain, asyncRoute(speechCommand.devices));
+router.get('/tools/command/jobs', ...commandTrain, asyncRoute(speechCommand.jobs));
+router.get('/tools/command/jobs/:id', ...commandTrain, asyncRoute(speechCommand.job));
+router.post('/tools/command/jobs/:id/cancel', ...commandTrain, asyncRoute(speechCommand.cancel));
 
 /*
  * Speaker recognition (ECAPA-TDNN). Voiceprints are biometric data, so the

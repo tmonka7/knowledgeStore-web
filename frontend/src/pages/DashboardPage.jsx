@@ -64,6 +64,7 @@ import TtsToolPage from './TtsToolPage';
 import TransformersToolPage from './TransformersToolPage';
 import OcrToolPage from './OcrToolPage';
 import TextToSpeechPage from './TextToSpeechPage';
+import SpeechCommandPage from './SpeechCommandPage';
 import MyPage from './MyPage';
 import PostsPage from './PostsPage';
 import MeetingsPage from './MeetingsPage';
@@ -434,6 +435,7 @@ export default function DashboardPage({
             { key: 'yolo', label: 'YOLO' },
             { key: 'tts', label: t('speechToText') },
             { key: 'text-to-speech', label: t('textToSpeech') },
+            { key: 'speech-command', label: t('speechCommand') },
             { key: 'speaker', label: t('speakerRecognition') },
             { key: 'transformers', label: 'Transformers' },
             { key: 'ocr', label: 'OCR' },
@@ -825,6 +827,7 @@ export default function DashboardPage({
           {effectiveKey === 'transformers' && <TransformersToolPage user={user} />}
           {effectiveKey === 'ocr' && <OcrToolPage />}
           {effectiveKey === 'text-to-speech' && <TextToSpeechPage user={user} />}
+          {effectiveKey === 'speech-command' && <SpeechCommandPage user={user} />}
 
           {effectiveKey === 'categories' && (
             <CategoriesPage

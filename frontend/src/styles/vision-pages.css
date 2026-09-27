@@ -3788,3 +3788,28 @@
   font-size: 18px;
   line-height: 1.6;
 }
+
+/* Speech to Command. */
+.cmd-result {
+  min-height: 110px;
+  padding: var(--v-space-4);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-xl);
+  display: flex;
+  align-items: center;
+}
+
+.cmd-available {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cmd-say-phrase {
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--v-primary);
+  background: color-mix(in srgb, var(--v-primary) 6%, transparent);
+  font-size: 20px;
+}

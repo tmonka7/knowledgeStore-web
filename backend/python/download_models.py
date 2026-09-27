@@ -47,6 +47,13 @@ For Text to Speech: "supertonic-3" fetches Supertone's Supertonic 3
 (Supertone/supertonic-3, OpenRAIL-M, about 400 MB): four ONNX models and ten
 preset voices, which read 31 languages aloud, run with onnxruntime.
 
+For Speech to Command: "moonshine-tiny" (about 110 MB) and "moonshine-base"
+(about 250 MB) fetch Moonshine AI's English speech-recognition models (MIT).
+"moonshine-tiny-ko" / "moonshine-base-ko" and the same for ja, zh, ar, uk and
+vi fetch its models for those languages, which are under the Moonshine AI
+Community License: free for research, personal use and organisations with
+under US$1M a year in revenue; commercial users must register with Moonshine AI.
+
 For Voice recognition (whisper.cpp, run through pywhispercpp): "ggml-tiny",
 "ggml-tiny.en", "ggml-base", "ggml-base.en" (also ggml-small[.en]) fetch the
 whisper.cpp model files from ggerganov/whisper.cpp (MIT). The ".en" ones
@@ -88,6 +95,13 @@ MULTILINGUAL = {"m2m100": "facebook/m2m100_418M"}
 SPEECH = {name: f"openai/{name}" for name in ("whisper-tiny", "whisper-base", "whisper-small", "whisper-medium")}
 SPEAKER = {"ecapa": "speechbrain/spkrec-ecapa-voxceleb"}
 SYNTHESIS = {"supertonic-3": "Supertone/supertonic-3"}
+# Moonshine (Speech to Command): English under MIT, the other languages under
+# the Moonshine AI Community License. The value is the language it transcribes.
+COMMAND_LANGUAGES = ("ko", "ja", "zh", "ar", "uk", "vi")
+COMMAND = {
+    "moonshine-tiny": "en", "moonshine-base": "en",
+    **{f"moonshine-{size}-{code}": code for size in ("tiny", "base") for code in COMMAND_LANGUAGES},
+}
 # PaddleOCR models, each its own repository under PaddlePaddle/: its role in
 # the pipeline and, for recognition, the languages it reads. The
 # Chinese model reads Japanese and English as well.
@@ -234,6 +248,8 @@ def download(spec):
         return fetch_repo(SPEAKER[name], task="speaker")
     if name in SYNTHESIS:
         return fetch_repo(SYNTHESIS[name], task="synthesis")
+    if name in COMMAND:
+        return fetch_repo(f"moonshine-ai/{name}", task="command")
     if name in OCR_SETS or name in OCR_MODELS:
         for model in OCR_SETS.get(name, [name]):
             fetch_repo(f"PaddlePaddle/{model}", task="ocr")
@@ -372,6 +388,10 @@ def fetch_repo(repo, source=None, target=None, multilingual=False, task="transla
         meta.update(engine="speechbrain", architecture="ECAPA-TDNN", licence="Apache-2.0")
     elif task == "synthesis":
         meta.update(engine="supertonic", licence="OpenRAIL-M")
+    elif task == "command":
+        language = COMMAND.get(os.path.basename(folder), "en")
+        meta.update(engine="moonshine", language=language,
+                    licence="MIT" if language == "en" else "Moonshine AI Community License")
     elif task == "ocr":
         meta.update(engine="paddleocr", licence="Apache-2.0", **OCR_MODELS.get(os.path.basename(folder), {}))
     elif multilingual:
@@ -427,6 +447,8 @@ def describe(meta):
         return "speaker"
     if task == "synthesis":
         return "text to speech"
+    if task == "command":
+        return f"command {meta.get('language', 'en')}"
     if task == "ocr":
         return f"ocr {meta.get('ocrRole', '')} {','.join(meta.get('languages', []))}".strip()
     if meta.get("multilingual") and not meta.get("source"):
@@ -488,7 +510,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("pairs", nargs="*",
                         help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, m2m100, yolo26n, yolo26n-seg, whisper-tiny, "
-                             "ggml-tiny, ggml-base, ecapa, paddleocr, paddleocr-server, supertonic-3")
+                             "ggml-tiny, ggml-base, ecapa, paddleocr, paddleocr-server, supertonic-3, moonshine-tiny, "
+                             "moonshine-base, moonshine-tiny-ko")
     parser.add_argument("--list", action="store_true", help="show the models already on disk")
     parser.add_argument("--verify", action="store_true", help="check the models on disk for damaged files")
     parser.add_argument("--repair", action="store_true", help="with --verify: re-download damaged files")

@@ -766,6 +766,78 @@ you can both hear and read the difference. Each result can be saved as WAV.
 Trained voices are private to the account that trained them. Delete one with
 its bin button.
 
+## 8d-6. Speech to Command (Moonshine)
+
+**Tools > AI > Speech to Command** recognises spoken commands — "turn on the
+lights", "stop", "volume up" — with Moonshine, a small, fast speech model. It
+writes down what was said and picks the command whose phrase is closest, so
+"please turn on the lights" and "turn on the light" still count as *Lights
+on*. It has three tabs: **Recognize**, **Commands** and **Train** (Train needs
+the *Speech to Command: train* permission).
+
+### Commands: command sets
+
+A **command set** is a list of commands, each with the phrases that say it.
+**New command set** asks for a name and a language, and can start with ten
+example commands (lights on/off, open, close, start, stop, volume up/down,
+yes, no) in English, 조선어, 日本語 or 中文, or with none.
+
+Open a set to edit it. Choose a command on the left to change its name or its
+phrases (one per line); **Add command** and **Remove this command** add and
+remove commands. Recognising needs nothing more.
+
+To train a model, record people saying the commands: under the command, the
+phrase to say is shown in large type; press **Record**, say it, and press
+**Stop** (it stops by itself after 8 seconds). The recording is saved at once
+and the next phrase comes up, so each gets said. **Choose a recording** uses
+an audio file instead. The count beside each command turns green at 10
+recordings; several people, in the room and with the microphone the commands
+will be used with, give the best results.
+
+### Recognize
+
+Choose a **Model** and a **Command set**. A trained model knows the commands
+it was trained on (*Its own commands*); a base Moonshine model needs a set in
+its language. **Strictness** is how close what was said must be to a phrase:
+higher means fewer wrong commands and more *No command*.
+
+- **Listen** hears one command after another until **Stop listening**: say a
+  command, then pause.
+- **Record one** takes a single command; **Choose a recording** reads a file.
+
+Each result shows the command (green), *No command*, or *Unsure* — when what
+was said is about as close to two commands (for example "lights are", between
+*Lights on* and *Lights off*), it chooses neither rather than guess — with
+what Moonshine heard and how long it took. The first command after the
+server starts takes a second or so longer; the page starts the recogniser when
+the tab opens.
+
+### Train
+
+Choose a command set with recordings, the Moonshine model to start from (one
+for the set's language), and press **Train**. Ten epochs of a few dozen
+recordings take about a minute on a server without a GPU. The job holds back
+one recording of each command that has three or more, and shows how many of
+those were recognised as the right command before and after, with what
+Moonshine heard. **Test** (on a model, or the card below) records or reads a
+command and shows the trained model's answer beside the model it came from.
+
+Trained models are private. Delete one with its bin button.
+
+Installing Moonshine (an administrator, once):
+
+```
+pip install -r backend/python/requirements.txt
+python backend/python/download_models.py moonshine-tiny
+```
+
+`moonshine-base` is larger and more accurate. For Korean, Japanese, Chinese,
+Arabic, Ukrainian and Vietnamese, add `-ko`, `-ja`, `-zh`, `-ar`, `-uk` or
+`-vi` (e.g. `moonshine-tiny-ko`). The English models are MIT-licensed; the
+others are under the Moonshine AI Community License — free for research,
+personal use and organisations with under US$1M a year in revenue; commercial
+users must register with Moonshine AI.
+
 ## 8e. YOLO and Speech to Text: training on the server
 
 Both pages label data in the browser, as before: YOLO draws boxes or outlines
