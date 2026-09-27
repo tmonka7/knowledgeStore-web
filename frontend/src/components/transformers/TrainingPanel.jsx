@@ -435,7 +435,7 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
       </Card>
 
       <TestCard ref={testRef} models={[...finetuned, ...baseModels]} value={testId} onChange={setTestId} describe={pairLabel}>
-        {(model) => <TranslationTest model={model} />}
+        {(model, compare) => <TranslationTest model={model} compare={compare} />}
       </TestCard>
     </Space>
   );
@@ -443,13 +443,17 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
 
 export default TrainingPanel;
 
-/** Translate a few lines with the chosen model, next to what went in. */
-function TranslationTest({ model }) {
+/**
+ * Translate a few lines with the chosen model, next to what went in — and,
+ * when comparing, with the second model too, in the same direction.
+ */
+function TranslationTest({ model, compare }) {
   const { t } = useLanguage();
   const [text, setText] = useState('');
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [pair, setPair] = useState({ source: '', target: '' });
+  const tested = compare ? [model, compare] : [model];
 
   // A multilingual base model has no direction of its own: pick one.
   const open = isOpenMultilingual(model);
@@ -460,25 +464,47 @@ function TranslationTest({ model }) {
       ? { source: 'en', target: ['ko', 'zh', 'es', 'ja'].find((code) => languages.includes(code)) || languages[0] || '' }
       : { source: model.source, target: model.target });
   }, [model.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setResult(null); }, [compare?.id]);
   const languageOptions = (model.languages || []).map((code) => ({ value: code, label: code }));
 
   const run = async () => {
     const texts = text.split(/\r?\n/).filter((line) => line.trim());
     if (!texts.length) return;
     setBusy(true);
-    try {
-      const { data } = await api.post(
-        '/tools/transformers/translate',
-        { modelId: model.id, texts, source: pair.source, target: pair.target },
-        { timeout: 0 },
-      );
-      setResult({ ...data, texts, source: pair.source, target: pair.target });
-    } catch (error) {
-      message.error(error.response?.data?.message || t('trainTranslateFailed'));
-    } finally {
-      setBusy(false);
+    const outputs = [];
+    for (const item of tested) {
+      try {
+        const { data } = await api.post(
+          '/tools/transformers/translate',
+          { modelId: item.id, texts, source: pair.source, target: pair.target },
+          { timeout: 0 },
+        );
+        outputs.push({ model: item, ...data });
+      } catch (error) {
+        // The other model's output is still worth showing; this one says why it has none.
+        outputs.push({ model: item, error: error.response?.data?.message || t('trainTranslateFailed') });
+      }
     }
+    setBusy(false);
+    if (outputs.every((output) => output.error)) {
+      message.error(outputs[0].error);
+      return;
+    }
+    setResult({ outputs, texts, source: pair.source, target: pair.target });
   };
+
+  const column = (output, index) => ({
+    title: tested.length > 1 ? (
+      <Space size={4} wrap>
+        <Tag color={output.model.kind === 'finetuned' ? 'purple' : 'default'}>
+          {output.model.kind === 'finetuned' ? t('trainFinetuned') : t('trainBase')}
+        </Tag>
+        {`${output.model.name} · ${result.target}`}
+      </Space>
+    ) : result.target,
+    key: `out${index}`,
+    render: (_, row) => (output.error ? <Text type="danger">{output.error}</Text> : output.translations[row.index]),
+  });
 
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
@@ -518,15 +544,19 @@ function TranslationTest({ model }) {
       <Button type="primary" icon={<TranslationOutlined />} loading={busy} onClick={run}>{t('trainTranslate')}</Button>
       {result && (
         <Table
-          rowKey={(_, index) => index}
+          rowKey="index"
           size="small"
           pagination={false}
-          dataSource={result.texts.map((source, index) => ({ source, output: result.translations[index] }))}
-          columns={[
-            { title: result.source, dataIndex: 'source' },
-            { title: result.target, dataIndex: 'output' },
-          ]}
-          footer={() => <Text type="secondary">{`${result.seconds} s · ${result.device}`}</Text>}
+          dataSource={result.texts.map((source, index) => ({ source, index }))}
+          columns={[{ title: result.source, dataIndex: 'source' }, ...result.outputs.map(column)]}
+          scroll={{ x: 'max-content' }}
+          footer={() => (
+            <Text type="secondary">
+              {result.outputs.filter((output) => !output.error).map((output) => (
+                tested.length > 1 ? `${output.model.name}: ${output.seconds} s · ${output.device}` : `${output.seconds} s · ${output.device}`
+              )).join('  |  ')}
+            </Text>
+          )}
         />
       )}
     </Space>

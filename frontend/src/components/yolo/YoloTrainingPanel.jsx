@@ -7,7 +7,7 @@ import { DeleteOutlined, ReloadOutlined, RocketOutlined, UploadOutlined } from '
 import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
 import ModelActions from '../ml/ModelActions';
-import TestCard from '../ml/TestCard';
+import TestCard, { Side } from '../ml/TestCard';
 import useMlArea from '../ml/useMlArea';
 import { colorForClass } from '../../lib/objectDetector';
 import { formatBytes } from '../../lib/mlUpload';
@@ -265,7 +265,7 @@ export default function YoloTrainingPanel() {
         onChange={setTestId}
         describe={(model) => (taskOfModel(model) === 'segment' ? t('yoloSegment') : t('yoloDetect'))}
       >
-        {(model) => <YoloTest model={model} area={area} />}
+        {(model, compare) => <YoloTest model={model} compare={compare} area={area} />}
       </TestCard>
 
       <Card bordered={false} title={t('mlServerDatasets')}>
@@ -283,16 +283,20 @@ export default function YoloTrainingPanel() {
   );
 }
 
-/** Pick an image, run the model on it, and draw what it found. */
-function YoloTest({ model, area }) {
+/**
+ * Pick an image, run the model on it — and the model it is compared with,
+ * if any — and draw what each found.
+ */
+function YoloTest({ model, compare, area }) {
   const { t } = useLanguage();
   const [file, setFile] = useState(null);
   const [url, setUrl] = useState('');
   const [confidence, setConfidence] = useState(0.25);
-  const [result, setResult] = useState(null);
+  const [results, setResults] = useState({}); // model id -> result
   const [busy, setBusy] = useState(false);
+  const tested = compare ? [model, compare] : [model];
 
-  useEffect(() => { setResult(null); }, [model?.id]);
+  useEffect(() => { setResults({}); }, [model?.id, compare?.id]);
   useEffect(() => {
     if (!file) {
       setUrl('');
@@ -306,12 +310,15 @@ function YoloTest({ model, area }) {
   const run = async (chosen = file) => {
     if (!chosen) return;
     setBusy(true);
-    const data = await area.test([chosen], { modelId: model.id, confidence });
-    setResult(data?.results?.[0] || null);
+    const next = {};
+    // One after the other: the server runs one prediction per request anyway.
+    for (const item of tested) {
+      const data = await area.test([chosen], { modelId: item.id, confidence });
+      next[item.id] = data?.results?.[0] || null;
+    }
+    setResults(next);
     setBusy(false);
   };
-
-  const detections = result?.detections || [];
 
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
@@ -329,7 +336,7 @@ function YoloTest({ model, area }) {
             event.target.value = '';
             if (!chosen) return;
             setFile(chosen);
-            setResult(null);
+            setResults({});
             run(chosen);
           }}
         />
@@ -338,33 +345,42 @@ function YoloTest({ model, area }) {
         <Button type="primary" loading={busy} disabled={!file} onClick={() => run()}>{t('yoloDetectButton')}</Button>
       </Space>
 
-      {url && (
-        <div style={{ position: 'relative', width: '100%', maxWidth: 820, lineHeight: 0 }}>
-          <img src={url} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
-          {/* Detections are normalised 0..1, so a 1x1 viewBox lays them over the image at any size. */}
-          <svg viewBox="0 0 1 1" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-            {detections.map((detection, index) => {
-              const [x1, y1, x2, y2] = detection.box;
-              const color = colorForClass(detection.classId);
-              return (
-                <g key={index}>
-                  {detection.polygon?.length ? (
-                    <polygon
-                      points={detection.polygon.map(([x, y]) => `${x},${y}`).join(' ')}
-                      fill={color}
-                      fillOpacity={0.25}
-                      stroke={color}
-                      strokeWidth={2}
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  ) : null}
-                  <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-      )}
+      {url && <Side models={tested} render={(item) => <YoloResult url={url} result={results[item.id]} />} />}
+    </Space>
+  );
+}
+
+/** The image with one model's detections drawn over it, and a tag per detection. */
+function YoloResult({ url, result }) {
+  const { t } = useLanguage();
+  const detections = result?.detections || [];
+  return (
+    <Space direction="vertical" style={{ width: '100%' }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 820, lineHeight: 0 }}>
+        <img src={url} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+        {/* Detections are normalised 0..1, so a 1x1 viewBox lays them over the image at any size. */}
+        <svg viewBox="0 0 1 1" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+          {detections.map((detection, index) => {
+            const [x1, y1, x2, y2] = detection.box;
+            const color = colorForClass(detection.classId);
+            return (
+              <g key={index}>
+                {detection.polygon?.length ? (
+                  <polygon
+                    points={detection.polygon.map(([x, y]) => `${x},${y}`).join(' ')}
+                    fill={color}
+                    fillOpacity={0.25}
+                    stroke={color}
+                    strokeWidth={2}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ) : null}
+                <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
+              </g>
+            );
+          })}
+        </svg>
+      </div>
 
       {result && (
         <Space wrap>

@@ -9,7 +9,7 @@ import {
 import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
 import ModelActions from '../ml/ModelActions';
-import TestCard from '../ml/TestCard';
+import TestCard, { Side } from '../ml/TestCard';
 import useMlArea from '../ml/useMlArea';
 import { formatBytes } from '../../lib/mlUpload';
 import { COMMON_LANGUAGES } from '../../lib/translationDataset';
@@ -269,7 +269,7 @@ export default function SpeechTrainingPanel() {
         onChange={setTestId}
         describe={(model) => model.language || t('mlAnyLanguage')}
       >
-        {(model) => <SpeechTest model={model} area={area} />}
+        {(model, compare) => <SpeechTest model={model} compare={compare} area={area} />}
       </TestCard>
 
       <Card bordered={false} title={t('mlServerDatasets')}>
@@ -319,33 +319,47 @@ function GgmlActions({ model, area, busy }) {
   );
 }
 
-/** Pick WAV files and transcribe them with the model. */
-function SpeechTest({ model, area }) {
+/**
+ * Pick WAV files and transcribe them with the model — and with the model it
+ * is compared with, if any, each file's two transcripts side by side.
+ */
+function SpeechTest({ model, compare, area }) {
   const { t } = useLanguage();
   const [language, setLanguage] = useState('en');
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState([]); // [{ name, url, texts: { modelId: text } }]
   const [busy, setBusy] = useState(false);
+  const tested = compare ? [model, compare] : [model];
+  // A model trained for one language is told nothing; any other gets the chosen one.
+  const needsLanguage = tested.some((item) => !item.language);
 
   useEffect(() => {
     setResults([]);
-    if (model) setLanguage(model.language || 'en');
-  }, [model?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (model) setLanguage(model.language || compare?.language || 'en');
+  }, [model?.id, compare?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = async (files) => {
     if (!files.length) return;
     setBusy(true);
-    const data = await area.test(files, { modelId: model.id, language: model.language ? '' : language });
-    setResults(data ? files.map((file, index) => ({ name: file.name, url: URL.createObjectURL(file), text: data.texts[index] })) : []);
+    const texts = files.map(() => ({}));
+    for (const item of tested) {
+      const data = await area.test(files, { modelId: item.id, language: item.language ? '' : language });
+      files.forEach((_, index) => { texts[index][item.id] = data ? data.texts[index] : null; });
+    }
+    setResults(files.map((file, index) => ({ name: file.name, url: URL.createObjectURL(file), texts: texts[index] })));
     setBusy(false);
   };
 
   // Object URLs for the players are released when the list is replaced or the section goes.
   useEffect(() => () => results.forEach((row) => URL.revokeObjectURL(row.url)), [results]);
 
+  const transcript = (text) => (text == null
+    ? <Text type="danger">{t('mlTestFailed')}</Text>
+    : text || <Text type="secondary">{t('pythonNoOutput')}</Text>);
+
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
       <Space wrap>
-        {!model?.language && (
+        {needsLanguage && (
           <>
             <Text type="secondary">{t('mlSpokenLanguage')}</Text>
             <Select showSearch style={{ minWidth: 180 }} value={language} onChange={setLanguage} options={languageOptions} />
@@ -383,7 +397,7 @@ function SpeechTest({ model, area }) {
                   <Text strong>{row.name}</Text>
                   <audio controls src={row.url} style={{ height: 32 }} />
                 </Space>
-                <Text>{row.text || <Text type="secondary">{t('pythonNoOutput')}</Text>}</Text>
+                <Side models={tested.filter((item) => item.id in row.texts)} render={(item) => <Text>{transcript(row.texts[item.id])}</Text>} />
               </Space>
             </List.Item>
           )}

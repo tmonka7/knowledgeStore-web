@@ -43,8 +43,12 @@ export const playSample = async (req, res, next) => {
   });
 };
 
-/** POST …/identify — multipart "audio", optional "threshold" and "speakerId" (to verify one speaker). */
+/**
+ * POST …/identify — multipart "audio", optional "threshold", "speakerId" (to
+ * verify one speaker) and "modelId" (to test a model other than the current one).
+ */
 export const recognise = async (req, res) => res.json(await withClip(req, (file) => identify(req.user.sub, file, {
   threshold: req.body?.threshold,
   speakerId: req.body?.speakerId || undefined,
+  modelId: req.body?.modelId || undefined,
 })));

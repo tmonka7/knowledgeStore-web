@@ -907,6 +907,10 @@
   <text id="deviceCheckAgain" en="Check the server GPUs again" es="Volver a comprobar las GPU del servidor" zh="重新检测服务器 GPU" jp="サーバーの GPU を再確認" />
   <text id="mlTestTitle" en="Test a model" es="Probar un modelo" zh="测试模型" jp="モデルをテスト" />
   <text id="mlTestModel" en="Model" es="Modelo" zh="模型" jp="モデル" />
+  <text id="mlTestCompare" en="Compare with" es="Comparar con" zh="对比" jp="比較対象" />
+  <text id="mlTestNoCompare" en="No comparison" es="Sin comparacion" zh="不对比" jp="比較しない" />
+  <text id="mlTestFailed" en="This model failed on this file." es="Este modelo fallo con este archivo." zh="该模型处理此文件失败。" jp="このモデルはこのファイルで失敗しました。" />
+  <text id="speakerOneModel" en="Only one speaker model is on the server, so there is nothing to compare it with yet." es="Solo hay un modelo de hablantes en el servidor, asi que aun no hay con que compararlo." zh="服务器上只有一个说话人模型，暂时无可对比。" jp="サーバーには話者モデルが 1 つしかないため、まだ比較できません。" />
   <text id="convertApiUnreachable" en="Could not reach the conversion API." es="No se pudo contactar con la API de conversion." zh="无法连接转换 API。" jp="変換 API に接続できませんでした。" />
   <text id="convertAudioTab" en="Audio" es="Audio" zh="音频" jp="音声" />
   <text id="convertAudio" en="Convert audio" es="Convertir audio" zh="转换音频" jp="音声を変換" />

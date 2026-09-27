@@ -113,11 +113,12 @@ export default function useSpeakers(t) {
   };
 
   /** Who is speaking in a clip; `speakerId` checks one speaker only. Null on failure. */
-  const identify = async (clip, { speakerId } = {}) => {
+  const identify = async (clip, { speakerId, modelId } = {}) => {
     const form = new FormData();
     form.append('audio', clip.blob, 'clip.wav');
     form.append('threshold', String(threshold ?? status?.defaultThreshold ?? 0.35));
     if (speakerId) form.append('speakerId', speakerId);
+    if (modelId) form.append('modelId', modelId);
     try {
       const { data } = await api.post('/tools/speaker/identify', form, { timeout: 0 });
       return data;

@@ -56,8 +56,12 @@ const requireModel = async (ownerId) => {
   return findModel(ownerId, model.id, TASK);
 };
 
+/** A model picked by id (to test or compare one), else the current one. */
+const pickModel = (ownerId, modelId) => (modelId ? findModel(ownerId, String(modelId), TASK) : requireModel(ownerId));
+
 export const speakerStatus = async (ownerId) => {
-  const model = await currentModel(ownerId);
+  const models = await listModels(ownerId, TASK);
+  const model = models[0] || null;
   let engine = { ok: true, message: '' };
   if (model) {
     try {
@@ -68,6 +72,8 @@ export const speakerStatus = async (ownerId) => {
   }
   return {
     model: model ? { id: model.id, name: model.name, architecture: model.architecture || 'ECAPA-TDNN' } : null,
+    // Every speaker model this account may use; the first enrolls, any can be tested.
+    models: models.map((item) => ({ id: item.id, name: item.name, kind: item.kind, baseModel: item.baseModel || null })),
     engine,
     defaultThreshold: DEFAULT_THRESHOLD,
     maxSamples: MAX_SAMPLES,
@@ -75,8 +81,8 @@ export const speakerStatus = async (ownerId) => {
 };
 
 /** A clip's voiceprint: { embedding, seconds, speechSeconds, model }. */
-const embed = async (ownerId, audioPath) => {
-  const model = await requireModel(ownerId);
+const embed = async (ownerId, audioPath, chosen = null) => {
+  const model = chosen || await requireModel(ownerId);
   const result = await worker.request({ model: model.folder, audio: audioPath }, 120 * 1000,
     'Speaker recognition is busy; try again in a moment.');
   return { ...result, model: model.id };
@@ -211,7 +217,36 @@ export const sampleAudio = async (ownerId, sampleId) => {
  * verify one) scored by cosine similarity, best first. `match` is the best
  * one when it reaches the threshold.
  */
-export const identify = async (ownerId, upload, { threshold, speakerId } = {}) => {
+/*
+ * Voiceprints of stored samples made with a model other than the one that
+ * enrolled them, for testing or comparing models. Sample ids are never
+ * reused, so an entry can only go stale by being unused; the oldest go first.
+ */
+const otherPrints = new Map();
+const MAX_OTHER_PRINTS = 4000;
+
+const sampleVectors = async (ownerId, speaker, model) => {
+  const vectors = [];
+  for (const sample of speaker.samples) {
+    if (sample.model === model.id) {
+      vectors.push(sample.embedding);
+      continue;
+    }
+    const key = `${model.id}:${sample.id}`;
+    if (!otherPrints.has(key)) {
+      try {
+        otherPrints.set(key, (await embed(ownerId, audioPath(ownerId, sample.id), model)).embedding);
+      } catch {
+        continue; // Audio gone or unusable with this model: the other samples still count.
+      }
+      if (otherPrints.size > MAX_OTHER_PRINTS) otherPrints.delete(otherPrints.keys().next().value);
+    }
+    vectors.push(otherPrints.get(key));
+  }
+  return vectors;
+};
+
+export const identify = async (ownerId, upload, { threshold, speakerId, modelId } = {}) => {
   const limit = Number.isFinite(Number(threshold)) && threshold !== '' && threshold != null
     ? Math.min(1, Math.max(0, Number(threshold)))
     : DEFAULT_THRESHOLD;
@@ -219,11 +254,13 @@ export const identify = async (ownerId, upload, { threshold, speakerId } = {}) =
   const speakers = await Speaker.find(filter);
   if (speakerId && !speakers.length) throw new JobError('Speaker not found.', 404);
 
-  const print = await embed(ownerId, upload.path);
+  const model = await pickModel(ownerId, modelId);
+  const print = await embed(ownerId, upload.path, model);
   const clip = unit(print.embedding);
-  const results = speakers
-    .map((speaker) => {
-      const vectors = speaker.samples.filter((sample) => sample.model === print.model).map((sample) => sample.embedding);
+  const scored = [];
+  for (const speaker of speakers) scored.push({ speaker, vectors: await sampleVectors(ownerId, speaker, model) });
+  const results = scored
+    .map(({ speaker, vectors }) => {
       if (!vectors.length) return null;
       return {
         speakerId: speaker.id,
@@ -238,6 +275,7 @@ export const identify = async (ownerId, upload, { threshold, speakerId } = {}) =
 
   const top = results[0];
   return {
+    model: { id: model.id, name: model.name, kind: model.kind },
     seconds: print.seconds,
     speechSeconds: print.speechSeconds,
     took: print.took,

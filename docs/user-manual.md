@@ -416,7 +416,10 @@ it. The finished model appears in the list below, where you can:
 
 - **Test** it by translating a few sentences, in the **Test a model** section
   under the panel (the row's Test button picks the model there and scrolls to
-  it; you can also pick any model from its list).
+  it; you can also pick any model from its list). A fine-tuned model is
+  compared with the model it was trained from: each line's two translations
+  appear side by side, so you can see what training changed. **Compare with**
+  picks another model to compare with, or none.
 - **Export ONNX**, then download the zip. It holds `encoder_model.onnx`,
   `decoder_model.onnx` (and, when the server has Optimum installed, the faster
   decoder variants), the tokenizer and a README showing how to load it.
@@ -497,7 +500,12 @@ speaker. *Verify one person* checks whether a clip is the person you choose.
 The **match threshold** decides how similar a voice must be to count: raise it
 if strangers are being matched, lower it if enrolled people come out as
 "Unknown speaker". Scores depend on the microphone and the room, so set it
-with your own equipment.
+with your own equipment. If the server has more than one speaker model (for
+example a fine-tuned one), **Model** picks which one to test and **Compare
+with** runs a second one on the same clip, the answers side by side. Samples
+enrolled with another model are re-analysed from their saved audio the first
+time, which takes a moment. Enrolling and the Live tab always use the first
+model.
 
 **Live.** Press **Start listening**. Each stretch of speech is identified as
 soon as there is a pause, building a list of who spoke when, and the totals
@@ -546,7 +554,10 @@ the **Train** tab:
 - **Test** runs a finished model in the **Test a model** section under the
   Train panel: for YOLO on an image you choose, drawing what it finds; for
   speech on WAV files you choose, showing the transcript. Pick the model there,
-  or press a row's Test button to jump to it with that model chosen.
+  or press a row's Test button to jump to it with that model chosen. A
+  fine-tuned model is run next to the model it was trained from on the same
+  image or files, the two results side by side; **Compare with** picks another
+  model to compare with, or none.
 - **Export ONNX**, then download the zip: `model.onnx` and `classes.txt` for
   YOLO; `encoder_model.onnx`, `decoder_model.onnx` and the processor files for
   Whisper. Each export is checked against the original model on a file from
