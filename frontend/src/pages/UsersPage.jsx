@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Checkbox, DatePicker, Form, Input, Modal, Select, Table, Tooltip, Typography, message } from 'antd';
 import dayjs from 'dayjs';
 import {
@@ -37,7 +37,6 @@ import {
   SolutionOutlined,
   TagFilled,
   TeamOutlined,
-  UploadOutlined,
   UserOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
@@ -47,7 +46,7 @@ import FilterBar from '../components/ui/FilterBar';
 import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge from '../components/ui/StatusBadge';
-import { descriptorFromFile, imageDataFromFile } from '../lib/faceRecognition';
+import CameraRegistrationModal from '../components/face/CameraRegistrationModal';
 import VoiceEnrollment, { clipsToDataUrls } from '../components/voice/VoiceEnrollment';
 import { useLanguage } from '../i18n';
 
@@ -149,7 +148,6 @@ export default function UsersPage({
 }) {
   const { t } = useLanguage();
   const [editForm] = Form.useForm();
-  const faceInputRef = useRef(null);
   const [editingUser, setEditingUser] = useState(null);
   const [activeTab, setActiveTab] = useState('basic');
   const [selectedPermissions, setSelectedPermissions] = useState([]);
@@ -163,9 +161,8 @@ export default function UsersPage({
   useEffect(() => {
     api.get('/auth/voice').then(({ data }) => setVoiceAvailable(Boolean(data.available))).catch(() => {});
   }, []);
-  const [faceUpdating, setFaceUpdating] = useState(false);
+  const [faceCameraOpen, setFaceCameraOpen] = useState(false);
   const [faceUpdateError, setFaceUpdateError] = useState('');
-  const [faceFileName, setFaceFileName] = useState('');
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [pageSize, setPageSize] = useState(10);
 
@@ -253,7 +250,6 @@ export default function UsersPage({
     setSelectedPermissions(record.permissions || []);
     setFaceUpdate(null);
     setFaceUpdateError('');
-    setFaceFileName('');
     setVoiceMode('idle');
     setVoiceDraft({ clips: [], done: false });
     editForm.setFieldsValue({
@@ -272,39 +268,17 @@ export default function UsersPage({
     setEditingUser(null);
     setFaceUpdate(null);
     setFaceUpdateError('');
-    setFaceFileName('');
     setVoiceMode('idle');
     setVoiceDraft({ clips: [], done: false });
     editForm.resetFields();
   };
 
-  const onFaceUpdate = async (event) => {
-    const file = event.target.files?.[0];
-    // Reset so picking the same file again still fires onChange.
-    event.target.value = '';
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      setFaceUpdateError('Please choose an image file.');
-      return;
-    }
-
-    setFaceFileName(file.name);
-    setFaceUpdating(true);
+  // A new face comes from the camera only, as at registration: a photo file
+  // could be anyone's photograph.
+  const onFaceCaptured = ({ descriptor, faceImage }) => {
+    setFaceUpdate({ descriptor, faceImage });
     setFaceUpdateError('');
-    try {
-      const [descriptor, faceImage] = await Promise.all([
-        descriptorFromFile(file),
-        imageDataFromFile(file),
-      ]);
-      setFaceUpdate({ descriptor, faceImage });
-    } catch (error) {
-      setFaceUpdate(null);
-      setFaceFileName('');
-      setFaceUpdateError(error.message || 'Unable to process that face image.');
-    } finally {
-      setFaceUpdating(false);
-    }
+    setFaceCameraOpen(false);
   };
 
   const togglePermission = (pageKey, action, checked) => {
@@ -692,8 +666,7 @@ export default function UsersPage({
                   <button
                     type="button"
                     className="user-editor-avatar-button"
-                    onClick={() => faceInputRef.current?.click()}
-                    disabled={faceUpdating}
+                    onClick={() => setFaceCameraOpen(true)}
                     aria-label={t('changeFacePhoto')}
                   >
                     <CameraOutlined />
@@ -733,21 +706,17 @@ export default function UsersPage({
                     <span className="user-editor-card-icon"><PictureOutlined /></span>
                     <div className="user-editor-card-text">
                       <strong>Change face photo</strong>
-                      <span>Upload a new photo or choose a file</span>
+                      <span>Capture a new photo with the camera, with the person in front of it</span>
                     </div>
                     <div className="user-editor-file">
                       <Button
                         type="primary"
-                        icon={<UploadOutlined />}
-                        loading={faceUpdating}
-                        onClick={() => faceInputRef.current?.click()}
+                        icon={<CameraOutlined />}
+                        onClick={() => setFaceCameraOpen(true)}
                         className="user-editor-choose"
                       >
-                        Choose File
+                        {t('useCamera')}
                       </Button>
-                      <span className="user-editor-file-name" title={faceFileName}>
-                        {faceFileName || 'No file chosen'}
-                      </span>
                     </div>
                   </div>
 
@@ -997,13 +966,11 @@ export default function UsersPage({
               </Button>
             </footer>
 
-            <input
-              ref={faceInputRef}
-              type="file"
-              accept="image/*"
-              hidden
-              disabled={faceUpdating}
-              onChange={onFaceUpdate}
+            <CameraRegistrationModal
+              open={faceCameraOpen}
+              mode="camera"
+              onCancel={() => setFaceCameraOpen(false)}
+              onComplete={onFaceCaptured}
             />
           </div>
         )}

@@ -9,6 +9,7 @@ to an offline machine.
     python download_models.py en-ja=Helsinki-NLP/opus-mt-en-jap
     python download_models.py m2m100
     python download_models.py yolo26n yolo26n-seg whisper-tiny
+    python download_models.py paddleocr
     python download_models.py --list
     python download_models.py --verify [--repair]
 
@@ -28,6 +29,13 @@ whisper-base, whisper-small) fetches OpenAI's Whisper speech-recognition model.
 
 For Speaker recognition: "ecapa" fetches SpeechBrain's ECAPA-TDNN speaker
 embedding model (speechbrain/spkrec-ecapa-voxceleb, Apache-2.0, about 90 MB).
+
+For OCR (PaddleOCR 3, Apache-2.0): "paddleocr" fetches the PP-OCRv5 mobile
+models, about 60 MB — text detection, the text-line orientation classifier, and
+recognition for Chinese and Japanese (one model, which reads English too),
+English, Korean and Russian. "paddleocr-server" adds the larger server
+detection and Chinese/Japanese recognition models (about 170 MB), which are
+more accurate and slower.
 
 For Voice recognition (whisper.cpp, run through pywhispercpp): "ggml-tiny",
 "ggml-tiny.en", "ggml-base", "ggml-base.en" (also ggml-small[.en]) fetch the
@@ -66,6 +74,24 @@ SKIP = re.compile(r"(^\.|\.md$|^benchmark_|^flores_|^example\d*\.(wav|flac)$|tf_
 MULTILINGUAL = {"m2m100": "facebook/m2m100_418M"}
 SPEECH = {name: f"openai/{name}" for name in ("whisper-tiny", "whisper-base", "whisper-small", "whisper-medium")}
 SPEAKER = {"ecapa": "speechbrain/spkrec-ecapa-voxceleb"}
+# PaddleOCR models, each its own repository under PaddlePaddle/: its role in
+# the pipeline and, for recognition, the languages it reads. The
+# Chinese model reads Japanese and English as well.
+OCR_MODELS = {
+    "PP-OCRv5_mobile_det": {"ocrRole": "det", "variant": "mobile"},
+    "PP-OCRv5_server_det": {"ocrRole": "det", "variant": "server"},
+    "PP-LCNet_x1_0_textline_ori": {"ocrRole": "textline"},
+    "PP-OCRv5_mobile_rec": {"ocrRole": "rec", "variant": "mobile", "languages": ["zh", "ja", "en"]},
+    "PP-OCRv5_server_rec": {"ocrRole": "rec", "variant": "server", "languages": ["zh", "ja", "en"]},
+    "en_PP-OCRv5_mobile_rec": {"ocrRole": "rec", "variant": "mobile", "languages": ["en"]},
+    "korean_PP-OCRv5_mobile_rec": {"ocrRole": "rec", "variant": "mobile", "languages": ["ko", "en"]},
+    "eslav_PP-OCRv5_mobile_rec": {"ocrRole": "rec", "variant": "mobile", "languages": ["ru", "en"]},
+}
+OCR_SETS = {
+    "paddleocr": ["PP-OCRv5_mobile_det", "PP-LCNet_x1_0_textline_ori", "PP-OCRv5_mobile_rec",
+                  "en_PP-OCRv5_mobile_rec", "korean_PP-OCRv5_mobile_rec", "eslav_PP-OCRv5_mobile_rec"],
+    "paddleocr-server": ["PP-OCRv5_server_det", "PP-OCRv5_server_rec"],
+}
 YOLO_NAME = re.compile(r"yolo[0-9a-z]*[nsmlx](-seg)?")
 GGML_REPO = "ggerganov/whisper.cpp"
 GGML_NAME = re.compile(r"ggml-(tiny|base|small|medium)(\.en)?")
@@ -170,6 +196,10 @@ def download(spec):
         return fetch_repo(SPEECH[name], task="speech")
     if name in SPEAKER:
         return fetch_repo(SPEAKER[name], task="speaker")
+    if name in OCR_SETS or name in OCR_MODELS:
+        for model in OCR_SETS.get(name, [name]):
+            fetch_repo(f"PaddlePaddle/{model}", task="ocr")
+        return None
     if name in MULTILINGUAL or name == "multi":
         return fetch_repo(repo or MULTILINGUAL.get(name, ""), multilingual=True)
     match = re.fullmatch(r"([A-Za-z]{2,3}(?:_[A-Za-z]+)?)-([A-Za-z]{2,3}(?:_[A-Za-z]+)?)", name)
@@ -301,6 +331,8 @@ def fetch_repo(repo, source=None, target=None, multilingual=False, task="transla
         meta.update(multilingual=True)  # Whisper: the language is chosen per dataset.
     elif task == "speaker":
         meta.update(engine="speechbrain", architecture="ECAPA-TDNN", licence="Apache-2.0")
+    elif task == "ocr":
+        meta.update(engine="paddleocr", licence="Apache-2.0", **OCR_MODELS.get(os.path.basename(folder), {}))
     elif multilingual:
         meta.update(multilingual=True, languages=multilingual_languages(folder))
     else:
@@ -328,6 +360,8 @@ def describe(meta):
         return "whisper.cpp" + (" en" if meta.get("englishOnly") else "")
     if task == "speaker":
         return "speaker"
+    if task == "ocr":
+        return f"ocr {meta.get('ocrRole', '')} {','.join(meta.get('languages', []))}".strip()
     if meta.get("multilingual") and not meta.get("source"):
         return f"{len(meta.get('languages', []))} languages"
     return f"{meta.get('source')}->{meta.get('target')}"
@@ -384,7 +418,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("pairs", nargs="*",
                         help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, m2m100, yolo26n, yolo26n-seg, whisper-tiny, "
-                             "ggml-tiny, ggml-base, ecapa")
+                             "ggml-tiny, ggml-base, ecapa, paddleocr, paddleocr-server")
     parser.add_argument("--list", action="store_true", help="show the models already on disk")
     parser.add_argument("--verify", action="store_true", help="check the models on disk for damaged files")
     parser.add_argument("--repair", action="store_true", help="with --verify: re-download damaged files")

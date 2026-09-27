@@ -5,9 +5,9 @@ Version 1.0 · 21 September 2026
 ## 1. Before you start
 
 You need the address of your Knowledge Store installation and a browser
-(Chrome, Edge, Firefox or Safari). Creating an account requires a **photo of
-your face**, taken with your webcam or uploaded, because the system can use it
-to verify you at sign-in.
+(Chrome, Edge, Firefox or Safari). To sign in by face or by voice you need a
+**webcam** and a **microphone**: faces and voices are taken live, never from a
+photo or a recording file.
 
 ## 2. Creating your account
 
@@ -17,7 +17,8 @@ to verify you at sign-in.
 3. Fill in as much of the personal section as you wish — **gender, birthday,
    phone number, job and address**. All of it is optional, and you can add or
    change it later on My Page.
-4. Capture or upload a face photo if you want one. This step is **optional**.
+4. Capture a face photo with your webcam if you want one (a photo file cannot
+   be used). This step is **optional**.
    A face is a second way to sign in, not an extra check on top of your
    password, so an account without one works exactly the same — it just signs
    in with the password. If you skip it and change your mind, an administrator
@@ -503,8 +504,8 @@ an administrator grants: a voiceprint is biometric data, so no account has it
 by default. The speakers you enroll are yours alone; nobody else sees them.
 
 **Speakers.** Press **New speaker**, give a name, and record the person
-talking normally for 5 to 15 seconds (reading a paragraph works well) — or
-choose a recording in which only they speak. Add three or more samples,
+talking normally for 5 to 15 seconds (reading a paragraph works well), with
+the microphone — recording files are not accepted for enrolling. Add three or more samples,
 ideally on different days and with the microphone you will use later; the
 bar shows how much speech is enrolled, and about 20 seconds is a good start.
 Each sample can be played back or deleted.
@@ -544,6 +545,39 @@ installed, an administrator runs, on the server:
 ```
 pip install speechbrain
 python backend/python/download_models.py ecapa
+```
+
+## 8d-4. OCR (reading text in images)
+
+**Tools → AI → OCR** reads the text in an image with PaddleOCR (PP-OCRv5):
+English, Chinese, Korean, Japanese or Russian.
+
+1. Pick the **language** of the text. A language the server has no model for
+   is greyed out.
+2. **Choose an image**, drop one on the box, or paste a screenshot with
+   Ctrl+V anywhere on the page (PNG, JPEG, BMP or WebP, up to 20 MB). It is
+   read straight away; **Read text** reads it again after you change a
+   setting.
+3. The result shows the image with a box round each line — green when the
+   model is sure, amber or red when it is not — and the lines as text.
+   Pointing at a box highlights its line and the other way round. **Copy**
+   copies all the text, **Download** saves it as a .txt file, and each line
+   has its own copy button. **Hide lines below confidence** leaves out lines
+   the model was unsure of (usually specks and stray marks).
+
+Turn on **Rotated text** when the page is upside down or lines run in
+different directions; it is a little slower. Photos from a phone are turned
+the way the phone shows them. If the server has more than one model for a
+language, **Recognition model** picks one — for example the Chinese model also
+reads English, and is better for a page that mixes the two.
+
+The image is read on the server and deleted straight away; nothing is kept.
+If the page says the OCR models are not installed, an administrator runs, on
+the server:
+
+```
+pip install paddlepaddle paddleocr
+python backend/python/download_models.py paddleocr
 ```
 
 ## 8e. YOLO and Speech to Text: training on the server
@@ -691,7 +725,8 @@ while you were looking at it.
 
 Click the pencil on a row to edit that account:
 
-- **Basic Info** — face photo, full name, email, gender, birthday, phone
+- **Basic Info** — face photo (taken with the camera, with the person in front
+  of it; photo files are not accepted), full name, email, gender, birthday, phone
   number, address, job, and the role. You cannot remove your own
   administrator role. **Voice sign-in** shows whether the account has a voice
   enrolled: **Record voice** (or **Record again**) takes three new clips of the

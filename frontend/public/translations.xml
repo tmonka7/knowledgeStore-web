@@ -88,7 +88,7 @@
   <text id="notifications" en="Notifications" es="Notificaciones" zh="通知" jp="通知" />
   <text id="openUserMenu" en="Open user menu" es="Abrir menu de usuario" zh="打开用户菜单" jp="ユーザーメニューを開く" />
   <text id="administrator" en="Administrator" es="Administrador" zh="管理员" jp="管理者" />
-  <text id="aiSecurityPlatform" en="AI Security Platform" es="Plataforma de seguridad IA" zh="AI 安全平台" jp="AI セキュリティプラットフォーム" />
+  <text id="aiSecurityPlatform" en="AI Security Platform by falcon 2026.9" es="Plataforma de seguridad IA" zh="AI 安全平台" jp="AI セキュリティプラットフォーム" />
   <text id="smarterSecurity" en="Smarter Security" es="Seguridad mas inteligente" zh="更智能的安全" jp="よりスマートなセキュリティ" />
   <text id="saferTomorrow" en="Safer Tomorrow" es="Un manana mas seguro" zh="更安全的明天" jp="より安全な明日" />
   <text id="footerBrand" en="VisionAI · AI Security Platform © 2026" es="VisionAI · Plataforma de seguridad IA © 2026" zh="VisionAI · AI 安全平台 © 2026" jp="VisionAI · AI セキュリティプラットフォーム © 2026" />
@@ -109,7 +109,6 @@
   <text id="faceReady" en="Face ready" es="Rostro listo" zh="人脸已就绪" jp="顔の準備完了" />
   <text id="faceCaptured" en="Face captured" es="Rostro capturado" zh="已捕获人脸" jp="顔をキャプチャしました" />
   <text id="faceRegistered" en="Face registered" es="Rostro registrado" zh="人脸已注册" jp="顔を登録しました" />
-  <text id="imageCouldNotBeOpened" en="That image could not be opened." es="No se pudo abrir esa imagen." zh="无法打开该图像。" jp="その画像を開けませんでした。" />
   <text id="facePhoto" en="Face Photo" es="Foto del rostro" zh="人脸照片" jp="顔写真" />
   <text id="changeFace" en="Change Face" es="Cambiar rostro" zh="更换人脸" jp="顔を変更" />
   <text id="registerFace" en="Register Face" es="Registrar rostro" zh="注册人脸" jp="顔を登録" />
@@ -295,17 +294,15 @@
   <text id="pythonNeedsPermission" en="Running Python on the server needs the Execute permission for Transformers. Ask an administrator to grant it." es="Ejecutar Python en el servidor requiere el permiso Ejecutar de Transformers. Pidelo a un administrador." zh="在服务器上运行 Python 需要 Transformers 的“执行”权限，请联系管理员授予。" jp="サーバーでPythonを実行するには、Transformersの「実行」権限が必要です。管理者に付与を依頼してください。" />
   <text id="yoloSubtitle" en="Quick object-detection pipeline presets for YOLO-style model exports." es="Preajustes rapidos de deteccion de objetos para exportaciones de modelos tipo YOLO." zh="适用于 YOLO 风格模型导出的快速目标检测管道预设。" jp="YOLO形式モデルのエクスポート用物体検出パイプラインプリセット。" />
   <text id="yoloUtility" en="YOLO utility" es="Utilidad de YOLO" zh="YOLO 工具" jp="YOLOユーティリティ" />
-  <text id="cameraUnavailableUploadInstead" en="Camera is not available in this browser. Upload a photo instead." es="La camara no esta disponible en este navegador. Suba una foto." zh="此浏览器中摄像头不可用，请上传照片。" jp="このブラウザーではカメラを利用できません。代わりに写真をアップロードしてください。" />
+  <text id="cameraUnavailableForFace" en="Camera is not available in this browser. Face sign-in needs a camera; use your password instead." es="La camara no esta disponible en este navegador. El inicio con rostro necesita una camara; usa tu contrasena." zh="此浏览器无法使用摄像头。人脸登录需要摄像头，请改用密码。" jp="このブラウザではカメラを使えません。顔認証にはカメラが必要です。パスワードを使ってください。" />
+  <text id="cameraAccessDeniedForFace" en="Camera access was denied. Allow the camera to sign in by face, or use your password." es="Se rechazo el acceso a la camara. Permite la camara para entrar con el rostro, o usa tu contrasena." zh="摄像头访问被拒绝。请允许使用摄像头进行人脸登录，或改用密码。" jp="カメラへのアクセスが拒否されました。顔でログインするにはカメラを許可するか、パスワードを使ってください。" />
   <text id="centerFaceThenCapture" en="Center your face in the frame, then capture." es="Centre su rostro en el marco y capture." zh="将脸置于框中央，然后捕获。" jp="顔をフレーム中央に合わせて撮影してください。" />
-  <text id="cameraAccessDeniedUploadInstead" en="Camera access was denied. Upload a photo instead." es="Se rechazo el acceso a la camara. Suba una foto." zh="摄像头访问被拒绝，请上传照片。" jp="カメラへのアクセスが拒否されました。代わりに写真をアップロードしてください。" />
   <text id="checkingFace" en="Checking face..." es="Comprobando rostro..." zh="正在检查人脸..." jp="顔を確認中..." />
   <text id="faceCapturedReady" en="Face captured. You are all set." es="Rostro capturado. Todo listo." zh="已捕获人脸，一切就绪。" jp="顔をキャプチャしました。準備完了です。" />
   <text id="unableToProcessPhoto" en="Unable to process that photo." es="No se pudo procesar esa foto." zh="无法处理该照片。" jp="その写真を処理できません。" />
-  <text id="chooseImageFile" en="Please choose an image file." es="Elija un archivo de imagen." zh="请选择图像文件。" jp="画像ファイルを選択してください。" />
   <text id="capture" en="Capture" es="Capturar" zh="捕获" jp="撮影" />
   <text id="retake" en="Retake" es="Volver a capturar" zh="重新捕获" jp="撮り直す" />
   <text id="useCamera" en="Use Camera" es="Usar camara" zh="使用摄像头" jp="カメラを使用" />
-  <text id="uploadPhoto" en="Upload Photo" es="Subir foto" zh="上传照片" jp="写真をアップロード" />
   <text id="fullName" en="Full Name" es="Nombre completo" zh="全名" jp="氏名" />
   <text id="username" en="Username" es="Nombre de usuario" zh="用户名" jp="ユーザー名" />
   <text id="email" en="Email" es="Correo electronico" zh="电子邮件" jp="メール" />
@@ -1096,4 +1093,31 @@
   <text id="speakerNoModel" en="The speaker model is not installed on the server" es="El modelo de hablantes no esta instalado en el servidor" zh="服务器上未安装说话人模型" jp="サーバーに話者モデルがインストールされていません" />
   <text id="speakerNoModelHelp" en="An administrator installs SpeechBrain and the ECAPA-TDNN model once, on the server:" es="Un administrador instala SpeechBrain y el modelo ECAPA-TDNN una vez, en el servidor:" zh="管理员需在服务器上安装一次 SpeechBrain 和 ECAPA-TDNN 模型：" jp="管理者がサーバーに SpeechBrain と ECAPA-TDNN モデルを一度インストールします：" />
   <text id="speakerEngineFailed" en="Speaker recognition could not start" es="No se pudo iniciar el reconocimiento de hablante" zh="无法启动说话人识别" jp="話者認識を開始できませんでした" />
+  <text id="ocrTitle" en="OCR" es="OCR" zh="文字识别（OCR）" jp="文字認識（OCR）" />
+  <text id="ocrSubtitle" en="Read the text in an image with PaddleOCR (PP-OCRv5): English, Chinese, Korean, Japanese and Russian. The image is read on the server and not kept." es="Lee el texto de una imagen con PaddleOCR (PP-OCRv5): ingles, chino, coreano, japones y ruso. La imagen se lee en el servidor y no se guarda." zh="使用 PaddleOCR（PP-OCRv5）识别图片中的文字：英文、中文、韩文、日文和俄文。图片在服务器上识别，不会保存。" jp="PaddleOCR（PP-OCRv5）で画像内の文字を読み取ります：英語・中国語・韓国語・日本語・ロシア語。画像はサーバで読み取られ、保存されません。" />
+  <text id="ocrNoModels" en="The OCR models are not installed on the server" es="Los modelos de OCR no estan instalados en el servidor" zh="服务器上未安装 OCR 模型" jp="サーバに OCR モデルがインストールされていません" />
+  <text id="ocrNoModelsHelp" en="An administrator installs PaddleOCR and its models once, on the server:" es="Un administrador instala PaddleOCR y sus modelos una vez, en el servidor:" zh="管理员需在服务器上安装一次 PaddleOCR 及其模型：" jp="管理者がサーバに PaddleOCR とそのモデルを一度インストールします：" />
+  <text id="ocrEngineFailed" en="OCR could not start" es="No se pudo iniciar el OCR" zh="无法启动 OCR" jp="OCR を開始できませんでした" />
+  <text id="ocrSettings" en="Image and language" es="Imagen e idioma" zh="图片和语言" jp="画像と言語" />
+  <text id="ocrLanguage" en="Language of the text" es="Idioma del texto" zh="文字语言" jp="文字の言語" />
+  <text id="ocrLanguageMissing" en="No model for this language on the server" es="No hay modelo para este idioma en el servidor" zh="服务器上没有该语言的模型" jp="この言語のモデルがサーバにありません" />
+  <text id="ocrRecognitionModel" en="Recognition model" es="Modelo de reconocimiento" zh="识别模型" jp="認識モデル" />
+  <text id="ocrDetectionModel" en="Detection model" es="Modelo de deteccion" zh="检测模型" jp="検出モデル" />
+  <text id="ocrRotated" en="Rotated text" es="Texto girado" zh="旋转文字" jp="回転した文字" />
+  <text id="ocrRotatedHelp" en="Also read lines that are upside down. A little slower." es="Lee tambien las lineas al reves. Algo mas lento." zh="同时识别上下颠倒的文字行，速度稍慢。" jp="上下逆さまの行も読み取ります。少し遅くなります。" />
+  <text id="ocrChooseImage" en="Choose an image" es="Elige una imagen" zh="选择图片" jp="画像を選択" />
+  <text id="ocrDropHint" en="or drop one here, or paste a screenshot (Ctrl+V). PNG, JPEG, BMP or WebP, up to 20 MB." es="o sueltala aqui, o pega una captura (Ctrl+V). PNG, JPEG, BMP o WebP, hasta 20 MB." zh="或拖放到此处，或粘贴截图（Ctrl+V）。支持 PNG、JPEG、BMP、WebP，最大 20 MB。" jp="またはここにドロップ、またはスクリーンショットを貼り付け（Ctrl+V）。PNG・JPEG・BMP・WebP、20 MB まで。" />
+  <text id="ocrRead" en="Read text" es="Leer texto" zh="识别文字" jp="文字を読み取る" />
+  <text id="ocrCopy" en="Copy the text" es="Copiar el texto" zh="复制文字" jp="文字をコピー" />
+  <text id="ocrCopied" en="Text copied" es="Texto copiado" zh="文字已复制" jp="文字をコピーしました" />
+  <text id="ocrCopyFailed" en="Could not copy the text" es="No se pudo copiar el texto" zh="无法复制文字" jp="文字をコピーできませんでした" />
+  <text id="ocrDownload" en="Download as .txt" es="Descargar como .txt" zh="下载为 .txt" jp=".txt でダウンロード" />
+  <text id="ocrNoResult" en="Choose an image to read its text" es="Elige una imagen para leer su texto" zh="选择一张图片以识别其中的文字" jp="文字を読み取る画像を選択してください" />
+  <text id="ocrNothingFound" en="No text was found" es="No se encontro texto" zh="未找到文字" jp="文字が見つかりませんでした" />
+  <text id="ocrLineCount" en="{count} of {total} lines" es="{count} de {total} lineas" zh="{count} / {total} 行" jp="{count} / {total} 行" />
+  <text id="ocrTook" en="{seconds} s" es="{seconds} s" zh="{seconds} 秒" jp="{seconds} 秒" />
+  <text id="ocrMinScore" en="Hide lines below confidence {value}" es="Ocultar lineas con confianza menor que {value}" zh="隐藏置信度低于 {value} 的行" jp="信頼度 {value} 未満の行を隠す" />
+  <text id="ocrFailed" en="The text could not be read" es="No se pudo leer el texto" zh="无法识别文字" jp="文字を読み取れませんでした" />
+  <text id="ocrNotImage" en="Choose an image file" es="Elige un archivo de imagen" zh="请选择图片文件" jp="画像ファイルを選択してください" />
+  <text id="ocrTooLarge" en="The image is larger than {mb} MB" es="La imagen supera los {mb} MB" zh="图片超过 {mb} MB" jp="画像が {mb} MB を超えています" />
 </translations>

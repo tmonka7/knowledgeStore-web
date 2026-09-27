@@ -105,7 +105,11 @@ export default function IdentifyPanel({ area }) {
               </Row>
             )}
             {!area.enrolled.length && <Alert type="warning" showIcon message={t('speakerEnrollFirst')} />}
+            {/* Identifying who speaks in an existing recording is the point
+                here, so a file is allowed; enrolling a voice takes the
+                microphone only. */}
             <ClipRecorder
+              allowFile
               onClip={run}
               busy={busy}
               disabled={!area.ready || !area.enrolled.length || (mode === 'verify' && !speakerId) || busy}

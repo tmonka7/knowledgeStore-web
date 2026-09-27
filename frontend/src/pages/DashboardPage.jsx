@@ -58,6 +58,7 @@ import SpeakerToolPage from './SpeakerToolPage';
 import YoloToolPage from './YoloToolPage';
 import TtsToolPage from './TtsToolPage';
 import TransformersToolPage from './TransformersToolPage';
+import OcrToolPage from './OcrToolPage';
 import MyPage from './MyPage';
 import PostsPage from './PostsPage';
 import MeetingsPage from './MeetingsPage';
@@ -420,6 +421,7 @@ export default function DashboardPage({
             { key: 'tts', label: t('speechToText') },
             { key: 'speaker', label: t('speakerRecognition') },
             { key: 'transformers', label: 'Transformers' },
+            { key: 'ocr', label: 'OCR' },
           ],
         },
       ],
@@ -783,6 +785,7 @@ export default function DashboardPage({
           {effectiveKey === 'tts' && <TtsToolPage user={user} />}
           {effectiveKey === 'speaker' && <SpeakerToolPage />}
           {effectiveKey === 'transformers' && <TransformersToolPage user={user} />}
+          {effectiveKey === 'ocr' && <OcrToolPage />}
 
           {effectiveKey === 'categories' && (
             <CategoriesPage

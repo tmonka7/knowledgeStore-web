@@ -31,6 +31,11 @@ const BACKFILLS = [
     permissions: ['tts:view'],
     note: 'The TTS speech-dataset tool was added to Tools / AI after these accounts were created; it sits beside the other dataset tools they already have.',
   },
+  {
+    id: 'grant-ocr-view-2026-09',
+    permissions: ['ocr:view'],
+    note: 'OCR was added to Tools / AI after these accounts were created. It keeps nothing: an image is read and deleted within the request.',
+  },
 ];
 
 export const backfillDefaultPermissions = async () => {

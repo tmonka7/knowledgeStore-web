@@ -37,7 +37,7 @@ export const CAMERA_ERRORS = {
   PERMISSION_DENIED: { code: 'PERMISSION_DENIED', title: 'Camera access required', hint: 'Please allow camera access to register your face.' },
   NO_DEVICE: { code: 'NO_DEVICE', title: 'Camera unavailable', hint: 'No camera device was found. Please check your camera connection.' },
   UNAVAILABLE: { code: 'UNAVAILABLE', title: 'Camera unavailable', hint: 'Please check your camera connection.' },
-  UNSUPPORTED: { code: 'UNSUPPORTED', title: 'Camera unavailable', hint: 'This browser cannot open a camera. Upload a photo instead.' },
+  UNSUPPORTED: { code: 'UNSUPPORTED', title: 'Camera unavailable', hint: 'This browser cannot open a camera. Use a browser and device with a camera.' },
 };
 
 const MODEL_URL = '/face-api-model';

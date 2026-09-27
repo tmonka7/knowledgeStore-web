@@ -221,7 +221,12 @@ def main():
         try:
             import optimum.exporters.onnx  # noqa: F401
             method = "optimum"
-        except ImportError:
+        except Exception as error:  # noqa: BLE001
+            # Not only ImportError: an Optimum built for another transformers
+            # release can fail to import in other ways, and that should cost
+            # the faster decoder, not the export.
+            if not isinstance(error, ImportError):
+                print(f"Optimum could not be loaded ({error!r}); exporting with torch.onnx.", file=sys.stderr)
             method = "torch"
 
     emit("status", message=f"Exporting with {method}", method=method)

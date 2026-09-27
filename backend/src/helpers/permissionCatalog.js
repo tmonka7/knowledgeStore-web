@@ -28,6 +28,7 @@ export const PERMISSION_CATALOG = [
   // Enrolling a voice stores a voiceprint: biometric data, like a face.
   // Not in the defaults below; an administrator grants it per account.
   { key: 'speaker', label: 'Tools / AI / Speaker recognition', actions: ['view'] },
+  { key: 'ocr', label: 'Tools / AI / OCR', actions: ['view'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'wallet', label: 'My Page / Wallet', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'contacts', label: 'My Page / Contacts', actions: ['view', 'create', 'edit', 'delete'] },
@@ -79,6 +80,7 @@ export const DEFAULT_USER_PERMISSIONS = [
   'yolo:view',
   'tts:view',
   'transformers:view',
+  'ocr:view',
 ];
 
 export const sanitizePermissions = (values) => {

@@ -63,7 +63,7 @@ export default function CameraRegistrationModal({ open, mode, imageSrc, onCancel
 
   const startCamera = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError({ code: 'UNSUPPORTED', title: 'Camera unavailable', hint: 'This browser cannot open a camera. Upload a photo instead.' });
+      setCameraError({ code: 'UNSUPPORTED', title: 'Camera unavailable', hint: 'This browser cannot open a camera. Use a browser and device with a camera.' });
       return;
     }
 

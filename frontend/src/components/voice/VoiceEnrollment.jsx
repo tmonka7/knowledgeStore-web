@@ -21,7 +21,7 @@ export const clipsToDataUrls = (clips) => Promise.all(clips.map((clip) => new Pr
 
 /**
  * Enrol a voice for signing in: VOICE_CLIPS short recordings of the person
- * reading a sentence each (or audio files of them alone). The server turns
+ * reading a sentence each, from the microphone only. The server turns
  * them into voiceprints; the page only collects them. `onChange(clips, done)`
  * hears every change; `done` once all VOICE_CLIPS are recorded.
  */
@@ -39,7 +39,7 @@ export default function VoiceEnrollment({ onChange, optional = false }) {
 
   const add = (clip, source) => {
     if (clip.seconds > MAX_CLIP_SECONDS + 0.5) {
-      // Uploaded files can be any length; the server takes short clips.
+      // Recording stops at MAX_CLIP_SECONDS; this only guards the server's limit.
       message.warning(t('voiceEnrollTooLong', { seconds: MAX_CLIP_SECONDS }));
       return;
     }

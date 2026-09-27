@@ -14,7 +14,6 @@ import {
   ReloadOutlined,
   SafetyCertificateOutlined,
   SolutionOutlined,
-  UploadOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -24,12 +23,7 @@ import FaceRegistration from './face/FaceRegistration';
 import ClipRecorder from './speaker/ClipRecorder';
 import VoiceEnrollment, { clipsToDataUrls } from './voice/VoiceEnrollment';
 import api from '../api';
-import {
-  descriptorFromFile,
-  descriptorFromImage,
-  imageDataFromCanvas,
-  imageDataFromFile,
-} from '../lib/faceRecognition';
+import { descriptorFromImage, imageDataFromCanvas } from '../lib/faceRecognition';
 import { useLanguage } from '../i18n';
 
 const { Content } = Layout;
@@ -39,12 +33,10 @@ const REMEMBER_KEY = 'rememberedUsername';
 function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, idleText }) {
   const { t } = useLanguage();
   const videoRef = useRef(null);
-  const fileRef = useRef(null);
   const streamRef = useRef(null);
   const mountedRef = useRef(false);
   const [stream, setStream] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState('');
   const [status, setStatus] = useState({ tone: 'idle', text: idleText });
 
@@ -60,7 +52,7 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
 
   const openCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setStatus({ tone: 'error', text: t('cameraUnavailableUploadInstead') });
+      setStatus({ tone: 'error', text: t('cameraUnavailableForFace') });
       return;
     }
     try {
@@ -74,7 +66,7 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
       setStream(nextStream);
       setStatus({ tone: 'idle', text: t('centerFaceThenCapture') });
     } catch {
-      setStatus({ tone: 'error', text: t('cameraAccessDeniedUploadInstead') });
+      setStatus({ tone: 'error', text: t('cameraAccessDeniedForFace') });
     }
   };
 
@@ -94,13 +86,13 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
     }
   }, [stream]);
 
-  const processFace = async (source) => {
+  // Faces come from the camera only: a photo file could be anyone's photograph.
+  const processFace = async (canvas) => {
     setBusy(true);
     setStatus({ tone: 'busy', text: t('checkingFace') });
     try {
-      const isFile = source instanceof File;
-      const descriptor = isFile ? await descriptorFromFile(source) : await descriptorFromImage(source);
-      const faceImage = isFile ? await imageDataFromFile(source) : imageDataFromCanvas(source);
+      const descriptor = await descriptorFromImage(canvas);
+      const faceImage = imageDataFromCanvas(canvas);
       if (!mountedRef.current) return;
       setPreview(faceImage);
       setStatus({ tone: 'success', text: t('faceCapturedReady') });
@@ -116,15 +108,6 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
     }
   };
 
-  const processFile = (file) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setStatus({ tone: 'error', text: t('chooseImageFile') });
-      return;
-    }
-    processFace(file);
-  };
-
   const capture = async () => {
     const video = videoRef.current;
     if (!video?.videoWidth) {
@@ -138,26 +121,14 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
     await processFace(canvas);
   };
 
-  const onDrop = (event) => {
-    event.preventDefault();
-    setDragging(false);
-    if (!busy) processFile(event.dataTransfer.files?.[0]);
-  };
-
   const stateClass = [
     'face-capture',
     status.tone === 'success' && 'is-success',
     (status.tone === 'error' || hasError) && 'is-error',
-    dragging && 'is-dragging',
   ].filter(Boolean).join(' ');
 
   return (
-    <div
-      className={stateClass}
-      onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={onDrop}
-    >
+    <div className={stateClass}>
       {stream && (
         <div className="face-camera">
           <video ref={videoRef} className="face-preview" autoPlay muted playsInline />
@@ -187,23 +158,8 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
             <Button icon={preview ? <ReloadOutlined /> : <CameraOutlined />} onClick={openCamera} disabled={busy}>
               {preview ? t('retake') : t('useCamera')}
             </Button>
-            <Button icon={<UploadOutlined />} onClick={() => fileRef.current?.click()} loading={busy && !stream}>
-              {t('uploadPhoto')}
-            </Button>
           </>
         )}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            // Reset so choosing the same file again still fires onChange.
-            event.target.value = '';
-            processFile(file);
-          }}
-        />
       </div>
     </div>
   );

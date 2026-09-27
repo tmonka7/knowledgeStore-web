@@ -43,3 +43,9 @@ pywhispercpp
 # Apache-2.0. Only the model code is used; loading is done offline by
 # speaker_worker.py.
 speechbrain
+
+# OCR: PaddleOCR's PP-OCRv5 (download_models.py paddleocr). Apache-2.0. This
+# is the CPU build of PaddlePaddle; for an NVIDIA GPU install paddlepaddle-gpu
+# as https://www.paddlepaddle.org.cn/install describes, instead.
+paddlepaddle>=3.0
+paddleocr>=3.1

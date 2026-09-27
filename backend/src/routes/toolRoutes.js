@@ -29,6 +29,7 @@ import {
 import { ggmlHandlers, mlHandlers } from '../controllers/mlController.js';
 import { recognizeSpeech, recognizeStatus } from '../controllers/recognizeController.js';
 import * as speaker from '../controllers/speakerController.js';
+import * as ocr from '../controllers/ocrController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 import { asyncRoute } from '../helpers/asyncRoute.js';
 
@@ -143,6 +144,15 @@ router.post('/tools/speaker/models/:id/onnx/link', ...speakerView, asyncRoute(sp
 router.get('/tools/speaker/jobs', ...speakerView, asyncRoute(speaker.jobs));
 router.get('/tools/speaker/jobs/:id', ...speakerView, asyncRoute(speaker.job));
 router.post('/tools/speaker/jobs/:id/cancel', ...speakerView, asyncRoute(speaker.cancel));
+
+/*
+ * OCR (PaddleOCR). The image is read and deleted within the request; nothing
+ * is kept. 20 MB is a large photograph.
+ */
+const ocrView = [requireAuth, requirePermission('ocr:view')];
+const ocrUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 20 * 1024 * 1024, files: 1 } });
+router.get('/tools/ocr/status', ...ocrView, asyncRoute(ocr.status));
+router.post('/tools/ocr/recognize', ...ocrView, ocrUpload.single('image'), asyncRoute(ocr.recognize));
 
 /*
  * YOLO and Speech to Text: the same shape as the Transformers routes above,

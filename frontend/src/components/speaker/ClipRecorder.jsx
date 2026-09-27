@@ -10,10 +10,14 @@ const { Text } = Typography;
 
 /**
  * Record a clip from the microphone (stopping by itself after `maxSeconds`)
- * or choose an audio file; either way `onClip({ blob, seconds }, source)`
- * receives a 16 kHz mono WAV.
+ * or, with `allowFile`, choose an audio file; either way
+ * `onClip({ blob, seconds }, source)` receives a 16 kHz mono WAV. Enrolling
+ * or signing in with a voice leaves `allowFile` off: a file could be anyone's
+ * recording, so those take the microphone only.
  */
-export default function ClipRecorder({ onClip, disabled, busy, maxSeconds = 15, recordLabel, hint }) {
+export default function ClipRecorder({
+  onClip, disabled, busy, maxSeconds = 15, recordLabel, hint, allowFile = false,
+}) {
   const { t } = useLanguage();
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -76,20 +80,24 @@ export default function ClipRecorder({ onClip, disabled, busy, maxSeconds = 15, 
             {recordLabel || t('speakerRecord')}
           </Button>
         )}
-        <Button icon={<UploadOutlined />} disabled={disabled || recording || busy} onClick={() => document.getElementById(inputId)?.click()}>
-          {t('speakerChooseFile')}
-        </Button>
-        <input
-          id={inputId}
-          type="file"
-          accept="audio/*,video/*"
-          style={{ display: 'none' }}
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = '';
-            chooseFile(file);
-          }}
-        />
+        {allowFile && (
+          <>
+            <Button icon={<UploadOutlined />} disabled={disabled || recording || busy} onClick={() => document.getElementById(inputId)?.click()}>
+              {t('speakerChooseFile')}
+            </Button>
+            <input
+              id={inputId}
+              type="file"
+              accept="audio/*,video/*"
+              style={{ display: 'none' }}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                chooseFile(file);
+              }}
+            />
+          </>
+        )}
       </Space>
       {recording && (
         <Progress
