@@ -146,11 +146,11 @@ router.get('/tools/speaker/jobs/:id', ...speakerView, asyncRoute(speaker.job));
 router.post('/tools/speaker/jobs/:id/cancel', ...speakerView, asyncRoute(speaker.cancel));
 
 /*
- * OCR (PaddleOCR). The image is read and deleted within the request; nothing
- * is kept. 20 MB is a large photograph.
+ * OCR (PaddleOCR). The image or PDF is read and deleted within the request;
+ * nothing is kept. 50 MB is a large photograph or a long scanned PDF.
  */
 const ocrView = [requireAuth, requirePermission('ocr:view')];
-const ocrUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 20 * 1024 * 1024, files: 1 } });
+const ocrUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 50 * 1024 * 1024, files: 1 } });
 router.get('/tools/ocr/status', ...ocrView, asyncRoute(ocr.status));
 router.post('/tools/ocr/recognize', ...ocrView, ocrUpload.single('image'), asyncRoute(ocr.recognize));
 

@@ -230,7 +230,7 @@ polled), mobile applications, and single sign-on.
 | FR-SYS-07 | With `yolo:view` / `tts:view`, a user can save a labelled image folder / transcribed clip folder to the server as a private dataset. Re-saving uploads only changed files and removes files no longer in the folder. Uploaded paths must stay inside the dataset folder. |
 | FR-SYS-08 | With `yolo:train` / `tts:train`, a user can fine-tune an Ultralytics YOLO model (detection or segmentation) / a Whisper model on such a dataset, test it on an image / WAV file, and export it to ONNX, offline. Each page sees only its own models. |
 | FR-SYS-09 | With `speaker:view` (not granted by default: voiceprints are biometric data), a user can enroll speakers by voice samples and identify, verify or follow live who is speaking, using an offline ECAPA-TDNN model. Speakers, voiceprints and sample audio are visible only to the account that enrolled them, and deleting a speaker or sample deletes its audio. |
-| FR-SYS-10 | With `ocr:view` (granted by default), a user can read the text in an image — English, Chinese, Korean, Japanese or Russian — with offline PaddleOCR (PP-OCRv5) models, and see each line's box and confidence. The image is deleted on the server once read. |
+| FR-SYS-10 | With `ocr:view` (granted by default), a user can read the text in an image or in the pages of a PDF (up to `OCR_MAX_PAGES`) — English, Chinese, Korean, Japanese or Russian — with offline PaddleOCR (PP-OCRv5) models, and see each line's box and confidence. The file is deleted on the server once read. |
 
 ### 3.12 Internationalisation (FR-I18N)
 

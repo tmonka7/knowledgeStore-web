@@ -549,15 +549,15 @@ python backend/python/download_models.py ecapa
 
 ## 8d-4. OCR (reading text in images)
 
-**Tools → AI → OCR** reads the text in an image with PaddleOCR (PP-OCRv5):
-English, Chinese, Korean, Japanese or Russian.
+**Tools → AI → OCR** reads the text in an image or a PDF with PaddleOCR
+(PP-OCRv5): English, Chinese, Korean, Japanese or Russian.
 
 1. Pick the **language** of the text. A language the server has no model for
    is greyed out.
-2. **Choose an image**, drop one on the box, or paste a screenshot with
-   Ctrl+V anywhere on the page (PNG, JPEG, BMP or WebP, up to 20 MB). It is
-   read straight away; **Read text** reads it again after you change a
-   setting.
+2. **Choose an image or PDF**, drop one on the box, or paste a screenshot
+   with Ctrl+V anywhere on the page (PNG, JPEG, BMP, WebP or PDF, up to
+   50 MB). It is read straight away; **Read text** reads it again after you
+   change a setting.
 3. The result shows the image with a box round each line — green when the
    model is sure, amber or red when it is not — and the lines as text.
    Pointing at a box highlights its line and the other way round. **Copy**
@@ -565,13 +565,21 @@ English, Chinese, Korean, Japanese or Russian.
    has its own copy button. **Hide lines below confidence** leaves out lines
    the model was unsure of (usually specks and stray marks).
 
+**PDFs** are read page by page, a few seconds a page, and only the first
+30 pages (the administrator can change this with `OCR_MAX_PAGES`). The pages
+appear as pictures with the boxes on them; move between them with the page
+arrows. **Copy** and **Download** take the text of every page read, each
+under a "Page N" heading. Every page is read in the one language chosen, so a
+PDF that mixes languages page by page is best read once per language. A
+password-protected PDF cannot be read.
+
 Turn on **Rotated text** when the page is upside down or lines run in
 different directions; it is a little slower. Photos from a phone are turned
 the way the phone shows them. If the server has more than one model for a
 language, **Recognition model** picks one — for example the Chinese model also
 reads English, and is better for a page that mixes the two.
 
-The image is read on the server and deleted straight away; nothing is kept.
+The file is read on the server and deleted straight away; nothing is kept.
 If the page says the OCR models are not installed, an administrator runs, on
 the server:
 

@@ -4,11 +4,16 @@ A long-running worker, started by backend/src/helpers/ocr.js. The models are
 read from the folders download_models.py puts them in; nothing is fetched.
 
 Protocol, one JSON object per line:
-  in  {"id": "...", "image": "<path>", "det": "<folder>", "rec": "<folder>",
-       "textline": "<folder>" | null}
-  out {"id": "...", "ok": true, "width": 1280, "height": 720,
-       "lines": [{"text": "...", "score": 0.98, "box": [[x, y] x 4]}], "took": 0.42}
+  in  {"id": "...", "image": "<path>", "pdf": false, "maxPages": 30,
+       "det": "<folder>", "rec": "<folder>", "textline": "<folder>" | null}
+  out {"id": "...", "ok": true, "pageCount": 1, "took": 0.42,
+       "pages": [{"page": 1, "width": 1280, "height": 720, "image": null,
+                  "lines": [{"text": "...", "score": 0.98, "box": [[x, y] x 4]}]}]}
       {"id": "...", "ok": false, "error": "..."}
+With "pdf": true the file is a PDF: its first maxPages pages are rendered and
+read, and each page carries "image", a JPEG preview (a data: URL) the page can
+show, since a browser cannot draw a PDF page under the boxes itself. Boxes are
+in the rendered page's pixels, which the preview keeps the proportions of.
 The first line out is {"ready": true, ...} or {"fatal": "..."}.
 """
 import json
@@ -30,6 +35,10 @@ from ks_common import read_meta  # noqa: E402  (after the redirect)
 # Two pipelines at a time: enough to compare two languages or two models
 # without holding every recognition model in memory.
 MAX_LOADED = 2
+# PDF pages are rendered at this resolution for reading: enough for 8-point
+# print. The previews sent back are smaller, as a page only shows them.
+PDF_DPI = 200
+PREVIEW_WIDTH = 1400
 
 
 def reply(message):
@@ -85,6 +94,55 @@ def read_image(path):
     except UnidentifiedImageError:
         raise ValueError("this file is not an image that can be read (PNG, JPEG, BMP or WebP)") from None
     return np.ascontiguousarray(np.asarray(image)[:, :, ::-1])
+
+
+def pdf_pages(path, max_pages):
+    """(pages as BGR pixels, number of pages in the document) for a PDF."""
+    import numpy as np
+    import pypdfium2 as pdfium
+
+    try:
+        document = pdfium.PdfDocument(path)
+    except pdfium.PdfiumError as error:
+        raise ValueError(f"this PDF cannot be opened ({error}); it may be damaged or password-protected") from None
+    try:
+        count = len(document)
+        pages = []
+        for index in range(min(count, max_pages)):
+            page = document[index]
+            try:
+                image = page.render(scale=PDF_DPI / 72).to_pil().convert("RGB")
+            finally:
+                page.close()
+            pages.append(np.ascontiguousarray(np.asarray(image)[:, :, ::-1]))
+        return pages, count
+    finally:
+        document.close()
+
+
+def preview(pixels):
+    """A JPEG data: URL of a page, at most PREVIEW_WIDTH wide."""
+    import base64
+    import io
+    from PIL import Image
+
+    image = Image.fromarray(pixels[:, :, ::-1])
+    if image.width > PREVIEW_WIDTH:
+        image = image.resize((PREVIEW_WIDTH, round(image.height * PREVIEW_WIDTH / image.width)), Image.LANCZOS)
+    buffer = io.BytesIO()
+    image.save(buffer, "JPEG", quality=80)
+    return "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+def read_lines(ocr, pixels):
+    """Every line of text PaddleOCR finds in one image."""
+    result = ocr.predict(pixels)[0]
+    return [
+        {"text": text, "score": round(float(score), 4),
+         "box": [[round(float(x), 1), round(float(y), 1)] for x, y in poly]}
+        for text, score, poly in zip(result["rec_texts"], result["rec_scores"], result["rec_polys"])
+        if str(text).strip()
+    ]
 
 
 def installed_version(*distributions):
@@ -148,20 +206,21 @@ def main():
             if load_error:
                 raise RuntimeError(load_error)
             started = time.time()
-            pixels = read_image(request["image"])
-            height, width = pixels.shape[:2]
+            if request.get("pdf"):
+                if find_spec("pypdfium2") is None:
+                    raise RuntimeError("reading PDFs needs pypdfium2. Run: pip install pypdfium2")
+                images, count = pdf_pages(request["image"], max(1, int(request.get("maxPages") or 30)))
+            else:
+                images, count = [read_image(request["image"])], 1
             ocr = pipeline(request["det"], request["rec"], request.get("textline") or None)
-            result = ocr.predict(pixels)[0]
-            texts = result["rec_texts"]
-            scores = result["rec_scores"]
-            polys = result["rec_polys"]
-            lines = [
-                {"text": text, "score": round(float(score), 4),
-                 "box": [[round(float(x), 1), round(float(y), 1)] for x, y in poly]}
-                for text, score, poly in zip(texts, scores, polys) if str(text).strip()
-            ]
-            reply({"id": request_id, "ok": True, "width": width, "height": height,
-                   "lines": lines, "took": round(time.time() - started, 3)})
+            pages = []
+            for number, pixels in enumerate(images, start=1):
+                height, width = pixels.shape[:2]
+                pages.append({"page": number, "width": width, "height": height,
+                              "image": preview(pixels) if request.get("pdf") else None,
+                              "lines": read_lines(ocr, pixels)})
+            reply({"id": request_id, "ok": True, "pages": pages, "pageCount": count,
+                   "took": round(time.time() - started, 3)})
         except Exception as error:  # noqa: BLE001  (one bad request must not end the worker)
             traceback.print_exc()
             reply({"id": request_id, "ok": False, "error": str(error) or error.__class__.__name__})

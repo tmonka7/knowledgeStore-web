@@ -25,6 +25,10 @@ const worker = createPythonWorker({
 // The worker loads PaddlePaddle after saying it is ready, so the first
 // request after a start waits for that too: minutes on a slow server.
 const REQUEST_MS = Math.max(60, Number(process.env.OCR_REQUEST_SECONDS) || 300) * 1000;
+// A PDF is read page by page: only its first OCR_MAX_PAGES pages, each given
+// up to OCR_PAGE_SECONDS on top of the request's own time.
+export const MAX_PAGES = Math.min(500, Math.max(1, Number(process.env.OCR_MAX_PAGES) || 30));
+const PAGE_MS = Math.max(5, Number(process.env.OCR_PAGE_SECONDS) || 20) * 1000;
 
 const publicModel = (model) => ({
   id: model.id,
@@ -68,7 +72,7 @@ export const ocrStatus = async () => {
       engine = { ok: false, message: error.message };
     }
   }
-  return { installed, engine, ...models };
+  return { installed, engine, maxPages: MAX_PAGES, ...models };
 };
 
 const pick = async (id, role) => {
@@ -78,12 +82,14 @@ const pick = async (id, role) => {
 };
 
 /**
- * Read the text in one image. `language` picks the recognition model unless
- * `recognitionId` names one; `detectionId` defaults to the mobile detector;
- * `rotated` adds the text-line orientation classifier.
+ * Read the text in an image, or in each page of a PDF (`pdf`). `language`
+ * picks the recognition model unless `recognitionId` names one;
+ * `detectionId` defaults to the mobile detector; `rotated` adds the
+ * text-line orientation classifier. The result has one entry in `pages` per
+ * page read; a PDF's pages carry a preview image to draw the boxes on.
  */
-export const recognizeText = async (imagePath, {
-  language, recognitionId, detectionId, rotated,
+export const recognizeText = async (filePath, {
+  language, recognitionId, detectionId, rotated, pdf = false,
 } = {}) => {
   const models = await ocrModels();
   if (!models.detection.length || !models.recognition.length) {
@@ -97,12 +103,11 @@ export const recognizeText = async (imagePath, {
   const textline = rotated && models.textline.length ? await pick(models.textline[0].id, 'textline') : null;
 
   const result = await worker.request({
-    image: imagePath, det: det.folder, rec: rec.folder, textline: textline?.folder || null,
-  }, REQUEST_MS, 'OCR is busy; try again in a moment.');
+    image: filePath, pdf, maxPages: MAX_PAGES, det: det.folder, rec: rec.folder, textline: textline?.folder || null,
+  }, pdf ? REQUEST_MS + MAX_PAGES * PAGE_MS : REQUEST_MS, 'OCR is busy; try again in a moment.');
   return {
-    lines: result.lines || [],
-    width: result.width,
-    height: result.height,
+    pages: result.pages || [],
+    pageCount: result.pageCount || 1,
     took: result.took,
     language: code,
     models: { detection: det.id, recognition: rec.id, textline: textline?.id || null },

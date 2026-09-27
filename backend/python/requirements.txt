@@ -49,3 +49,5 @@ speechbrain
 # as https://www.paddlepaddle.org.cn/install describes, instead.
 paddlepaddle>=3.0
 paddleocr>=3.1
+# Renders PDF pages for OCR. Installed with paddleocr; listed as it is used directly.
+pypdfium2

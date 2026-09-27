@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Empty, Row, Segmented, Select, Slider, Space, Switch, Tag, Tooltip, Typography, message,
+  Alert, Button, Card, Col, Empty, Pagination, Row, Segmented, Select, Slider, Space, Spin, Switch, Tag, Tooltip, Typography,
+  message,
 } from 'antd';
 import {
-  CopyOutlined, DownloadOutlined, FileImageOutlined, ReloadOutlined, ScanOutlined,
+  CopyOutlined, DownloadOutlined, FileImageOutlined, FilePdfOutlined, ReloadOutlined, ScanOutlined,
 } from '@ant-design/icons';
 import api from '../api';
 import { MONO } from '../components/ml/JobView';
@@ -12,16 +13,21 @@ import { useLanguage } from '../i18n';
 const { Paragraph, Text } = Typography;
 
 // Each language in its own script, as a language picker shows them.
-const LANGUAGE_LABELS = { en: 'English', zh: '中文', ko: '한국어', ja: '日本語', ru: 'Русский' };
-const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const LANGUAGE_LABELS = { en: 'English', zh: '中文', ko: '조선어', ja: '日本語', ru: 'Русский' };
+// Mirrors the upload limit on /tools/ocr/recognize.
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const NONE = [];
+
+const isPdf = (file) => file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '');
 
 const lineColor = (score) => (score >= 0.9 ? '#52c41a' : score >= 0.7 ? '#faad14' : '#ff4d4f');
 
 /**
- * Read the text in an image with PaddleOCR (PP-OCRv5) on the server, in
- * English, Chinese, Korean, Japanese or Russian. The image is sent, read and
- * deleted on the server within the request; nothing is kept.
+ * Read the text in an image, or in each page of a PDF, with PaddleOCR
+ * (PP-OCRv5) on the server, in English, Chinese, Korean, Japanese or Russian.
+ * The file is sent, read and deleted on the server within the request;
+ * nothing is kept. A PDF's pages come back as preview images to draw the
+ * boxes on, since the browser cannot show a PDF page as an image.
  */
 export default function OcrToolPage() {
   const { t } = useLanguage();
@@ -35,6 +41,7 @@ export default function OcrToolPage() {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const [pageIndex, setPageIndex] = useState(0);
   const [minScore, setMinScore] = useState(0.5);
   const [hovered, setHovered] = useState(-1);
   const [dragging, setDragging] = useState(false);
@@ -53,7 +60,7 @@ export default function OcrToolPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (!file) {
+    if (!file || isPdf(file)) {
       setUrl('');
       return undefined;
     }
@@ -81,6 +88,7 @@ export default function OcrToolPage() {
     if (!chosen) return;
     setBusy(true);
     setHovered(-1);
+    setPageIndex(0);
     const form = new FormData();
     form.append('image', chosen);
     form.append('language', language);
@@ -88,7 +96,7 @@ export default function OcrToolPage() {
     if (detectionId) form.append('detectionId', detectionId);
     form.append('rotated', rotated ? 'true' : 'false');
     try {
-      const { data } = await api.post('/tools/ocr/recognize', form, { timeout: 330000 });
+      const { data } = await api.post('/tools/ocr/recognize', form, { timeout: 0 });
       setResult(data);
     } catch (error) {
       setResult(null);
@@ -100,12 +108,12 @@ export default function OcrToolPage() {
 
   const choose = (chosen) => {
     if (!chosen) return;
-    if (!String(chosen.type).startsWith('image/')) {
+    if (!String(chosen.type).startsWith('image/') && !isPdf(chosen)) {
       message.error(t('ocrNotImage'));
       return;
     }
-    if (chosen.size > MAX_IMAGE_BYTES) {
-      message.error(t('ocrTooLarge', { mb: MAX_IMAGE_BYTES / 1024 / 1024 }));
+    if (chosen.size > MAX_FILE_BYTES) {
+      message.error(t('ocrTooLarge', { mb: MAX_FILE_BYTES / 1024 / 1024 }));
       return;
     }
     setFile(chosen);
@@ -125,11 +133,16 @@ export default function OcrToolPage() {
     return () => window.removeEventListener('paste', onPaste);
   });
 
-  const shown = useMemo(
-    () => (result?.lines || []).map((line, index) => ({ ...line, index })).filter((line) => line.score >= minScore),
-    [result, minScore],
-  );
-  const text = shown.map((line) => line.text).join('\n');
+  const pages = result?.pages || NONE;
+  const page = pages[pageIndex] || null;
+  const keep = (lines) => lines.map((line, index) => ({ ...line, index })).filter((line) => line.score >= minScore);
+  const shown = useMemo(() => keep(page?.lines || []), [page, minScore]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Copy and Download take every page read, each under its number when there are several.
+  const text = useMemo(() => pages.map((item) => {
+    const body = keep(item.lines).map((line) => line.text).join('\n');
+    return pages.length > 1 ? `--- ${t('ocrPage', { page: item.page })} ---\n${body}` : body;
+  }).join('\n\n').trim(), [pages, minScore, t]); // eslint-disable-line react-hooks/exhaustive-deps
+  const source = page?.image || url;
 
   const copy = async () => {
     try {
@@ -259,7 +272,7 @@ export default function OcrToolPage() {
               >
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf,.pdf"
                   style={{ display: 'none' }}
                   onChange={(event) => {
                     const chosen = event.target.files?.[0];
@@ -267,16 +280,25 @@ export default function OcrToolPage() {
                     choose(chosen);
                   }}
                 />
-                <FileImageOutlined style={{ fontSize: 28, color: '#1677ff' }} />
+                <Space size={8}>
+                  <FileImageOutlined style={{ fontSize: 28, color: '#1677ff' }} />
+                  <FilePdfOutlined style={{ fontSize: 28, color: '#ff4d4f' }} />
+                </Space>
                 <div style={{ marginTop: 8 }}><Text strong>{t('ocrChooseImage')}</Text></div>
-                <Text type="secondary" style={{ fontSize: 12 }}>{t('ocrDropHint')}</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {t('ocrDropHint', { mb: MAX_FILE_BYTES / 1024 / 1024, pages: status?.maxPages || 30 })}
+                </Text>
                 {file && <div style={{ marginTop: 8 }}><Tag>{file.name}</Tag></div>}
               </label>
 
               <Button type="primary" block icon={<ScanOutlined />} loading={busy} disabled={!file || !ready} onClick={() => run()}>
                 {t('ocrRead')}
               </Button>
-              {busy && <Text type="secondary" style={{ fontSize: 12 }}>{t('ocrFirstSlow')}</Text>}
+              {busy && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {isPdf(file) ? `${t('ocrPdfSlow')} ` : ''}{t('ocrFirstSlow')}
+                </Text>
+              )}
             </Space>
           </Card>
         </Col>
@@ -296,15 +318,43 @@ export default function OcrToolPage() {
               </Space>
             )}
           >
-            {!url ? (
+            {!file ? (
               <Empty description={t('ocrNoResult')} />
             ) : (
               <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                <OcrImage url={url} result={result} lines={shown} hovered={hovered} onHover={setHovered} />
-                {result && (
+                {result && result.pageCount > pages.length && (
+                  <Alert type="info" showIcon message={t('ocrPdfTruncated', { read: pages.length, count: result.pageCount })} />
+                )}
+                {pages.length > 1 && (
+                  <Pagination
+                    simple
+                    current={pageIndex + 1}
+                    total={pages.length}
+                    pageSize={1}
+                    onChange={(value) => { setPageIndex(value - 1); setHovered(-1); }}
+                  />
+                )}
+                {source ? (
+                  <OcrImage
+                    key={source}
+                    url={source}
+                    page={page}
+                    lines={result ? shown : NONE}
+                    hovered={hovered}
+                    onHover={setHovered}
+                  />
+                ) : (
+                  // A PDF has nothing to show until the server sends its pages back.
+                  <div style={{ padding: 48, textAlign: 'center' }}>
+                    {busy ? <Spin /> : <FilePdfOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />}
+                    <div style={{ marginTop: 12 }}><Text type="secondary">{file.name}</Text></div>
+                  </div>
+                )}
+                {result && page && (
                   <>
                     <Space wrap size={[8, 4]}>
-                      <Tag>{t('ocrLineCount', { count: shown.length, total: result.lines.length })}</Tag>
+                      {pages.length > 1 && <Tag color="blue">{t('ocrPage', { page: page.page })}</Tag>}
+                      <Tag>{t('ocrLineCount', { count: shown.length, total: page.lines.length })}</Tag>
                       <Tag>{t('ocrTook', { seconds: result.took?.toFixed(2) })}</Tag>
                       <Tag>{result.models.recognition}</Tag>
                     </Space>
@@ -349,13 +399,14 @@ export default function OcrToolPage() {
 
 /**
  * The image with each line's box over it. Boxes are in the image's pixels as
- * the server read it (after any EXIF rotation, as the browser shows it), so
+ * the server read it (after any EXIF rotation, as the browser shows it; for a
+ * PDF, the page as rendered, which its preview keeps the proportions of), so
  * the overlay uses those pixels as its viewBox.
  */
-function OcrImage({ url, result, lines, hovered, onHover }) {
+function OcrImage({ url, page, lines, hovered, onHover }) {
   const [natural, setNatural] = useState(null);
-  const width = result?.width || natural?.width;
-  const height = result?.height || natural?.height;
+  const width = page?.width || natural?.width;
+  const height = page?.height || natural?.height;
   return (
     <div style={{ position: 'relative', width: '100%', lineHeight: 0 }}>
       <img
@@ -364,7 +415,7 @@ function OcrImage({ url, result, lines, hovered, onHover }) {
         onLoad={(event) => setNatural({ width: event.target.naturalWidth, height: event.target.naturalHeight })}
         style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 640, objectFit: 'contain' }}
       />
-      {result && width && height && (
+      {lines.length > 0 && width && height && (
         <svg
           viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="xMidYMid meet"
