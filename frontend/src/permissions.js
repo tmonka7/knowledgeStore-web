@@ -11,6 +11,7 @@ export const PAGE_PERMISSIONS = {
   records: { key: 'records', action: 'view' },
   categories: { key: 'categories', action: 'view' },
   cameras: { key: 'cameras', action: 'view' },
+  'camera-recordings': { key: 'cameras', action: 'view' },
   chat: { key: 'chat', action: 'view' },
   mail: { key: 'mail', action: 'view' },
   meetings: { key: 'meetings', action: 'view' },

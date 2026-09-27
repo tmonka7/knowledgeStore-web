@@ -164,6 +164,27 @@ can be produced from a photograph, and nothing here tests liveness. This
 establishes what someone looks like, not what they know. If that is not good
 enough for your installation, do not use method 2.
 
+### Voice sign-in
+
+A third way in, built the same way (`backend/src/helpers/voiceLogin.js`). At
+sign-up — optional, like the face — the person records three short clips
+reading a sentence each; an administrator can record or remove them later on
+the Users page. The **server** turns each clip into an ECAPA-TDNN voiceprint
+(192 numbers, the Speaker recognition model) and stores only those, hidden like
+the face descriptor; the audio is not kept. It needs the model on the server
+(`python backend/python/download_models.py ecapa`); without it neither the
+button nor the enrolment is offered.
+
+**Login with Voice** records a few seconds and sends the audio (not a
+voiceprint: the server makes that itself). Like face sign-in it identifies
+rather than verifies: the clip is compared by cosine similarity with the
+average voiceprint of every approved account, and the best one is let in only
+at `VOICE_LOGIN_THRESHOLD` (0.6) or more **and** `VOICE_LOGIN_MARGIN` (0.1)
+ahead of the runner-up. Attempts are limited to `VOICE_LOGIN_ATTEMPTS` (10) per
+ten minutes per address, since each costs a model run. The same caveat as the
+face applies, more so: a recording of the person's voice may pass, and nothing
+here tests liveness.
+
 ### Pending / Allowed / Denied
 
 Registration creates the account as **pending** and returns **no token** — a
@@ -793,12 +814,13 @@ Enterprise licence. If that licence is acquired, `yolo26n.onnx` drops in behind
 the same interface — note it exports NMS-free, so such an engine skips the
 `decodeYolox()` / `nonMaxSuppression()` steps entirely.
 
-## PTZ control and automatic attendance
+## PTZ control and camera recording
 
-**Cameras -> View -> Automatic Attendance** turns a PTZ camera through an arc,
-recognises every face it finds, and writes an attendance list. Faces that match
-nobody are kept so the same person is recognised next time and can be given a
-name.
+A PTZ camera can be steered from **Cameras -> View**, or from the **Live
+Camera View** grid: press **Control** on a tile and the PTZ pad for that camera
+appears beside the grid. Any camera with an `rtsp://` or `http(s)://` stream
+can be **recorded** on the server and played back from **Camera Management ->
+Recordings** (or the recordings list under a camera's own view).
 
 ### Why the camera is driven from the server
 
@@ -818,10 +840,6 @@ So the server owns the camera: it moves the head, it fetches frames, and it
 holds the credentials. `GET /api/cameras/:id/frame` proxies a still through this
 origin, which is what makes the pixels readable to the page at all.
 
-The page still does the *recognition*, because face-api runs there and there is
-no equivalent on the server. It submits descriptors; the server decides whose
-they are. The browser never sees the roster and never decides who was present.
-
 ### ONVIF, spoken directly
 
 `backend/src/helpers/ptz/onvif.js` writes the SOAP envelopes itself rather than
@@ -840,104 +858,57 @@ Responses are read with regular expressions rather than an XML parser. That is
 normally a bad idea; it is tolerable here because every field read is one
 well-known element or attribute in a machine-generated document.
 
-### Planning the sweep
+### Recording
 
-`backend/src/helpers/ptz/sweep.js` decides where the camera stops. The naive
-plan — divide 180 by the field of view and turn that many times — misses people
-*silently*, which is the worst property an attendance system can have. Two
-corrections:
+`backend/src/helpers/cameraRecorder.js` runs one ffmpeg per recording camera
+(ffmpeg is found the same way as for Converting: `FFMPEG_PATH`, the
+`ffmpeg-static` package, then `PATH`). The stream is written in segments,
+aligned to the clock, one MP4 each:
 
-1. A camera at pan angle P sees from `P - fov/2` to `P + fov/2`, so the
-   outermost stops sit **half a frame inside** the arc's edges. The stops span
-   `arc - fov`, not `arc`. Planning across the full arc leaves two blind wedges
-   just inside its edges.
-2. Frames **overlap** by a quarter of their width. A face on the seam between
-   two abutting frames is cut in half in both and recognised in neither, so the
-   sweep would report everyone except the person standing at the join.
+```
+CAMERA_RECORDINGS_DIR/<camera id>/20260926-143000.mp4
+```
 
-If the requested zoom makes the field of view so narrow that the arc needs more
-stops than the budget allows, the sweep covers a **smaller arc properly** rather
-than scattering the same few stops across the full one. A narrower arc is
-reported and can be argued with; a hole between frames cannot.
+- **H.264 is copied**, so recording costs almost nothing. Anything else — the
+  MJPEG an HTTP camera sends, H.265 — is encoded to H.264 so every browser can
+  play it. MJPEG has no timestamps, so its frames are stamped with the time they
+  arrive (otherwise ffmpeg assumes 25 fps and a 10 fps camera plays back 2.5
+  times too fast).
+- **The MP4s are fragmented and flushed as they are written**, so the segment
+  being recorded plays too, up to the last few seconds, and one cut off by a
+  crash or a power cut still plays up to where it stopped.
+- **Recording survives restarts**: whether a camera should be recording is
+  stored on the camera, and the recorders are started again at boot. A recorder
+  whose stream drops is restarted, waiting 5 s, 10 s, 20 s … up to 2 minutes;
+  its last error is shown on the camera.
+- **Old footage expires**: segments older than `CAMERA_RECORDING_KEEP_DAYS` are
+  deleted hourly (0 keeps everything). A deleted camera stops recording; its
+  footage stays until it expires.
+- **Playback** needs the Authorization header the API expects, which a `<video>`
+  element cannot send, so the page asks for a link (`POST
+  /api/cameras/recordings/:id/link`, `cameras:view`) that then works on its own
+  for two hours — long enough to watch and seek, since every seek is a new
+  range request. The folder is outside `uploads/` on purpose: that is served
+  without sign-in, and footage is not.
 
-This maths needs the optics, which ONVIF does not report usefully, so the camera
-form carries them. **Field of view is the one to get right** — it is precisely
-what decides whether the frames overlap or leave gaps.
-
-### Waiting for the head to stop
-
-`AbsoluteMove` returns when the camera *accepts* the command, not when the lens
-arrives. Grabbing a frame immediately afterwards photographs the previous angle,
-consistently enough that the result looks like a working sweep with a
-mysteriously poor hit rate. The server polls ONVIF `GetStatus` for `MoveStatus`
-and then waits a fixed settle time as well, because plenty of cameras report
-`IDLE` while the head is still visibly ringing.
-
-### Who the faces belong to
-
-Matching uses the same function and the same thresholds as face sign-in —
-`backend/src/helpers/faceMatch.js`, extracted from `authController` for exactly
-this reason. If attendance called two people the same at a distance sign-in
-would reject, the list would name people the system refuses to let in.
-
-Every submitted face ends in one of five outcomes, and the page is told which,
-because "we saw eleven faces and recorded nine people" is only answerable if the
-other two are accounted for:
-
-| Outcome | Meaning |
-| --- | --- |
-| `user` | matched an enrolled account |
-| `visitor` | matched a face seen before that has no name yet |
-| `registered` | nobody has seen this face before; it is now on file |
-| `ambiguous` | too close to two enrolled people to say which |
-| `rejected` | too small or too uncertain to be worth matching |
-
-`ambiguous` deliberately does **not** fall through to registering a visitor. The
-person is on the roster; creating a nameless record for them would lose the
-attendance row *and* add a duplicate biometric record for somebody already
-enrolled.
-
-### A face is never a credential
-
-Registering an unknown face creates a row in `visitorFaces`, **not a user
-account**. Face sign-in identifies against every enrolled account with no
-password at all, so minting an account from a face that walked past a camera
-would let anyone who stands in front of it become a user of this system.
-
-Linking a visitor to an account, on the Attendance page, records the association
-for attendance and nothing else. The descriptor is never copied into the
-account's `faceDescriptor`, and `getFaceCandidates` never reads this collection.
-
-### Retention
-
-Unidentified faces are deleted after **30 days** without a sighting
-(`VISITOR_FACE_RETENTION_DAYS`, swept every six hours by
-`helpers/visitorRetention.js`). Faces that have been named or linked are kept.
-
-This is not housekeeping. A face descriptor is biometric data about an
-identifiable person, and this collection holds descriptors for people who were
-never asked — anyone who walked in front of a camera. Without an expiry it grows
-into a permanent biometric record of every passer-by, which is a liability to
-hold and, in a good many jurisdictions, unlawful to hold indefinitely without a
-reason. Setting the variable to `0` keeps them forever, and should be a
-deliberate decision.
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `CAMERA_RECORDINGS_DIR` | `backend/recordings` | where footage is kept |
+| `CAMERA_SEGMENT_MINUTES` | `10` | length of each file (1-60) |
+| `CAMERA_RECORDING_KEEP_DAYS` | `7` | footage older than this is deleted; `0` keeps it |
+| `CAMERA_MAX_RECORDERS` | `8` | cameras recorded at once |
 
 ### Permissions
-
-`attendance:*` is **deliberately absent from the defaults**, exactly as
-`cameras:*` is. A sweep turns a camera by remote control and writes a biometric
-record of everyone in front of it, and the lists it produces say where named
-people were and when. An administrator grants it per account — which also means
-there is nothing in `permissionBackfill.js` to hand out.
 
 Moving a camera needs `cameras:edit` rather than `cameras:view`: it is not a way
 of looking at a camera, it changes where the camera points for everybody
 watching it, and it can be used to point one away from whatever it was installed
-to watch.
+to watch. Starting and stopping a recording is `cameras:edit` too; watching
+footage is `cameras:view`, and deleting it `cameras:delete`.
 
-### Setting a camera up
+### Setting a camera up for PTZ
 
-1. **Cameras -> Edit -> PTZ and automatic attendance**.
+1. **Cameras -> Edit -> PTZ control**.
 2. Enter the ONVIF service address — usually
    `http://camera-address/onvif/device_service`. This is the control channel,
    not the video stream.
@@ -945,25 +916,21 @@ to watch.
 4. Reopen the camera and press **Detect**. Probing asks the *server* to contact
    the camera, so it needs a saved camera to hang the request on; a camera being
    created has no id yet.
-5. Pick a movable profile, check the optics, and enable PTZ.
-
-| Variable | Default | What it does |
-| --- | --- | --- |
-| `FACE_MATCH_MAX` | `0.5` | distance below which two descriptors are the same person |
-| `FACE_MATCH_MARGIN` | `0.05` | how much closer the best match must be than the runner-up |
-| `FACE_SAME_SIGHTING` | `0.38` | distance at which two detections in one frame are one face |
-| `VISITOR_FACE_RETENTION_DAYS` | `30` | how long an unidentified face is kept |
+5. Pick a movable profile and enable PTZ.
 
 ### Limitations
 
 - **ONVIF only.** Vendor CGI APIs (Hikvision ISAPI, Dahua, Axis VAPIX) are not
   implemented. The driver sits behind one interface in `helpers/ptz/index.js`,
-  so adding one is a new module rather than a change to the sweep.
-- **A still image source is required.** The ONVIF snapshot URI is used when the
-  camera offers one, an MJPEG stream is read for a single frame otherwise, and
-  an `rtsp://` address alone cannot be read at all — set a snapshot URL.
-- **No liveness check.** A sweep recognises a photograph of a face as readily as
-  a face, and nothing here detects the difference.
+  so adding one is a new module.
+- **RTSP cannot be watched live in the browser.** The live views load the
+  camera's address directly, which works for HTTP streams only; an `rtsp://`
+  camera can be recorded and played back, but not watched live.
+- **Continuous recording only**: no motion-triggered recording, and no limit on
+  disk space other than `CAMERA_RECORDING_KEEP_DAYS`.
+- **Encoding costs CPU.** A camera that does not send H.264 is encoded as it is
+  recorded; several high-resolution MJPEG or H.265 cameras can keep a small
+  server busy.
 
 ## Converting images to SVG
 

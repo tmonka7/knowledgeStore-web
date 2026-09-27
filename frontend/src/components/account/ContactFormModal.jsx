@@ -1,7 +1,12 @@
 import { useEffect } from 'react';
-import { AutoComplete, Form, Input, Modal, Select, Switch } from 'antd';
+import {
+  AutoComplete, Button, Form, Input, Modal, Select, Space, Switch,
+} from 'antd';
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 
 const DEFAULT_GROUPS = ['General', 'Team', 'Client', 'Vendor', 'Personal'];
+const PHONE_LABELS = ['Mobile', 'Work', 'Home', 'Fax', 'Other'].map((label) => ({ value: label }));
+const MAX_PHONES = 10;
 
 export default function ContactFormModal({ open, contact, groups = [], saving, onCancel, onSubmit }) {
   const [form] = Form.useForm();
@@ -11,7 +16,7 @@ export default function ContactFormModal({ open, contact, groups = [], saving, o
     form.setFieldsValue(contact || {
       fullName: '',
       email: '',
-      phone: '',
+      phones: [{ label: 'Mobile', number: '' }],
       company: '',
       jobTitle: '',
       group: 'General',
@@ -45,17 +50,10 @@ export default function ContactFormModal({ open, contact, groups = [], saving, o
           <Form.Item name="group" label="Group">
             <AutoComplete options={groupOptions} placeholder="General" />
           </Form.Item>
-          {/* Both are optional — a contact may be only a phone number — but a
-              value that is there has to look like one. */}
+          {/* Email and phone numbers are optional — a contact may be only a
+              phone number — but a value that is there has to look like one. */}
           <Form.Item name="email" label="Email" rules={[{ type: 'email', message: 'Enter a valid email address.' }]}>
             <Input placeholder="dana@example.com" />
-          </Form.Item>
-          <Form.Item
-            name="phone"
-            label="Phone"
-            rules={[{ pattern: /^[+()\d\s.-]{5,32}$/, message: 'Digits, spaces and + ( ) . - only.' }]}
-          >
-            <Input placeholder="+1 555 0134" />
           </Form.Item>
           <Form.Item name="company" label="Company">
             <Input placeholder="Northwind" />
@@ -64,6 +62,39 @@ export default function ContactFormModal({ open, contact, groups = [], saving, o
             <Input placeholder="QA lead" />
           </Form.Item>
         </div>
+
+        <Form.Item label="Phone numbers" required={false}>
+          <Form.List name="phones">
+            {(fields, { add, remove }) => (
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {fields.map((field) => (
+                  <Space.Compact key={field.key} style={{ width: '100%' }}>
+                    <Form.Item name={[field.name, 'label']} noStyle>
+                      <AutoComplete options={PHONE_LABELS} placeholder="Label" style={{ width: 130 }} />
+                    </Form.Item>
+                    <Form.Item
+                      name={[field.name, 'number']}
+                      noStyle
+                      rules={[{ pattern: /^[+()\d\s.-]{5,32}$/, message: 'Digits, spaces and + ( ) . - only.' }]}
+                    >
+                      <Input placeholder="+1 555 0134" />
+                    </Form.Item>
+                    <Button icon={<DeleteOutlined />} aria-label="Remove this number" onClick={() => remove(field.name)} />
+                  </Space.Compact>
+                ))}
+                {fields.length < MAX_PHONES && (
+                  <Button
+                    type="dashed"
+                    icon={<PlusOutlined />}
+                    onClick={() => add({ label: fields.length ? 'Work' : 'Mobile', number: '' })}
+                  >
+                    Add phone number
+                  </Button>
+                )}
+              </Space>
+            )}
+          </Form.List>
+        </Form.Item>
 
         <Form.Item name="tags" label="Tags">
           <Select mode="tags" placeholder="supplier, on-call" tokenSeparators={[',']} />

@@ -18,7 +18,10 @@ import Pagination from '../components/ui/Pagination';
 import StatCard from '../components/ui/StatCard';
 import WalletEntryModal from '../components/wallet/WalletEntryModal';
 import { BalanceTrend, CategoryBreakdown, MonthlyFlowChart } from '../components/wallet/WalletCharts';
-import { CURRENCIES, DEFAULT_CURRENCY, formatMoney, rememberCurrency } from '../components/wallet/money';
+import CurrencyCode from '../components/wallet/CurrencyCode';
+import {
+  CURRENCIES, CURRENCY_TONE, DEFAULT_CURRENCY, formatMoney, rememberCurrency,
+} from '../components/wallet/money';
 
 const PAGE_SIZE = 10;
 const MONTH_OPTIONS = [3, 6, 12, 24];
@@ -39,7 +42,7 @@ const emptySummary = { entries: 0, byCurrency: {} };
 function CurrencyBlock({ code, children }) {
   return (
     <div className="wallet-currency-block">
-      <span className="wallet-currency-label">{code}</span>
+      <span className={`wallet-currency-label is-${CURRENCY_TONE[code] || 'blue'}`}>{code}</span>
       {children}
     </div>
   );
@@ -192,21 +195,21 @@ export default function WalletPage({ user, embedded = false }) {
             <StatCard
               tone="blue"
               icon={<ArrowUpOutlined />}
-              label={`Income · ${code}`}
+              label={<>Income · <CurrencyCode code={code} /></>}
               value={formatMoney(totals.income, code, { compact: true })}
               meta={`${categories?.income?.length || 0} categories`}
             />
             <StatCard
               tone="amber"
               icon={<ArrowDownOutlined />}
-              label={`Expense · ${code}`}
+              label={<>Expense · <CurrencyCode code={code} /></>}
               value={formatMoney(totals.expense, code, { compact: true })}
               meta={`${categories?.expense?.length || 0} categories`}
             />
             <StatCard
               tone={positiveBalance ? 'green' : 'red'}
               icon={<WalletOutlined />}
-              label={`Balance · ${code}`}
+              label={<>Balance · <CurrencyCode code={code} /></>}
               value={formatMoney(totals.balance, code, { compact: true })}
               trend={positiveBalance ? 'up' : 'down'}
               meta={positiveBalance ? 'In surplus' : 'Spending exceeds income'}
@@ -214,7 +217,7 @@ export default function WalletPage({ user, embedded = false }) {
             <StatCard
               tone="violet"
               icon={<WalletOutlined />}
-              label={`Entries · ${code}`}
+              label={<>Entries · <CurrencyCode code={code} /></>}
               value={totals.entries}
               meta={range ? 'In the selected range' : 'All time'}
             />
@@ -337,7 +340,7 @@ export default function WalletPage({ user, embedded = false }) {
                 {CURRENCIES.flatMap((code) => summaryFor(code).monthly.map((month) => (
                   <tr key={`${code}-${month.key}`}>
                     <td>{month.label}</td>
-                    <td className="vision-cell-muted">{code}</td>
+                    <td><CurrencyCode code={code} /></td>
                     <td className="vision-cell-muted">{formatMoney(month.income, code)}</td>
                     <td className="vision-cell-muted">{formatMoney(month.expense, code)}</td>
                     <td className={month.net >= 0 ? 'vision-amount is-income' : 'vision-amount is-expense'}>
@@ -390,7 +393,7 @@ export default function WalletPage({ user, embedded = false }) {
                       <td>{entry.category}</td>
                       <td className="vision-cell-muted" title={entry.note}>{entry.note || '—'}</td>
                       <td className="vision-cell-muted">{entry.method || '—'}</td>
-                      <td className="vision-cell-muted">{entry.currency || DEFAULT_CURRENCY}</td>
+                      <td><CurrencyCode code={entry.currency || DEFAULT_CURRENCY} /></td>
                       <td className={`vision-amount is-${entry.type}`}>
                         {entry.type === 'income' ? '+' : '−'}
                         {formatMoney(entry.amount, entry.currency || DEFAULT_CURRENCY)}

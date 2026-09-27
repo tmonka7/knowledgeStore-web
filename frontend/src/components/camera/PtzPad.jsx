@@ -77,8 +77,8 @@ export default function PtzPad({ camera, onMoved }) {
   const goHome = async () => {
     setBusy(true);
     try {
-      // The configured centre of the sweep arc, which is where the camera is
-      // meant to be pointing when it is not doing anything else.
+      // Pan 0 and zoom out, at the camera's configured tilt: where it is
+      // meant to point when it is not doing anything else.
       await api.post(`/cameras/${camera.id}/ptz/move`, { mode: 'absolute', pan: 0, tilt: camera.ptz?.tilt || 0, zoom: 0 });
       onMoved?.();
     } catch (error) {

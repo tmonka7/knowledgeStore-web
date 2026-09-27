@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Space, message } from 'antd';
 import {
   AppstoreOutlined,
@@ -140,13 +140,18 @@ export default function CamerasPage({ user, cameras, setCameras }) {
     });
   };
 
+  // A camera the server sent back (recording switched on or off): replace it in the list.
+  const replaceCamera = useCallback((updated) => {
+    setCameras((current) => current.map((camera) => (camera.id === updated.id ? updated : camera)));
+  }, [setCameras]);
+
   if (viewingCamera) {
     const currentCamera = cameras.find((camera) => camera.id === viewingCamera.id) || viewingCamera;
-    return <CameraViewPage user={user} camera={currentCamera} onBack={() => setViewingCamera(null)} />;
+    return <CameraViewPage user={user} camera={currentCamera} onCameraChange={replaceCamera} onBack={() => setViewingCamera(null)} />;
   }
 
   if (showCameraWall) {
-    return <CameraWallPage cameras={cameras} onBack={() => setShowCameraWall(false)} />;
+    return <CameraWallPage user={user} cameras={cameras} onCameraChange={replaceCamera} onBack={() => setShowCameraWall(false)} />;
   }
 
   return (
@@ -282,15 +287,9 @@ export default function CamerasPage({ user, cameras, setCameras }) {
           layout="vertical"
           onFinish={saveCamera}
           preserve={false}
-          /*
-           * A new camera gets the same PTZ defaults the schema would give it,
-           * so the optics fields open with numbers rather than blanks — an
-           * empty "field of view" box invites a guess, and a wrong field of
-           * view is what leaves gaps in a sweep.
-           */
           initialValues={editingCamera || discoveredDraft || {
             status: 'offline',
-            ptz: { enabled: false, panRangeDegrees: 360, hfovDegrees: 65, maxZoomFactor: 20, homeDegrees: 0, settleMs: 900 },
+            ptz: { enabled: false },
           }}
         >
           <Form.Item name="name" label={t('cameraName')} rules={[{ required: true, message: t('enterCameraName') }]}>

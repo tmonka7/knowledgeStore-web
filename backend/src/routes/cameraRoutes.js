@@ -7,6 +7,10 @@ import {
   updateCamera,
 } from '../controllers/cameraController.js';
 import { cameraFrame, movePtz, probeCamera, readPtzStatus } from '../controllers/ptzController.js';
+import {
+  listCameraRecordings, playRecording, recordingLink, removeRecording, startCameraRecording, stopCameraRecording,
+} from '../controllers/recordingController.js';
+import { asyncRoute } from '../helpers/asyncRoute.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 
 const router = express.Router();
@@ -35,5 +39,19 @@ router.get('/cameras/:id/frame', requireAuth, requirePermission('cameras:view'),
 router.get('/cameras/:id/ptz/status', requireAuth, requirePermission('cameras:view'), readPtzStatus);
 router.post('/cameras/:id/ptz/move', requireAuth, requirePermission('cameras:edit'), movePtz);
 router.post('/cameras/:id/ptz/probe', requireAuth, requirePermission('cameras:edit'), probeCamera);
+
+/*
+ * Recording (helpers/cameraRecorder.js). Watching footage is cameras:view,
+ * like watching the camera; starting or stopping a recorder is cameras:edit,
+ * and deleting footage cameras:delete. The play URL carries no sign-in — a
+ * <video> element cannot send one — so it only works with a token from
+ * …/link, which needs cameras:view.
+ */
+router.post('/cameras/:id/recording/start', requireAuth, requirePermission('cameras:edit'), asyncRoute(startCameraRecording));
+router.post('/cameras/:id/recording/stop', requireAuth, requirePermission('cameras:edit'), asyncRoute(stopCameraRecording));
+router.get('/cameras/recordings', requireAuth, requirePermission('cameras:view'), asyncRoute(listCameraRecordings));
+router.post('/cameras/recordings/:recordingId/link', requireAuth, requirePermission('cameras:view'), asyncRoute(recordingLink));
+router.get('/cameras/recordings/play/:token', playRecording);
+router.delete('/cameras/recordings/:recordingId', requireAuth, requirePermission('cameras:delete'), asyncRoute(removeRecording));
 
 export default router;

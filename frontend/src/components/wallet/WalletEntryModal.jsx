@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { AutoComplete, DatePicker, Form, Input, InputNumber, Modal, Radio, Select } from 'antd';
 import dayjs from 'dayjs';
+import CurrencyCode from './CurrencyCode';
 import { CURRENCIES, DEFAULT_CURRENCY, readLastCurrency } from './money';
 
 const INCOME_CATEGORIES = ['Salary', 'Sales', 'Refund', 'Interest', 'Gift', 'Other'];
@@ -74,7 +75,7 @@ export default function WalletEntryModal({ open, entry, saving, knownCategories 
             rules={[{ required: true, message: 'Choose a currency.' }]}
             extra="Kept per entry; totals are never converted."
           >
-            <Select options={CURRENCIES.map((code) => ({ value: code, label: code }))} />
+            <Select options={CURRENCIES.map((code) => ({ value: code, label: <CurrencyCode code={code} /> }))} />
           </Form.Item>
           <Form.Item name="date" label="Date" rules={[{ required: true, message: 'Pick a date.' }]}>
             <DatePicker style={{ width: '100%' }} allowClear={false} />

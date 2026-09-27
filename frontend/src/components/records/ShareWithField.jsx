@@ -43,6 +43,7 @@ export default function ShareWithField({ form, directory = [], currentUserId }) 
           extra={sharedWith.length ? undefined : t('shareOnlyYou')}
         >
           <Select
+            showSearch
             mode="multiple"
             allowClear
             options={options}

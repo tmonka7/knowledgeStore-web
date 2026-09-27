@@ -5,4 +5,3 @@ export * from './cameraModel.js';
 export * from './postModel.js';
 export * from './migrationModel.js';
 export * from './meetingModel.js';
-export * from './attendanceModel.js';

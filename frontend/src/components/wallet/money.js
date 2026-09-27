@@ -11,6 +11,10 @@ export const CURRENCIES = ['USD', 'REM'];
 
 export const DEFAULT_CURRENCY = 'USD';
 
+// Each currency's colour on every label, badge and cell that names it:
+// US dollars red, yuan (REM) blue. Amounts keep their income/expense colour.
+export const CURRENCY_TONE = { USD: 'red', REM: 'blue' };
+
 const LAST_USED_KEY = 'wallet-currency';
 
 // Codes Intl can style as currency. Anything outside this set is formatted as

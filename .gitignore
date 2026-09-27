@@ -13,6 +13,8 @@ backend/backups
 /openssl
 /openssl/bin
 backend/uploads
+# Camera footage (helpers/cameraRecorder.js).
+backend/recordings
 service/daemon
 
 # Translation models are hundreds of MB each (GitHub refuses files over 100 MB).

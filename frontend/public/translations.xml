@@ -149,6 +149,7 @@
   <text id="status" en="Status" es="Estado" zh="状态" jp="ステータス" />
   <text id="notes" en="Notes" es="Notas" zh="备注" jp="メモ" />
   <text id="optionalNotes" en="Optional notes" es="Notas opcionales" zh="可选备注" jp="任意のメモ" />
+  <text id="edit" en="Edit" es="Editar" zh="编辑" jp="編集" />
   <text id="cancel" en="Cancel" es="Cancelar" zh="取消" jp="キャンセル" />
   <text id="saveCamera" en="Save Camera" es="Guardar camara" zh="保存摄像头" jp="カメラを保存" />
   <text id="categoryTreeManagement" en="Category Tree Management" es="Gestion del arbol de categorias" zh="分类树管理" jp="カテゴリーツリー管理" />
@@ -325,6 +326,31 @@
   <text id="forgotPassword" en="Forgot password?" es="¿Olvido la contrasena?" zh="忘记密码？" jp="パスワードをお忘れですか？" />
   <text id="or" en="or" es="o" zh="或" jp="または" />
   <text id="loginWithFace" en="Login with Face" es="Iniciar sesion con rostro" zh="人脸登录" jp="顔認証でログイン" />
+  <text id="loginWithVoice" en="Login with Voice" es="Iniciar sesion con voz" zh="语音登录" jp="音声でログイン" />
+  <text id="voiceLoginPrompt" en="Press Record and read the sentence below in your normal voice. It stops by itself." es="Pulsa Grabar y lee la frase de abajo con tu voz normal. Se detiene sola." zh="点击“录音”，用平常的声音读出下面的句子，会自动停止。" jp="「録音」を押して、下の文をふだんの声で読んでください。自動で止まります。" />
+  <text id="voiceLoginSentence" en="My voice is my password, and today is a good day to sign in." es="Mi voz es mi contrasena, y hoy es un buen dia para entrar." zh="我的声音就是我的密码，今天是登录的好日子。" jp="私の声がパスワードです。今日はログインするのにいい日です。" />
+  <text id="voiceLoginHint" en="Speak for three to six seconds in a quiet place." es="Habla de tres a seis segundos en un lugar tranquilo." zh="请在安静的地方说三到六秒。" jp="静かな場所で 3〜6 秒ほど話してください。" />
+  <text id="voiceEnrollTitle" en="Voice sign-in" es="Inicio de sesion por voz" zh="语音登录" jp="音声ログイン" />
+  <text id="voiceEnrollDone" en="Ready" es="Listo" zh="已完成" jp="準備完了" />
+  <text id="voiceEnrollHelp" en="Record {count} short clips of yourself reading the sentences shown, and you can sign in by speaking. Use the microphone you will sign in with, in a quiet room." es="Graba {count} clips cortos leyendo las frases que se muestran y podras entrar hablando. Usa el microfono con el que entraras, en una sala tranquila." zh="录制 {count} 段朗读所示句子的短音频，之后即可通过说话登录。请在安静的房间里使用你登录时会用的麦克风。" jp="表示された文を読む短い録音を {count} 本とると、話すだけでログインできます。ログインに使うマイクで、静かな部屋で録音してください。" />
+  <text id="voiceEnrollRead" en="Clip {number} of {count}: read this aloud" es="Clip {number} de {count}: lee esto en voz alta" zh="第 {number}/{count} 段：请朗读" jp="{count} 本中 {number} 本目：これを読み上げてください" />
+  <text id="voiceEnrollHint" en="Up to {seconds} seconds each; it stops by itself." es="Hasta {seconds} segundos cada uno; se detiene solo." zh="每段最长 {seconds} 秒，会自动停止。" jp="1 本につき最大 {seconds} 秒。自動で止まります。" />
+  <text id="voiceEnrollRemove" en="Remove this clip" es="Quitar este clip" zh="删除此录音" jp="この録音を削除" />
+  <text id="voiceEnrollTooLong" en="That recording is too long; use one of at most {seconds} seconds." es="Esa grabacion es demasiado larga; usa una de {seconds} segundos como maximo." zh="录音太长，请使用不超过 {seconds} 秒的录音。" jp="録音が長すぎます。{seconds} 秒以内のものを使ってください。" />
+  <text id="voiceEnrollIncomplete" en="Finish recording all voice clips, or remove them to continue without voice sign-in." es="Termina de grabar todos los clips de voz, o quitalos para seguir sin inicio de sesion por voz." zh="请录完所有语音片段，或删除它们以不使用语音登录继续。" jp="音声の録音をすべて終えるか、削除して音声ログインなしで続けてください。" />
+  <text id="voiceEnrollSentence1" en="The quick brown fox jumps over the lazy dog near the quiet river bank." es="El rapido zorro marron salta sobre el perro perezoso junto al rio tranquilo." zh="敏捷的棕色狐狸跳过了安静河边那只懒狗。" jp="すばやい茶色のキツネが、静かな川辺でのんびりした犬を飛び越えます。" />
+  <text id="voiceEnrollSentence2" en="Please remember to bring the reports to the meeting on Thursday morning." es="Por favor, recuerda traer los informes a la reunion del jueves por la manana." zh="请记得周四上午把报告带到会议上。" jp="木曜日の朝の会議に報告書を持ってくるのを忘れないでください。" />
+  <text id="voiceEnrollSentence3" en="My name is on this account, and this is how I sound when I speak." es="Mi nombre esta en esta cuenta, y asi suena mi voz cuando hablo." zh="这是我的账户，这就是我说话时的声音。" jp="これは私のアカウントで、これが私の話す声です。" />
+  <text id="voiceSignIn" en="Voice sign-in" es="Inicio de sesion por voz" zh="语音登录" jp="音声ログイン" />
+  <text id="voiceEnrolledOn" en="Enrolled {date}" es="Registrada {date}" zh="登记于 {date}" jp="{date} に登録" />
+  <text id="voiceNotEnrolled" en="Not enrolled" es="No registrada" zh="未登记" jp="未登録" />
+  <text id="voiceRecord" en="Record voice" es="Grabar voz" zh="录制声音" jp="声を録音" />
+  <text id="voiceReRecord" en="Record again" es="Grabar de nuevo" zh="重新录制" jp="録り直す" />
+  <text id="voiceRemove" en="Remove voice" es="Quitar voz" zh="删除声音" jp="声を削除" />
+  <text id="voiceReadyToSave" en="New voice ready. Save changes to apply it." es="Nueva voz lista. Guarda los cambios para aplicarla." zh="新声音已就绪，保存更改后生效。" jp="新しい声の準備ができました。保存すると適用されます。" />
+  <text id="voiceWillBeRemoved" en="Voice sign-in will be removed when you save." es="El inicio de sesion por voz se quitara al guardar." zh="保存后将删除语音登录。" jp="保存すると音声ログインが削除されます。" />
+  <text id="optional" en="Optional" es="Opcional" zh="可选" jp="任意" />
+  <text id="undo" en="Undo" es="Deshacer" zh="撤销" jp="元に戻す" />
   <text id="noAccount" en="Don't have an account?" es="¿No tiene una cuenta?" zh="没有账户？" jp="アカウントをお持ちでないですか？" />
   <text id="alreadyHaveAccount" en="Already have an account?" es="¿Ya tiene una cuenta?" zh="已有账户？" jp="すでにアカウントをお持ちですか？" />
   <text id="lookAtCameraToVerify" en="Look at the camera, then capture to verify it is you." es="Mire a la camara y capture para verificar su identidad." zh="看向摄像头并捕获以验证身份。" jp="カメラを見て撮影し、本人確認してください。" />
@@ -701,58 +727,47 @@
   <text id="clearEveryTranscript" en="Clear every transcript" es="Borrar todas las transcripciones" zh="清除所有转写文本" jp="すべての文字起こしを消去" />
   <text id="clearTranscriptsTitle" en="Clear every transcript?" es="Borrar todas las transcripciones?" zh="清除所有转写文本？" jp="すべての文字起こしを消去しますか？" />
   <text id="clearTranscriptsBody" en="All {count} transcripts will be removed. The audio files are untouched. This cannot be undone." es="Se eliminaran las {count} transcripciones. Los archivos de audio no se modifican. Esto no se puede deshacer." zh="将删除全部 {count} 条转写文本。音频文件不受影响，且此操作无法撤销。" jp="{count} 件の文字起こしをすべて削除します。音声ファイルはそのままですが、元に戻せません。" />
-  <text id="automaticAttendance" en="Automatic Attendance" es="Asistencia automatica" zh="自动考勤" jp="自動出欠確認" />
-  <text id="automaticAttendanceHint" en="Sweep {name} across the room and record everyone it recognises." es="Recorrer {name} por la sala y registrar a todos los reconocidos." zh="用 {name} 扫描房间并记录识别到的所有人。" jp="{name} で室内を走査し、認識した全員を記録します。" />
-  <text id="attendanceTitle" en="Automatic Attendance" es="Asistencia automatica" zh="自动考勤" jp="自動出欠確認" />
-  <text id="attendanceSubtitle" en="Camera sweeps and the faces they recorded" es="Recorridos de camara y los rostros registrados" zh="摄像头扫描记录与已登记的人脸" jp="カメラの走査記録と登録された顔" />
-  <text id="attendanceArc" en="Sweep width" es="Amplitud del recorrido" zh="扫描范围" jp="走査範囲" />
-  <text id="attendanceArc90" en="90° — one wall" es="90° — una pared" zh="90° — 单面墙" jp="90° — 壁一面" />
-  <text id="attendanceArc180" en="180° — the room in front" es="180° — la sala de enfrente" zh="180° — 正前方房间" jp="180° — 正面の室内" />
-  <text id="attendanceArc360" en="360° — all the way round" es="360° — vuelta completa" zh="360° — 环绕一周" jp="360° — 全周" />
-  <text id="attendanceZoom" en="Zoom" es="Zoom" zh="变焦" jp="ズーム" />
-  <text id="attendanceZoomHint" en="More zoom reaches faces further away, but needs more positions to cover the same arc." es="Mas zoom alcanza rostros mas lejanos, pero necesita mas posiciones para cubrir el mismo arco." zh="变焦越大越能拍到远处人脸，但覆盖同样范围需要更多机位。" jp="ズームを上げると遠くの顔まで届きますが、同じ範囲を覆うのに必要な位置が増えます。" />
-  <text id="startAttendanceSweep" en="Start sweep" es="Iniciar recorrido" zh="开始扫描" jp="走査を開始" />
-  <text id="attendanceScanning" en="Position {current} of {total}" es="Posicion {current} de {total}" zh="第 {current} / {total} 个机位" jp="位置 {current} / {total}" />
-  <text id="attendanceSweepFinished" en="Finished — {total} positions" es="Terminado — {total} posiciones" zh="已完成 — 共 {total} 个机位" jp="完了 — {total} 箇所" />
-  <text id="attendanceWaitingForFrame" en="Waiting for the first frame..." es="Esperando el primer fotograma..." zh="正在等待第一帧……" jp="最初のフレームを待っています..." />
-  <text id="attendanceRecognised" en="Recognised" es="Reconocidos" zh="已识别" jp="識別済み" />
-  <text id="attendanceUnknownFaces" en="Unknown faces" es="Rostros desconocidos" zh="未知人脸" jp="未登録の顔" />
-  <text id="attendanceUnknownPerson" en="Not in the database" es="No esta en la base de datos" zh="不在数据库中" jp="データベースに未登録" />
-  <text id="attendanceMatchDistance" en="Match distance {distance}" es="Distancia de coincidencia {distance}" zh="匹配距离 {distance}" jp="一致距離 {distance}" />
-  <text id="attendanceSeenTimes" en="Seen {count} time(s)" es="Visto {count} vez(ces)" zh="出现 {count} 次" jp="{count} 回検出" />
-  <text id="attendanceNobodyFound" en="No faces were found in this sweep." es="No se encontraron rostros en este recorrido." zh="本次扫描未发现人脸。" jp="この走査では顔が見つかりませんでした。" />
-  <text id="attendancePartialCoverage" en="This sweep covered {degrees}° rather than the full arc. Zoom out to cover more." es="Este recorrido cubrio {degrees}° en lugar del arco completo. Reduzca el zoom para cubrir mas." zh="本次扫描仅覆盖 {degrees}°，未覆盖完整范围。请缩小变焦以扩大覆盖。" jp="この走査は全範囲ではなく {degrees}° を覆いました。ズームを下げると範囲が広がります。" />
-  <text id="attendanceRunAgain" en="Run again" es="Ejecutar de nuevo" zh="再次运行" jp="再実行" />
-  <text id="attendanceNameThem" en="Name the unknown faces on the Attendance page." es="Nombre los rostros desconocidos en la pagina de Asistencia." zh="请在考勤页面为未知人脸命名。" jp="未登録の顔には出欠確認ページで名前を付けられます。" />
-  <text id="attendanceNameThemHint" en="Unknown faces are kept so the same person is recognised next time and can be given a name." es="Los rostros desconocidos se conservan para reconocer a la misma persona la proxima vez y poder nombrarla." zh="未知人脸会被保留，以便下次识别同一个人并为其命名。" jp="未登録の顔は保存され、次回同じ人物を識別して名前を付けられます。" />
-  <text id="attendanceSweeps" en="Sweeps" es="Recorridos" zh="扫描记录" jp="走査履歴" />
-  <text id="attendanceFacesOnFile" en="Faces on file" es="Rostros archivados" zh="已存人脸" jp="保存された顔" />
-  <text id="attendanceNamedCount" en="{count} named" es="{count} con nombre" zh="已命名 {count} 个" jp="{count} 件に名前あり" />
-  <text id="attendanceLastRecognised" en="Recognised last sweep" es="Reconocidos en el ultimo recorrido" zh="上次扫描识别数" jp="前回の走査での識別数" />
-  <text id="attendanceCoverage" en="Coverage" es="Cobertura" zh="覆盖范围" jp="カバー範囲" />
-  <text id="attendancePartial" en="partial" es="parcial" zh="部分" jp="一部" />
-  <text id="attendanceNoFaces" en="No unidentified faces have been recorded." es="No se han registrado rostros sin identificar." zh="尚未记录任何未识别人脸。" jp="未識別の顔はまだ記録されていません。" />
-  <text id="attendanceNamePlaceholder" en="Give this face a name" es="Asignar un nombre a este rostro" zh="为该人脸命名" jp="この顔に名前を付ける" />
-  <text id="attendanceLinkToUser" en="Link to an account" es="Vincular a una cuenta" zh="关联到账户" jp="アカウントに紐付け" />
-  <text id="attendanceForget" en="Forget" es="Olvidar" zh="删除" jp="削除" />
-  <text id="attendanceForgetFaceQuestion" en="Forget this face?" es="¿Olvidar este rostro?" zh="删除该人脸？" jp="この顔を削除しますか？" />
-  <text id="attendanceForgetFaceHint" en="The face is deleted. Past attendance rows stay, without a picture." es="El rostro se elimina. Los registros de asistencia anteriores permanecen, sin imagen." zh="人脸将被删除。过往考勤记录会保留，但不再显示照片。" jp="顔を削除します。過去の出欠記録は写真なしで残ります。" />
-  <text id="attendanceFaceForgotten" en="Face deleted." es="Rostro eliminado." zh="人脸已删除。" jp="顔を削除しました。" />
-  <text id="attendanceSweepAt" en="{camera} — {when}" es="{camera} — {when}" zh="{camera} — {when}" jp="{camera} — {when}" />
-  <text id="attendanceLoadFailed" en="Attendance could not be loaded." es="No se pudo cargar la asistencia." zh="无法加载考勤数据。" jp="出欠情報を読み込めませんでした。" />
-  <text id="attendanceSaveFailed" en="That change could not be saved." es="No se pudo guardar ese cambio." zh="无法保存该修改。" jp="変更を保存できませんでした。" />
-  <text id="attendanceDeleteFailed" en="That face could not be deleted." es="No se pudo eliminar ese rostro." zh="无法删除该人脸。" jp="その顔を削除できませんでした。" />
-  <text id="cameraFrame" en="Camera frame" es="Fotograma de la camara" zh="摄像头画面" jp="カメラ画像" />
   <text id="cameraList" en="Cameras" es="Camaras" zh="摄像头" jp="カメラ" />
-  <text id="camera" en="Camera" es="Camara" zh="摄像头" jp="カメラ" />
-  <text id="startedBy" en="Started by" es="Iniciado por" zh="发起人" jp="実行者" />
+  <text id="recTitle" en="Recordings" es="Grabaciones" zh="录像" jp="録画" />
+  <text id="recSubtitle" en="Footage recorded on the server from your cameras." es="Video grabado en el servidor desde tus camaras." zh="服务器从摄像头录制的视频。" jp="サーバーがカメラから録画した映像。" />
+  <text id="recHowTo" en="To record a camera, open it (View) or choose it on the live view and press Record. It keeps recording, also after a server restart, until you press Stop. Each file is ten minutes long by default; old footage is deleted after a week unless the server is set otherwise." es="Para grabar una camara, abrela (Ver) o eligela en la vista en directo y pulsa Grabar. Sigue grabando, incluso tras reiniciar el servidor, hasta que pulses Detener. Cada archivo dura diez minutos por defecto; el video antiguo se borra tras una semana salvo que el servidor diga otra cosa." zh="要录制摄像头，请打开它（查看）或在实时画面中选择它，然后点击“录制”。它会一直录制（服务器重启后也会继续），直到你点击“停止”。默认每个文件十分钟；旧录像一周后删除（可在服务器上修改）。" jp="カメラを録画するには、カメラを開く（表示）かライブビューで選び、「録画」を押します。「停止」を押すまで（サーバー再起動後も）録画を続けます。既定では 1 ファイル 10 分で、古い映像は 1 週間後に削除されます（サーバー設定で変更可）。" />
+  <text id="recThisCamera" en="Recordings of this camera" es="Grabaciones de esta camara" zh="此摄像头的录像" jp="このカメラの録画" />
+  <text id="recStart" en="Record" es="Grabar" zh="录制" jp="録画" />
+  <text id="recStop" en="Stop recording" es="Detener grabacion" zh="停止录制" jp="録画を停止" />
+  <text id="recStarted" en="Recording started." es="Grabacion iniciada." zh="已开始录制。" jp="録画を開始しました。" />
+  <text id="recStopped" en="Recording stopped." es="Grabacion detenida." zh="已停止录制。" jp="録画を停止しました。" />
+  <text id="recFailed" en="Recording could not be switched." es="No se pudo cambiar la grabacion." zh="无法切换录制状态。" jp="録画を切り替えられませんでした。" />
+  <text id="recRecording" en="REC" es="REC" zh="录制中" jp="録画中" />
+  <text id="recConnecting" en="Connecting…" es="Conectando…" zh="正在连接…" jp="接続中…" />
+  <text id="recProblem" en="The camera is set to record, but recording is not running" es="La camara esta configurada para grabar, pero la grabacion no funciona" zh="摄像头已设置为录制，但录制未在运行" jp="録画に設定されていますが、録画が動いていません" />
+  <text id="recNeedsStream" en="Only rtsp:// and http(s):// stream addresses can be recorded." es="Solo se pueden grabar direcciones rtsp:// y http(s)://." zh="只能录制 rtsp:// 和 http(s):// 地址的视频流。" jp="録画できるのは rtsp:// と http(s):// のストリームだけです。" />
+  <text id="recCamera" en="Camera" es="Camara" zh="摄像头" jp="カメラ" />
+  <text id="recAllCameras" en="All cameras" es="Todas las camaras" zh="全部摄像头" jp="すべてのカメラ" />
+  <text id="recDeletedCamera" en="(deleted camera)" es="(camara eliminada)" zh="（已删除的摄像头）" jp="（削除されたカメラ）" />
+  <text id="recStartedAt" en="Started" es="Inicio" zh="开始时间" jp="開始" />
+  <text id="recLength" en="Length" es="Duracion" zh="时长" jp="長さ" />
+  <text id="recSize" en="Size" es="Tamano" zh="大小" jp="サイズ" />
+  <text id="recPlay" en="Play" es="Reproducir" zh="播放" jp="再生" />
+  <text id="recDownload" en="Download" es="Descargar" zh="下载" jp="ダウンロード" />
+  <text id="recDelete" en="Delete" es="Eliminar" zh="删除" jp="削除" />
+  <text id="recDeleteQuestion" en="Delete this recording?" es="¿Eliminar esta grabacion?" zh="删除此录像？" jp="この録画を削除しますか？" />
+  <text id="recStillRecording" en="Still being recorded" es="Todavia se esta grabando" zh="仍在录制中" jp="録画中です" />
+  <text id="recEarlier" en="Earlier" es="Anterior" zh="上一段" jp="前へ" />
+  <text id="recLater" en="Later" es="Siguiente" zh="下一段" jp="次へ" />
+  <text id="recNone" en="No recordings" es="Sin grabaciones" zh="没有录像" jp="録画はありません" />
+  <text id="recLoadFailed" en="Recordings could not be loaded." es="No se pudieron cargar las grabaciones." zh="无法加载录像。" jp="録画を読み込めませんでした。" />
+  <text id="recDeleteFailed" en="The recording could not be deleted." es="No se pudo eliminar la grabacion." zh="无法删除录像。" jp="録画を削除できませんでした。" />
+  <text id="wallControl" en="Control" es="Controlar" zh="控制" jp="操作" />
+  <text id="wallControlCamera" en="Control {name}" es="Controlar {name}" zh="控制 {name}" jp="{name} を操作" />
+  <text id="wallPickCamera" en="Press Control on a camera to steer it (PTZ) or record it." es="Pulsa Controlar en una camara para moverla (PTZ) o grabarla." zh="在摄像头上点击“控制”即可转动（云台）或录制。" jp="カメラの「操作」を押すと、PTZ 操作や録画ができます。" />
+  <text id="wallNoPtz" en="This camera has no PTZ control set up" es="Esta camara no tiene control PTZ configurado" zh="此摄像头未设置云台控制" jp="このカメラには PTZ 制御が設定されていません" />
+  <text id="wallNoPtzHint" en="Edit the camera on the Cameras page and fill in &quot;PTZ control&quot; (ONVIF address and profile)." es="Edita la camara en la pagina Camaras y rellena &quot;Control PTZ&quot; (direccion ONVIF y perfil)." zh="在“摄像头”页面编辑此摄像头，填写“云台控制”（ONVIF 地址和配置文件）。" jp="「カメラ」ページでカメラを編集し、「PTZ 制御」（ONVIF アドレスとプロファイル）を入力してください。" />
+  <text id="wallPtzNeedsEdit" en="Moving cameras needs the Camera Management edit permission." es="Mover camaras requiere el permiso de edicion de Gestion de camaras." zh="移动摄像头需要“摄像头管理”的编辑权限。" jp="カメラを動かすには、カメラ管理の編集権限が必要です。" />
   <text id="refresh" en="Refresh" es="Actualizar" zh="刷新" jp="更新" />
-  <text id="saved" en="Saved." es="Guardado." zh="已保存。" jp="保存しました。" />
   <text id="done" en="Done" es="Listo" zh="完成" jp="完了" />
-  <text id="stop" en="Stop" es="Detener" zh="停止" jp="停止" />
   <text id="zoom" en="Zoom" es="Zoom" zh="变焦" jp="ズーム" />
   <text id="ptzControl" en="PTZ control" es="Control PTZ" zh="云台控制" jp="PTZ 操作" />
-  <text id="ptzAndAttendance" en="PTZ and automatic attendance" es="PTZ y asistencia automatica" zh="云台与自动考勤" jp="PTZ と自動出欠確認" />
+  <text id="ptzSettingsTitle" en="PTZ control" es="Control PTZ" zh="云台控制" jp="PTZ 制御" />
   <text id="ptzEnable" en="Enable PTZ control" es="Activar control PTZ" zh="启用云台控制" jp="PTZ 操作を有効にする" />
   <text id="cameraScanTitle" en="Search the network for cameras" es="Buscar camaras en la red" zh="在网络中搜索摄像头" jp="ネットワークでカメラを検索" />
   <text id="cameraScanStart" en="Search network" es="Buscar en la red" zh="搜索网络" jp="ネットワークを検索" />
@@ -784,15 +799,7 @@
   <text id="ptzSaveFirst" en="Save the camera first, then reopen it to detect its profiles." es="Guarde la camara primero y vuelva a abrirla para detectar sus perfiles." zh="请先保存摄像头，再重新打开以检测其配置。" jp="先にカメラを保存し、開き直してからプロファイルを検出してください。" />
   <text id="ptzSnapshotUrl" en="Snapshot URL (optional)" es="URL de captura (opcional)" zh="抓拍地址（可选）" jp="スナップショット URL（任意）" />
   <text id="ptzSnapshotUrlHint" en="Only needed if the camera does not offer an ONVIF snapshot address." es="Solo necesario si la camara no ofrece una direccion de captura ONVIF." zh="仅当摄像头未提供 ONVIF 抓拍地址时才需要填写。" jp="カメラが ONVIF のスナップショットアドレスを持たない場合のみ必要です。" />
-  <text id="ptzOpticsNote" en="These describe the lens and the mount. The sweep uses them to work out how many positions cover the arc, so a wrong field of view leaves gaps." es="Describen la lente y el montaje. El recorrido los usa para calcular cuantas posiciones cubren el arco, por lo que un campo de vision incorrecto deja huecos." zh="以下为镜头与安装参数。扫描据此计算覆盖范围所需的机位数，视场角填错会留下盲区。" jp="レンズと取り付けに関する値です。走査はこれを使って範囲を覆う位置数を決めるため、画角が誤っていると死角が生じます。" />
-  <text id="ptzHfov" en="Field of view (degrees)" es="Campo de vision (grados)" zh="视场角（度）" jp="画角（度）" />
-  <text id="ptzHfovHint" en="Horizontal, fully zoomed out. Typically 55-70 on a PTZ dome." es="Horizontal, sin zoom. Normalmente 55-70 en un domo PTZ." zh="水平方向、完全广角时的数值。云台球机通常为 55-70。" jp="広角端での水平画角。PTZ ドームでは通常 55〜70 です。" />
-  <text id="ptzPanRange" en="Pan range (degrees)" es="Rango de giro (grados)" zh="水平转动范围（度）" jp="パン可動範囲（度）" />
-  <text id="ptzMaxZoom" en="Optical zoom (x)" es="Zoom optico (x)" zh="光学变焦倍数" jp="光学ズーム倍率" />
   <text id="ptzHome" en="Centre of sweep (degrees)" es="Centro del recorrido (grados)" zh="扫描中心（度）" jp="走査の中心（度）" />
-  <text id="ptzHomeHint" en="The middle of the arc, so a wall-mounted camera sweeps the room rather than the wall." es="El centro del arco, para que una camara en pared recorra la sala y no la pared." zh="扫描范围的中心，使壁装摄像头扫描房间而非墙面。" jp="走査範囲の中心です。壁付けカメラが壁ではなく室内を走査するように設定します。" />
-  <text id="ptzSettle" en="Settle time (ms)" es="Tiempo de estabilizacion (ms)" zh="稳定等待时间（毫秒）" jp="静止待ち時間（ミリ秒）" />
-  <text id="ptzSettleHint" en="How long the camera is given to stop moving before a frame is taken." es="Cuanto se espera a que la camara deje de moverse antes de tomar un fotograma." zh="取帧前等待摄像头停稳的时间。" jp="フレームを取得する前にカメラが静止するのを待つ時間です。" />
   <text id="ptzSpeed" en="Speed" es="Velocidad" zh="速度" jp="速度" />
   <text id="ptzMoveFailed" en="The camera did not accept that movement." es="La camara no acepto ese movimiento." zh="摄像头未接受该操作。" jp="カメラがその操作を受け付けませんでした。" />
   <text id="translationLineCount" en="{count} lines" es="{count} lineas" zh="{count} 行" jp="{count} 行" />

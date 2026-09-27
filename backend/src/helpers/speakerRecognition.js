@@ -81,6 +81,22 @@ export const speakerStatus = async (ownerId) => {
   };
 };
 
+/*
+ * For voice sign-in (helpers/voiceLogin.js), which has no account to scope a
+ * model by: the downloaded base model, the same one enrolment uses.
+ */
+export const baseSpeakerModel = async () => (await listModels('', TASK)).find((model) => model.kind === 'base') || null;
+
+/** A voiceprint of one clip made with the base model: { embedding, seconds, speechSeconds, model }. */
+export const baseVoiceprint = async (audioPath) => {
+  const model = await baseSpeakerModel();
+  if (!model) throw new JobError('Voice sign-in is not available: the speaker model is not installed on the server.', 503);
+  return embed('', audioPath, await findModel('', model.id, TASK));
+};
+
+/** Cosine similarity of a clip's voiceprint to the centroid of a speaker's. */
+export const voiceSimilarity = (clip, embeddings) => dot(unit(clip), centroid(embeddings));
+
 /** The speaker models this account may use, each with the size of its ONNX export (0 if none). */
 export const speakerModels = (ownerId) => listModels(ownerId, TASK);
 
@@ -303,4 +319,10 @@ export const identify = async (ownerId, upload, { threshold, speakerId, modelId 
     results,
     match: top && top.score >= limit ? { ...top, margin: Number((top.score - (results[1]?.score ?? 0)).toFixed(4)) } : null,
   };
+};
+
+/** An account is being deleted: its speakers, and every voice sample's audio, go with it. */
+export const purgeSpeakers = async (ownerId) => {
+  await Speaker.deleteMany({ ownerId });
+  await fs.rm(audioFolder(ownerId), { recursive: true, force: true }).catch(() => {});
 };

@@ -32,6 +32,12 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   faceDescriptor: { type: [Number], default: null, select: false },
   faceImage: { type: String, default: null, select: false },
+  // Voice sign-in (helpers/voiceLogin.js): one ECAPA-TDNN voiceprint (192
+  // numbers) per enrolled clip, and the model that made them, since
+  // voiceprints of different models cannot be compared. Hidden like the face.
+  voiceEmbeddings: { type: [[Number]], default: undefined, select: false },
+  voiceModel: { type: String, default: '', select: false },
+  voiceEnrolledAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 }, { collection: 'users' });
 
@@ -71,6 +77,8 @@ export const createUser = async ({
   permissions,
   faceDescriptor,
   faceImage,
+  // { voiceEmbeddings, voiceModel, voiceEnrolledAt } from voiceprintFromClips, or nothing.
+  voice = {},
   // Already normalised by readProfileFields; spread last so an absent field
   // falls back to the schema default rather than storing undefined.
   profile = {},
@@ -88,6 +96,7 @@ export const createUser = async ({
     passwordHash,
     faceDescriptor,
     faceImage,
+    ...voice,
   });
 };
 
@@ -117,6 +126,14 @@ export const getUserByUsername = (username) => User.findOne({ username: String(u
 export const getFaceCandidates = () => User
   .find({ status: 'allowed', faceDescriptor: { $ne: null } })
   .select('+faceDescriptor');
+
+/**
+ * Every account a voice could be matched against: approved, with voiceprints
+ * made by `model`. Narrowed for the same reasons as getFaceCandidates.
+ */
+export const getVoiceCandidates = (model) => User
+  .find({ status: 'allowed', voiceModel: model, 'voiceEmbeddings.0': { $exists: true } })
+  .select('+voiceEmbeddings +voiceModel');
 
 /**
  * Creates the superuser used by Database Management, or promotes and re-keys

@@ -28,10 +28,9 @@ import projectRoutes from './routes/projectRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import meetingRoutes from './routes/meetingRoutes.js';
-import attendanceRoutes from './routes/attendanceRoutes.js';
 import { ensureSeedAdmin, ensureSeedCategories } from './models/store.js';
 import { startChatRetention } from './helpers/chatRetention.js';
-import { startVisitorRetention } from './helpers/visitorRetention.js';
+import { startCameraRecorders } from './helpers/cameraRecorder.js';
 import { backfillDefaultPermissions } from './helpers/permissionBackfill.js';
 import { backfillAccountStatus } from './helpers/accountStatusBackfill.js';
 import { attachMeetingSignaling } from './helpers/meetingSignaling.js';
@@ -127,6 +126,9 @@ app.use(cors({
   },
   credentials: true,
 }));
+// Registering, and an administrator editing an account, may carry voice clips
+// (a few hundred KB each) on top of a face photo; everything else keeps 3 MB.
+app.use(['/api/auth/register', '/api/users'], express.json({ limit: '8mb' }));
 app.use(express.json({ limit: '3mb' }));
 app.use('/uploads', express.static(uploadDir));
 
@@ -149,7 +151,6 @@ app.use('/api', projectRoutes);
 app.use('/api', contactRoutes);
 app.use('/api', postRoutes);
 app.use('/api', meetingRoutes);
-app.use('/api', attendanceRoutes);
 
 // Without this, CORS/body-parser failures return an HTML error page that the
 // frontend cannot read, so every failure looks the same to the user.
@@ -178,8 +179,8 @@ const startServer = async () => {
     // Chat files last a week. Swept at boot as well as hourly, so a server
     // that was down over the expiry still clears them on the way back up.
     startChatRetention();
-    // Unidentified faces from attendance sweeps expire; see visitorRetention.js.
-    startVisitorRetention();
+    // Cameras that were recording before the restart carry on.
+    startCameraRecorders().catch((error) => console.error('Camera recorders failed to start:', error.message));
 
     /*
      * An explicit server object rather than app.listen(), because the meeting

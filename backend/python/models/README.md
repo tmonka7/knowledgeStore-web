@@ -28,7 +28,9 @@ pip install speechbrain
 python backend/python/download_models.py ecapa
 ```
 
-It makes a 192-number voiceprint of a clip in about 0.25 s on a CPU. The
+It makes a 192-number voiceprint of a clip in about 0.25 s on a CPU. The same
+model powers voice sign-in (Login with Voice, and the voice enrolment at
+registration); without it those are simply not offered. The
 server loads it from `hyperparams.yaml` and `embedding_model.ckpt` directly,
 because SpeechBrain's own loader contacts the Hugging Face Hub even for a
 local folder; the voiceprints are identical.

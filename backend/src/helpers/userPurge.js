@@ -13,6 +13,8 @@ import { Task } from '../models/taskModel.js';
 import { Meeting, MeetingMessage } from '../models/meetingModel.js';
 import { ActivityLog } from '../models/activityLogModel.js';
 import { UPLOAD_DIR } from './databaseMaintenance.js';
+import { Speaker } from '../models/speakerModel.js';
+import { purgeSpeakers } from './speakerRecognition.js';
 
 /*
  * Deleting an account, and everything behind it.
@@ -80,7 +82,7 @@ export const describeUserFootprint = async (userId) => {
     records, walletEntries, contacts, schedules, posts,
     threads, chatMessages, mailSent, mailReceived,
     hostedMeetings, meetingMessages, ownedProjects, memberProjects,
-    assignedTasks, logs,
+    assignedTasks, logs, speakers,
   ] = await Promise.all([
     Record.countDocuments({ ownerId: userId }),
     WalletEntry.countDocuments({ ownerId: userId }),
@@ -97,6 +99,7 @@ export const describeUserFootprint = async (userId) => {
     Project.countDocuments({ memberIds: userId, ownerId: { $ne: userId } }),
     Task.countDocuments({ $or: [{ assigneeId: userId }, { reporterId: userId }] }),
     ActivityLog.countDocuments({ actorId: userId }),
+    Speaker.countDocuments({ ownerId: userId }),
   ]);
 
   return {
@@ -112,6 +115,7 @@ export const describeUserFootprint = async (userId) => {
       mailReceived,
       hostedMeetings,
       meetingMessages,
+      speakers,
       activityLogs: logs,
     },
     unlinked: {
@@ -278,13 +282,16 @@ export const purgeUser = async (userId, { newOwnerId }) => {
     WalletEntry.deleteMany({ ownerId: userId }),
     Contact.deleteMany({ ownerId: userId }),
     Schedule.deleteMany({ ownerId: userId }),
+    // Speaker recognition: voiceprints and their recordings are biometric data.
+    purgeSpeakers(userId),
   ]);
 
   // Removed last of the data, because until this point the log is the only
   // trail of what has just been done to this account.
   await ActivityLog.deleteMany({ actorId: userId });
 
-  // The face photo and descriptor live on this document, so they go with it.
+  // The face photo and descriptor, and the voice sign-in voiceprints, live on
+  // this document, so they go with it.
   await User.deleteOne({ id: userId });
 
   let filesDeleted = 0;

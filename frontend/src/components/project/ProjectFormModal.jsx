@@ -103,6 +103,7 @@ export default function ProjectFormModal({ open, project, members = [], saving, 
 
         <Form.Item name="memberIds" label="Members" tooltip="Members see the project and its board.">
           <Select
+            showSearch
             mode="multiple"
             allowClear
             placeholder="Add teammates"

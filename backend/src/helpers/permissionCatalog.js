@@ -6,7 +6,6 @@ export const PERMISSION_CATALOG = [
   { key: 'records', label: 'Data', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'categories', label: 'Category', actions: ['view', 'create', 'delete'] },
   { key: 'cameras', label: 'Camera Management', actions: ['view', 'create', 'edit', 'delete'] },
-  { key: 'attendance', label: 'Camera Management / Automatic Attendance', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'chat', label: 'Chat', actions: ['view', 'create'] },
   { key: 'mail', label: 'Mail', actions: ['view', 'create', 'delete'] },
   { key: 'meetings', label: 'Meetings', actions: ['view', 'create', 'edit', 'delete'] },
@@ -26,9 +25,8 @@ export const PERMISSION_CATALOG = [
   // CPU or GPU for hours. Neither is in the defaults below: an administrator
   // grants them per account, and 'execute' should stay that way.
   { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view', 'execute', 'train'] },
-  // Enrolling a voice stores a voiceprint: biometric data, like the face
-  // records behind attendance. Not in the defaults below; an administrator
-  // grants it per account.
+  // Enrolling a voice stores a voiceprint: biometric data, like a face.
+  // Not in the defaults below; an administrator grants it per account.
   { key: 'speaker', label: 'Tools / AI / Speaker recognition', actions: ['view'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'wallet', label: 'My Page / Wallet', actions: ['view', 'create', 'edit', 'delete'] },
@@ -81,11 +79,6 @@ export const DEFAULT_USER_PERMISSIONS = [
   'yolo:view',
   'tts:view',
   'transformers:view',
-  // 'attendance:*' is deliberately absent, exactly as 'cameras:*' is. A sweep
-  // turns a camera by remote control and writes a biometric record of
-  // everyone standing in front of it, and the lists it produces say where
-  // named people were and when. An administrator grants it per account, so
-  // there is also nothing for permissionBackfill.js to hand out.
 ];
 
 export const sanitizePermissions = (values) => {

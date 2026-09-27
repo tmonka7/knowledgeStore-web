@@ -41,8 +41,9 @@ polled), mobile applications, and single sign-on.
 | FR-AUTH-02 | Registration must reject a username or email already in use, a password under 6 characters, and a malformed email address. |
 | FR-AUTH-03 | A face photo offered at registration must yield a 128-value descriptor and be stored with the photo it came from; a photo that cannot be read is rejected rather than stored. An account created without a face is complete and signs in by password. An administrator can enrol a face for it later on the Users page. |
 | FR-AUTH-04 | Registration may also record gender, birthday, phone number, address and job. Each is optional and an account is complete without them. |
-| FR-AUTH-05 | A user signs in by **either** of two methods. They are alternatives, not steps: (1) username and password, (2) facial recognition on its own. |
+| FR-AUTH-05 | A user signs in by **any one** of three methods. They are alternatives, not steps: (1) username and password, (2) facial recognition on its own, (3) speaker recognition on its own. |
 | FR-AUTH-05a | Face sign-in supplies no username. The captured descriptor is compared against every approved account, and the closest match is accepted only if it is within the distance threshold **and** clearly closer than the next nearest account. |
+| FR-AUTH-05c | A voice can be enrolled at registration (optional: three short clips) or by an administrator, who can also remove it. The server turns the clips into ECAPA-TDNN voiceprints and stores only those. Voice sign-in supplies no username: the clip is compared with every approved account's voiceprints and accepted only above a similarity threshold **and** clearly ahead of the next account; attempts are limited per client address. It is offered only when the speaker model is installed. |
 | FR-AUTH-05b | A refused face sign-in gives one message whatever the reason, so the form cannot be used to discover who is enrolled. |
 | FR-AUTH-06 | A session is a bearer token valid for 8 hours. Expiry returns the user to the sign-in screen. |
 | FR-AUTH-07 | Self-registration always creates a plain user. A role can only be granted by an administrator afterwards. |
@@ -201,6 +202,8 @@ polled), mobile applications, and single sign-on.
 | FR-CAM-01 | A user can register cameras with a name, location, address, status and notes, and view a single camera or a wall of them. |
 | FR-CAM-02 | The Add, Edit and Delete controls are shown only to accounts holding the matching camera permission; a viewer sees the cameras and nothing else. |
 | FR-CAM-03 | Opening the edit dialog shows the camera's current values. |
+| FR-CAM-05 | Selecting one camera on the camera wall shows its PTZ control panel beside the wall (for PTZ-configured cameras and accounts with `cameras:edit`). |
+| FR-CAM-06 | A camera with an rtsp or http(s) stream can be recorded on the server continuously, in fixed-length segments, until stopped — also across restarts. Recordings can be listed by camera and date, played back (the next segment following on), downloaded and deleted; old recordings expire after a configurable number of days. Recording needs `cameras:edit`, playback `cameras:view`, deletion `cameras:delete`. |
 | FR-CAM-04 | A stream is previewed in the page only when it is an http(s) source and the camera is marked online; anything else states that no preview is available rather than showing a broken frame. Status is a value an operator sets — the system does not probe the camera. |
 
 ### 3.10 Database management (FR-DBA)

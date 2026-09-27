@@ -1,8 +1,14 @@
+import fs from 'node:fs/promises';
 import bcrypt from 'bcryptjs';
 import { createToken, sanitizeUser } from '../helpers/auth.js';
 import { readProfileFields } from '../helpers/userProfile.js';
 import { isUsableAccount, statusRefusal } from '../helpers/accountStatus.js';
-import { User, createUser, getFaceCandidates, getUserByUsername } from '../models/store.js';
+import {
+  User, createUser, getFaceCandidates, getUserByUsername, getVoiceCandidates,
+} from '../models/store.js';
+import {
+  VoiceError, identifyVoice, takeAttempt, voiceAvailable, voiceprintFromClips,
+} from '../helpers/voiceLogin.js';
 import { FACE_MATCH_MARGIN, FACE_MATCH_MAX, faceDistance, isFaceDescriptor, isFaceImage } from '../helpers/faceMatch.js';
 
 /*
@@ -21,9 +27,8 @@ import { FACE_MATCH_MARGIN, FACE_MATCH_MAX, faceDistance, isFaceDescriptor, isFa
  * which is not all the way.
  */
 
-// The thresholds, the distance function and the two validators now live in
-// helpers/faceMatch.js, because automatic attendance compares faces as well
-// and the two features must not drift apart. See the note there.
+// The thresholds, the distance function and the two validators live in
+// helpers/faceMatch.js (the Users page validates faces with them too).
 
 
 const signedInResponse = (res, user) => {
@@ -36,7 +41,7 @@ export const register = async (req, res) => {
   // never be able to mint an admin. An admin promotes accounts via PUT /users/:id.
   // `status` is not read either, for the same reason — an account that could
   // approve itself is not an account that needs approving.
-  const { faceDescriptor, faceImage } = req.body || {};
+  const { faceDescriptor, faceImage, voiceClips } = req.body || {};
   const username = String(req.body?.username ?? '').trim().toLowerCase();
   const email = String(req.body?.email ?? '').trim().toLowerCase();
   const fullName = String(req.body?.fullName ?? '').trim();
@@ -93,6 +98,22 @@ export const register = async (req, res) => {
       return res.status(409).json({ message: `That ${field} is already registered.` });
     }
 
+    /*
+     * The voice is optional too, for the same reasons as the face, and
+     * checked the same way: clips that are offered must each hold enough
+     * speech to make a voiceprint. Done after the duplicate check, because
+     * it is the slow part.
+     */
+    let voice = {};
+    if (Array.isArray(voiceClips) && voiceClips.length) {
+      try {
+        voice = await voiceprintFromClips(voiceClips);
+      } catch (error) {
+        if (error instanceof VoiceError) return res.status(error.status).json({ message: error.message });
+        throw error;
+      }
+    }
+
     const newUser = await createUser({
       username,
       email,
@@ -104,6 +125,7 @@ export const register = async (req, res) => {
       // filters on when deciding who can be matched by face at all.
       faceDescriptor: offersFace ? faceDescriptor : undefined,
       faceImage: offersFace ? faceImage : undefined,
+      voice,
       profile,
     });
 
@@ -227,3 +249,33 @@ export const loginWithFace = async (req, res) => {
     return res.status(500).json({ message: 'Face sign-in failed. Please try again.' });
   }
 };
+
+/** GET /auth/voice — whether voice sign-in and voice enrolment can be offered (the model is installed). */
+export const voiceLoginStatus = async (req, res) => res.json({ available: await voiceAvailable() });
+
+/**
+ * POST /auth/login/voice — multipart "audio": a 16 kHz WAV of the person
+ * talking. The same answer as the other two ways in: { token, user }, or 401
+ * for a voice nobody matches, 403 for an account that is not approved.
+ */
+export const loginWithVoice = async (req, res) => {
+  const upload = req.file;
+  try {
+    if (!takeAttempt(req.ip)) {
+      return res.status(429).json({ message: 'Too many voice sign-in attempts. Wait a few minutes, or use your password.' });
+    }
+    if (!upload) return res.status(400).json({ message: 'No recording arrived. Try again.' });
+    const { user } = await identifyVoice(upload.path, getVoiceCandidates);
+    if (!isUsableAccount(user)) {
+      return res.status(403).json({ message: statusRefusal(user.status), accountStatus: user.status });
+    }
+    return signedInResponse(res, user);
+  } catch (error) {
+    if (error instanceof VoiceError) return res.status(error.status).json({ message: error.message });
+    console.error('Voice sign-in failed:', error);
+    return res.status(500).json({ message: 'Voice sign-in failed. Please try again.' });
+  } finally {
+    if (upload) fs.rm(upload.path, { force: true }).catch(() => {});
+  }
+};
+

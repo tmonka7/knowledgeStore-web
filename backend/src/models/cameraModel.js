@@ -30,22 +30,9 @@ const ptzSchema = new mongoose.Schema({
   // Optional override. When empty the ONVIF snapshot URI is used.
   snapshotUrl: { type: String, default: '', trim: true },
 
-  /*
-   * The optics and mechanics, which the sweep planner needs and ONVIF does not
-   * report in any usable form. Defaults suit a typical PTZ dome; they are
-   * editable because getting hfovDegrees wrong is precisely what opens gaps
-   * between frames, and a gap is a person marked absent.
-   */
-  panRangeDegrees: { type: Number, default: 360, min: 1, max: 360 },
-  hfovDegrees: { type: Number, default: 65, min: 1, max: 180 },
-  maxZoomFactor: { type: Number, default: 20, min: 1, max: 60 },
-  // Centre of the sweep arc, in camera degrees. The 180-degree arc is built
-  // around this, so it is how you aim a wall-mounted camera at the room rather
-  // than at the wall behind it.
-  homeDegrees: { type: Number, default: 0, min: -180, max: 180 },
+  // Tilt of the Home position (-1 … 1).
   tilt: { type: Number, default: 0, min: -1, max: 1 },
   moveSpeed: { type: Number, default: 0.6, min: 0.05, max: 1 },
-  settleMs: { type: Number, default: 900, min: 0, max: 10_000 },
   timeoutMs: { type: Number, default: 8000, min: 1000, max: 60_000 },
 }, { _id: false });
 
@@ -57,6 +44,13 @@ const cameraSchema = new mongoose.Schema({
   status: { type: String, enum: ['online', 'offline', 'maintenance'], default: 'offline' },
   notes: { type: String, default: '', trim: true },
   ptz: { type: ptzSchema, default: () => ({}) },
+  // Whether the server should be recording this camera (helpers/cameraRecorder.js);
+  // remembered so recording resumes after a restart.
+  recording: {
+    enabled: { type: Boolean, default: false },
+    changedBy: { type: String, default: '' },
+    changedAt: { type: Date, default: null },
+  },
   createdAt: { type: Date, default: Date.now },
 }, { collection: 'cameras' });
 

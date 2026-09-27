@@ -74,6 +74,7 @@ export default function TaskFormModal({
           </Form.Item>
           <Form.Item name="assigneeId" label="Assignee">
             <Select
+              showSearch
               allowClear
               placeholder="Unassigned"
               optionFilterProp="label"

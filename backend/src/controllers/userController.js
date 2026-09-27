@@ -6,12 +6,13 @@ import { ACCOUNT_STATUSES } from '../helpers/accountStatus.js';
 import { describeUserFootprint, purgeUser } from '../helpers/userPurge.js';
 import { User, getUsers, getUserById } from '../models/store.js';
 import { writeLog } from '../models/activityLogModel.js';
+import { VoiceError, noVoice, voiceprintFromClips } from '../helpers/voiceLogin.js';
 
 export const listPermissionCatalog = (req, res) => res.json({ catalog: PERMISSION_CATALOG });
 
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { fullName, email, role, permissions, faceDescriptor, faceImage } = req.body || {};
+  const { fullName, email, role, permissions, faceDescriptor, faceImage, voiceClips, removeVoice } = req.body || {};
 
   const target = await getUserById(id);
   if (!target) {
@@ -54,6 +55,18 @@ export const updateUser = async (req, res) => {
     }
     target.faceDescriptor = faceDescriptor.map((value) => Number(value));
     target.faceImage = faceImage;
+  }
+
+  // Voice sign-in: new clips replace the voiceprints; removeVoice clears them.
+  if (removeVoice === true) {
+    Object.assign(target, noVoice());
+  } else if (Array.isArray(voiceClips) && voiceClips.length) {
+    try {
+      Object.assign(target, await voiceprintFromClips(voiceClips));
+    } catch (error) {
+      if (error instanceof VoiceError) return res.status(error.status).json({ message: error.message });
+      throw error;
+    }
   }
 
   await target.save();

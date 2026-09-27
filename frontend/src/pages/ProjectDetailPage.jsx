@@ -286,6 +286,8 @@ export default function ProjectDetailPage({ user, projectId, members = [], onRef
           allowClear
         />
         <Select
+          showSearch
+          optionFilterProp="label"
           value={assigneeFilter}
           onChange={setAssigneeFilter}
           className="vision-filter-select"

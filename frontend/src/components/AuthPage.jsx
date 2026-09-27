@@ -6,6 +6,7 @@ import {
   ClockCircleOutlined,
   CloseOutlined,
   HomeOutlined,
+  AudioOutlined,
   LoadingOutlined,
   LockOutlined,
   MailOutlined,
@@ -20,6 +21,9 @@ import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import { FaceIdIcon, FaceScanArt } from './FaceArt';
 import FaceRegistration from './face/FaceRegistration';
+import ClipRecorder from './speaker/ClipRecorder';
+import VoiceEnrollment, { clipsToDataUrls } from './voice/VoiceEnrollment';
+import api from '../api';
 import {
   descriptorFromFile,
   descriptorFromImage,
@@ -205,7 +209,7 @@ function FaceCapture({ onDescriptor, autoOpenCamera = false, hasError = false, i
   );
 }
 
-function RegisterForm({ loading, onFaceDescriptor, onSubmit }) {
+function RegisterForm({ loading, onFaceDescriptor, onVoiceClips, voiceAvailable, onSubmit }) {
   const { t } = useLanguage();
   const [registerForm] = Form.useForm();
 
@@ -291,6 +295,9 @@ function RegisterForm({ loading, onFaceDescriptor, onSubmit }) {
         <Input prefix={<HomeOutlined />} autoComplete="street-address" placeholder={t('address')} />
       </Form.Item>
       <FaceRegistration onChange={onFaceDescriptor} optional />
+      {/* A voice is the third way in, optional like the face; offered only
+          when the server has the speaker model to make voiceprints with. */}
+      {voiceAvailable && <VoiceEnrollment onChange={onVoiceClips} optional />}
       <Button type="primary" htmlType="submit" block loading={loading}>{t('register')}</Button>
     </Form>
   );
@@ -302,6 +309,7 @@ export default function AuthPage({
   loginForm,
   handleLogin,
   handleFaceLogin,
+  handleVoiceLogin,
   handleRegister,
 }) {
   const { t } = useLanguage();
@@ -309,12 +317,32 @@ export default function AuthPage({
   const [remember, setRemember] = useState(Boolean(rememberedUsername));
   const [faceLoginOpen, setFaceLoginOpen] = useState(false);
   const [registerFaceData, setRegisterFaceData] = useState(null);
+  const [registerVoice, setRegisterVoice] = useState({ clips: [], done: false });
+  const [voiceLoginOpen, setVoiceLoginOpen] = useState(false);
+  const [voiceAvailable, setVoiceAvailable] = useState(false);
   const [mode, setMode] = useState('login');
   const isLogin = mode === 'login';
 
+  // Voice sign-in and enrolment need the speaker model on the server; without
+  // it neither is offered, rather than offered and then refused.
+  useEffect(() => {
+    let live = true;
+    api.get('/auth/voice')
+      .then(({ data }) => { if (live) setVoiceAvailable(Boolean(data.available)); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+
   const switchMode = (nextMode) => {
     setRegisterFaceData(null);
+    setRegisterVoice({ clips: [], done: false });
     setMode(nextMode);
+  };
+
+  const handleLoginVoice = (clip) => {
+    setVoiceLoginOpen(false);
+    // As with the face, no username: the server finds whose voice it is.
+    handleVoiceLogin(clip.blob);
   };
 
   const submitLogin = (values) => {
@@ -350,6 +378,12 @@ export default function AuthPage({
   };
 
   const submitRegistration = async ({ confirmPassword, ...values }) => {
+    // Half a voice enrolment is a mistake, not a choice: say so rather than
+    // quietly creating the account without it.
+    if (registerVoice.clips.length && !registerVoice.done) {
+      message.warning(t('voiceEnrollIncomplete'));
+      return;
+    }
     const created = await handleRegister({
       ...values,
       // The picker hands back a dayjs; the API stores a calendar day.
@@ -365,6 +399,8 @@ export default function AuthPage({
         faceDescriptor: registerFaceData.descriptor,
         faceImage: registerFaceData.faceImage,
       } : {}),
+      // Optional too; the server makes the voiceprints and keeps only those.
+      ...(registerVoice.done ? { voiceClips: await clipsToDataUrls(registerVoice.clips) } : {}),
     });
 
     // Registering no longer signs you in — the account is created and waits
@@ -434,6 +470,11 @@ export default function AuthPage({
                 <Button className="face-login-button" block icon={<FaceIdIcon />} onClick={startFaceLogin} disabled={loading}>
                   {t('loginWithFace')}
                 </Button>
+                {voiceAvailable && (
+                  <Button className="face-login-button voice-login-button" block icon={<AudioOutlined />} onClick={() => setVoiceLoginOpen(true)} disabled={loading}>
+                    {t('loginWithVoice')}
+                  </Button>
+                )}
                 <div className="auth-switch">{t('noAccount')} <button type="button" onClick={() => switchMode('register')}>{t('register')}</button></div>
               </Form>
             ) : (
@@ -447,7 +488,13 @@ export default function AuthPage({
                   className="auth-pending-note"
                   message={t('registrationNeedsApproval')}
                 />
-                <RegisterForm loading={loading} onFaceDescriptor={handleRegisterFace} onSubmit={submitRegistration} />
+                <RegisterForm
+                  loading={loading}
+                  onFaceDescriptor={handleRegisterFace}
+                  onVoiceClips={(clips, done) => setRegisterVoice({ clips, done })}
+                  voiceAvailable={voiceAvailable}
+                  onSubmit={submitRegistration}
+                />
                 <div className="auth-switch">{t('alreadyHaveAccount')} <button type="button" onClick={() => switchMode('login')}>{t('login')}</button></div>
               </>
             )}
@@ -469,6 +516,21 @@ export default function AuthPage({
             onDescriptor={handleLoginFace}
             idleText={t('lookAtCameraToVerify')}
           />
+        </div>
+      </Modal>
+      <Modal
+        title={t('loginWithVoice')}
+        open={voiceLoginOpen}
+        onCancel={() => setVoiceLoginOpen(false)}
+        footer={null}
+        width={440}
+        centered
+        destroyOnClose
+      >
+        <div className="voice-login-modal">
+          <Text>{t('voiceLoginPrompt')}</Text>
+          <blockquote className="voice-enrollment-sentence">{t('voiceLoginSentence')}</blockquote>
+          <ClipRecorder onClip={handleLoginVoice} maxSeconds={8} hint={t('voiceLoginHint')} />
         </div>
       </Modal>
     </Layout>

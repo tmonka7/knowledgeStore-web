@@ -8,9 +8,7 @@ import {
   getStatus,
   stopMove,
 } from './onvif.js';
-import { SWEEP_DEFAULTS, planSweep } from './sweep.js';
-
-export { PtzError, planSweep, SWEEP_DEFAULTS };
+export { PtzError };
 export { discoverCameras, localSubnet } from './discovery.js';
 
 /*
@@ -73,38 +71,6 @@ export const cameraStatus = async (camera) => {
   return getStatus(ptz.deviceUrl, ptz.profileToken, credentials);
 };
 
-/**
- * Waits for the head to stop.
- *
- * AbsoluteMove returns when the camera ACCEPTS the command, not when the lens
- * arrives, so without this every frame in a sweep is of the previous stop —
- * shifted by one, and consistently enough that the result looks like a working
- * sweep with a mysteriously poor hit rate.
- *
- * GetStatus is polled where the camera reports MoveStatus, and a fixed settle
- * always follows, because plenty of cameras report IDLE while the head is
- * still visibly ringing.
- */
-export const waitForStop = async (camera, { settleMs = SWEEP_DEFAULTS.settleMs, maxWaitMs = 8000 } = {}) => {
-  const pause = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
-  const deadline = Date.now() + maxWaitMs;
-
-  while (Date.now() < deadline) {
-    let status;
-    try {
-      status = await cameraStatus(camera);
-    } catch {
-      // A camera that will not report status is not a reason to abandon the
-      // sweep; fall through to the fixed settle.
-      break;
-    }
-    if (!status.moving) break;
-    await pause(150);
-  }
-
-  await pause(settleMs);
-};
-
 /*
  * ---------------------------------------------------------------------------
  * Frames
@@ -150,8 +116,8 @@ const readOneJpeg = async (response, maxBytes = 8_000_000) => {
       }
     }
   } finally {
-    // Without this the socket stays open on a stream that never ends, and a
-    // sweep of twelve stops leaves twelve of them behind.
+    // Without this the socket stays open on a stream that never ends, and
+    // every frame grabbed leaves one behind.
     await reader.cancel().catch(() => {});
   }
 
@@ -165,9 +131,7 @@ const readOneJpeg = async (response, maxBytes = 8_000_000) => {
  * Where a still frame comes from, in order of preference.
  *
  * The ONVIF snapshot URI is asked for once per camera and cached: it is a SOAP
- * round trip, and asking again at every stop would add a second or more to
- * each one — on a twelve-stop sweep that is the difference between half a
- * minute and a minute of people standing still.
+ * round trip, and asking again for every frame would add a second or more.
  */
 const snapshotUriCache = new Map();
 

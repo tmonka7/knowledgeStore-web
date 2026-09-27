@@ -431,6 +431,7 @@ export default function MailPage({ user, directory = [], initialMailId = '', onM
             {/* Accounts, not typed addresses: this mail never leaves the
                 installation, so an address would have nowhere to go. */}
             <Select
+              showSearch
               mode="multiple"
               allowClear
               options={recipientOptions}

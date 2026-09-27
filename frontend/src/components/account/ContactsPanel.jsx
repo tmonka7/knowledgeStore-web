@@ -27,6 +27,9 @@ const initials = (name = '') => name
  * A personal address book: the API scopes every contact by its owner, so this
  * is one account's list and never the organisation's.
  */
+/** A contact's numbers; one saved before contacts had several has only `phone`. */
+const phonesOf = (contact) => (contact.phones?.length ? contact.phones : contact.phone ? [{ label: '', number: contact.phone }] : []);
+
 export default function ContactsPanel({ user }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -64,7 +67,7 @@ export default function ContactsPanel({ user }) {
     return contacts.filter((contact) => {
       if (groupFilter !== 'all' && contact.group !== groupFilter) return false;
       if (!needle) return true;
-      return [contact.fullName, contact.email, contact.phone, contact.company, contact.jobTitle, ...(contact.tags || [])]
+      return [contact.fullName, contact.email, ...phonesOf(contact).map((entry) => entry.number), contact.company, contact.jobTitle, ...(contact.tags || [])]
         .some((field) => String(field || '').toLowerCase().includes(needle));
     });
   }, [contacts, search, groupFilter]);
@@ -151,7 +154,7 @@ export default function ContactsPanel({ user }) {
           tone="cyan"
           icon={<PhoneOutlined />}
           label="With phone"
-          value={contacts.filter((contact) => contact.phone).length}
+          value={contacts.filter((contact) => phonesOf(contact).length).length}
           meta="Reachable by phone"
         />
       </div>
@@ -231,12 +234,13 @@ export default function ContactsPanel({ user }) {
                     <a href={`mailto:${contact.email}`}>{contact.email}</a>
                   </li>
                 )}
-                {contact.phone && (
-                  <li>
+                {phonesOf(contact).map((entry, index) => (
+                  <li key={`${entry.number}-${index}`}>
                     <PhoneOutlined />
-                    <a href={`tel:${contact.phone.replace(/\s+/g, '')}`}>{contact.phone}</a>
+                    <a href={`tel:${entry.number.replace(/\s+/g, '')}`}>{entry.number}</a>
+                    {entry.label && <span className="vision-cell-muted">{entry.label}</span>}
                   </li>
-                )}
+                ))}
               </ul>
 
               {contact.tags?.length > 0 && (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Collapse, Form, Input, InputNumber, Select, Switch, message } from 'antd';
+import { Alert, Button, Collapse, Form, Input, Select, Switch, message } from 'antd';
 import { ApiOutlined } from '@ant-design/icons';
 import api from '../../api';
 import { useLanguage } from '../../i18n';
@@ -69,7 +69,7 @@ export default function PtzSettings({ form, cameraId }) {
       className="ptz-settings"
       items={[{
         key: 'ptz',
-        label: t('ptzAndAttendance'),
+        label: t('ptzSettingsTitle'),
         children: (
           <>
             <Form.Item name={['ptz', 'enabled']} label={t('ptzEnable')} valuePropName="checked">
@@ -122,42 +122,6 @@ export default function PtzSettings({ form, cameraId }) {
               extra={t('ptzSnapshotUrlHint')}
             >
               <Input placeholder="http://192.168.1.20/onvif-http/snapshot" />
-            </Form.Item>
-
-            <p className="ptz-optics-note">{t('ptzOpticsNote')}</p>
-
-            <div className="ptz-settings-row">
-              <Form.Item
-                name={['ptz', 'hfovDegrees']}
-                label={t('ptzHfov')}
-                extra={t('ptzHfovHint')}
-              >
-                <InputNumber min={1} max={180} step={1} />
-              </Form.Item>
-              <Form.Item name={['ptz', 'panRangeDegrees']} label={t('ptzPanRange')}>
-                <InputNumber min={1} max={360} step={1} />
-              </Form.Item>
-            </div>
-
-            <div className="ptz-settings-row">
-              <Form.Item name={['ptz', 'maxZoomFactor']} label={t('ptzMaxZoom')}>
-                <InputNumber min={1} max={60} step={1} />
-              </Form.Item>
-              <Form.Item
-                name={['ptz', 'homeDegrees']}
-                label={t('ptzHome')}
-                extra={t('ptzHomeHint')}
-              >
-                <InputNumber min={-180} max={180} step={1} />
-              </Form.Item>
-            </div>
-
-            <Form.Item
-              name={['ptz', 'settleMs']}
-              label={t('ptzSettle')}
-              extra={t('ptzSettleHint')}
-            >
-              <InputNumber min={0} max={10000} step={100} />
             </Form.Item>
           </>
         ),

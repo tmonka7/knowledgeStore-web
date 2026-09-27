@@ -39,7 +39,7 @@ import api from '../api';
 import AppLayout from '../components/AppLayout';
 import HtmlEditor from '../components/HtmlEditor';
 import ShareWithField, { describeSharing } from '../components/records/ShareWithField';
-import { can } from '../permissions';
+import { can, canPage } from '../permissions';
 import OverviewPage from './OverviewPage';
 import RecordsPage from './RecordsPage';
 import CategoriesPage from './CategoriesPage';
@@ -49,7 +49,7 @@ import ChatPage from './ChatPage';
 import MailPage from './MailPage';
 import { useLanguage } from '../i18n';
 import CamerasPage from './CamerasPage';
-import AttendancePage from './AttendancePage';
+import CameraRecordingsPage from './CameraRecordingsPage';
 import SchedulePage from './SchedulePage';
 import useScheduleReminders from '../components/schedule/useScheduleReminders';
 import LvglToolPage from './LvglToolPage';
@@ -388,9 +388,9 @@ export default function DashboardPage({
     { key: 'users', icon: <TeamOutlined />, label: t('users') },
     { key: 'records', icon: <DatabaseOutlined />, label: t('data') },
     /*
-     * Camera Management became a submenu when automatic attendance was added.
-     * The child keeps the key 'cameras', so anything that remembers a selected
-     * page — including a session already open — still lands on the same page.
+     * Camera Management is a submenu: the cameras, and their recordings. The
+     * first child keeps the key 'cameras', so anything that remembers a
+     * selected page — including a session already open — still lands on it.
      */
     {
       key: 'camera-group',
@@ -398,7 +398,7 @@ export default function DashboardPage({
       label: t('cameraManagement'),
       children: [
         { key: 'cameras', label: t('cameraList') },
-        { key: 'attendance', label: t('automaticAttendance') },
+        { key: 'camera-recordings', label: t('recTitle') },
       ],
     },
     { key: 'projects', icon: <ProjectOutlined />, label: t('projectManagement') },
@@ -461,7 +461,7 @@ export default function DashboardPage({
    */
   const filterMenu = (items) => items
     .map((item) => {
-      if (!item.children) return can(user, item.key) ? item : null;
+      if (!item.children) return canPage(user, item.key) ? item : null;
       const children = filterMenu(item.children);
       return children.length ? { ...item, children } : null;
     })
@@ -766,8 +766,8 @@ export default function DashboardPage({
           )}
 
           {effectiveKey === 'cameras' && <CamerasPage user={user} cameras={cameras} setCameras={setCameras} />}
+          {effectiveKey === 'camera-recordings' && <CameraRecordingsPage user={user} cameras={cameras} />}
 
-          {effectiveKey === 'attendance' && <AttendancePage user={user} />}
 
           {effectiveKey === 'schedule' && (
             <SchedulePage

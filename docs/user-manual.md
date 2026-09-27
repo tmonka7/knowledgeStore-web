@@ -22,7 +22,14 @@ to verify you at sign-in.
    password, so an account without one works exactly the same — it just signs
    in with the password. If you skip it and change your mind, an administrator
    adds it for you on the Users page.
-5. Choose **Register**.
+5. Record your voice if you want to sign in by speaking — also **optional**.
+   Under **Voice sign-in**, press **Record** and read the sentence shown in your
+   normal voice; it stops by itself. Do this three times (a new sentence each
+   time). Use the microphone you will sign in with, in a quiet room. You can
+   play each clip back and delete one to record it again. Record all three or
+   none: with only one or two, registering asks you to finish or delete them.
+   (This section appears only when the server has the speaker model.)
+6. Choose **Register**.
 
 **You are not signed in yet.** A new account is created with the status
 *Pending* and waits for an administrator to approve it. Until then, signing in
@@ -35,7 +42,7 @@ account an administrator.
 
 ## 3. Signing in
 
-There are two ways in, and you only need **one** of them.
+There are three ways in, and you only need **one** of them.
 
 **Username and password.** Type them and choose **Sign in**.
 
@@ -43,6 +50,14 @@ There are two ways in, and you only need **one** of them.
 need to type a username first — the system works out who you are from your
 face. If it cannot tell for certain, it refuses rather than guessing, and you
 can always fall back to your password.
+
+**Your voice.** Choose **Login with Voice**, press **Record** and read the
+sentence shown; it stops by itself after a few seconds. As with the face, no
+username is needed, and a voice it cannot place with confidence is refused.
+This needs a voice enrolled at registration (or by an administrator). After
+ten attempts in ten minutes it asks you to wait. A recording of your voice may
+be enough to sign in as you, so treat voice sign-in as a convenience rather
+than strong security.
 
 Sessions last 8 hours. After that you are asked to sign in again.
 
@@ -632,12 +647,12 @@ the bin button removes one straight away.
 | Overview | Counts and recent activity across the installation. |
 | Data | Knowledge records: create, search by text, category or date, attach files, export to Word. |
 | Category | The tree that records are filed under. |
-| Camera Management | Register cameras and watch them, singly or as a wall. |
+| Camera Management | Register cameras and watch them, singly or as a wall. On the wall, **Control** on a tile shows that camera's PTZ pad (pan, tilt, zoom) beside it. **Record** (on a camera's view, or in the wall's panel) records the camera on the server until you stop it, also across restarts; **Recordings** lists the footage by camera and date to play (the next part follows on by itself), download or delete. Recording needs the camera edit permission, deleting footage the delete permission. |
 | Schedule | Your own calendar entries, including repeating ones. |
 | Mail | Internal mail with one attachment, and the open status of everything you send. It does not leave this installation. |
 | Posts | Announcements, and who has read them. |
 | Meetings | Video calls with other people here, with screen sharing, in-call messages and recording. See §8c. |
-| Contacts | Your own address book, on My Page. |
+| Contacts | Your own address book, on My Page. A contact can have several phone numbers, each with a label (Mobile, Work …): **Add phone number** in the contact form. |
 | Tools | LVGL, Converting, YOLO and Transformers helpers. |
 | Users | For administrators: accounts, roles and permissions. |
 | Database Management | For administrators: backups, restores, replication and cleanup. |
@@ -678,7 +693,9 @@ Click the pencil on a row to edit that account:
 
 - **Basic Info** — face photo, full name, email, gender, birthday, phone
   number, address, job, and the role. You cannot remove your own
-  administrator role.
+  administrator role. **Voice sign-in** shows whether the account has a voice
+  enrolled: **Record voice** (or **Record again**) takes three new clips of the
+  person reading, and **Remove voice** clears it; either happens when you save.
 - **Permissions** — tick the pages and actions the account may use.
   Administrators bypass this list entirely, so it is shown as read-only for
   them.

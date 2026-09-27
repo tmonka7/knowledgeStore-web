@@ -224,7 +224,7 @@ export const getProfiles = async (deviceUrl, credentials) => {
   return profiles;
 };
 
-/** The JPEG snapshot URL for a profile — the frame source for attendance. */
+/** The JPEG snapshot URL for a profile — the source of GET /cameras/:id/frame. */
 export const getSnapshotUri = async (deviceUrl, profileToken, credentials) => {
   const { media } = await serviceUrls(deviceUrl, credentials);
   const xml = await soapCall(
@@ -292,11 +292,9 @@ export const stopMove = async (deviceUrl, profileToken, credentials) => {
 /**
  * Where the head is now, and whether it is still moving.
  *
- * `moving` is what makes a sweep trustworthy: AbsoluteMove returns as soon as
- * the camera accepts the command, not when the head arrives, so a frame
- * grabbed immediately afterwards is of wherever the camera used to be
- * pointing. Cameras that omit MoveStatus read as not moving, which is why the
- * sweep also waits a fixed settle time rather than trusting this alone.
+ * AbsoluteMove returns as soon as the camera accepts the command, not when the
+ * head arrives; `moving` says whether it has got there. Cameras that omit
+ * MoveStatus read as not moving.
  */
 export const getStatus = async (deviceUrl, profileToken, credentials) => {
   const { ptz } = await serviceUrls(deviceUrl, credentials);

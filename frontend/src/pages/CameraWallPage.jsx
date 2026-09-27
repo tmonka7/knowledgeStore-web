@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react';
-import { Button } from 'antd';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Button, Empty } from 'antd';
 import {
+  AimOutlined,
   ArrowLeftOutlined,
+  CloseOutlined,
   BorderOutlined,
   EnvironmentOutlined,
   ExportOutlined,
@@ -13,6 +15,9 @@ import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge, { cameraTone } from '../components/ui/StatusBadge';
 import { canPreviewInBrowser, streamProtocol } from '../components/CameraCard';
+import PtzPad from '../components/camera/PtzPad';
+import RecordButton, { RecordingTag } from '../components/camera/RecordButton';
+import { can } from '../permissions';
 import { useLanguage } from '../i18n';
 
 const LAYOUTS = [
@@ -27,14 +32,14 @@ const requestFullscreen = (element) => {
   open?.call(element);
 };
 
-function LiveTile({ camera }) {
+function LiveTile({ camera, selected, onSelect }) {
   const { t } = useLanguage();
   const tileRef = useRef(null);
   const preview = canPreviewInBrowser(camera);
   const tone = cameraTone(camera.status);
 
   return (
-    <div className="vision-live-tile" ref={tileRef}>
+    <div className={`vision-live-tile${selected ? ' is-selected' : ''}`} ref={tileRef}>
       {preview ? (
         <iframe src={camera.address} title={`${camera.name} live view`} allow="autoplay; fullscreen" />
       ) : (
@@ -47,6 +52,7 @@ function LiveTile({ camera }) {
       <StatusBadge tone={tone} dot={camera.status === 'online'} className={`vision-live-badge is-${tone}`}>
         {camera.status === 'online' ? t('online') : camera.status === 'maintenance' ? t('maintenance') : t('offline')}
       </StatusBadge>
+      <span className="vision-live-rec"><RecordingTag camera={camera} /></span>
 
       <div className="vision-live-overlay">
         <div>
@@ -62,6 +68,18 @@ function LiveTile({ camera }) {
         </div>
 
         <div className="vision-live-controls">
+          {/* The picture is an iframe, which keeps its clicks to itself, so
+              choosing a camera to control is a button of its own. */}
+          <button
+            type="button"
+            className={`vision-live-btn${selected ? ' is-live' : ''}`}
+            onClick={onSelect}
+            aria-pressed={selected}
+            aria-label={t('wallControlCamera', { name: camera.name })}
+          >
+            <AimOutlined />
+            {t('wallControl')}
+          </button>
           <button
             type="button"
             className="vision-live-btn"
@@ -86,10 +104,55 @@ function LiveTile({ camera }) {
   );
 }
 
-export default function CameraWallPage({ cameras, onBack }) {
+/**
+ * PTZ and recording for the one camera chosen on the wall. PTZ needs the
+ * camera set up for it (ONVIF, with a profile) and cameras:edit, exactly as
+ * on the single-camera page; otherwise the panel says which is missing.
+ */
+function ControlPanel({ camera, user, onCameraChange, onClose }) {
+  const { t } = useLanguage();
+  const ptzEnabled = Boolean(camera.ptz?.enabled && camera.ptz?.profileToken);
+  const canDrive = can(user, 'cameras', 'edit');
+
+  return (
+    <aside className="vision-panel camera-wall-panel">
+      <div className="camera-wall-panel-head">
+        <div>
+          <h2 className="vision-section-title">{camera.name}</h2>
+          <div className="vision-cell-muted"><EnvironmentOutlined /> {camera.location}</div>
+        </div>
+        <Button type="text" icon={<CloseOutlined />} onClick={onClose} aria-label={t('close')} />
+      </div>
+
+      <div className="camera-wall-panel-record">
+        <RecordButton camera={camera} user={user} onCameraChange={onCameraChange} />
+      </div>
+
+      <h3 className="vision-section-title">{t('ptzControl')}</h3>
+      {!ptzEnabled ? (
+        <Alert type="info" showIcon message={t('wallNoPtz')} description={t('wallNoPtzHint')} />
+      ) : !canDrive ? (
+        <Alert type="info" showIcon message={t('wallPtzNeedsEdit')} />
+      ) : (
+        <PtzPad key={camera.id} camera={camera} />
+      )}
+    </aside>
+  );
+}
+
+export default function CameraWallPage({ user, cameras, onBack, onCameraChange }) {
   const { t } = useLanguage();
   const [columns, setColumns] = useState(2);
+  const [selectedId, setSelectedId] = useState(null);
   const gridRef = useRef(null);
+
+  // One camera on the wall is the one being controlled; a chosen camera that
+  // has been deleted meanwhile is let go.
+  useEffect(() => {
+    if (cameras.length === 1) setSelectedId(cameras[0].id);
+    else if (selectedId && !cameras.some((camera) => camera.id === selectedId)) setSelectedId(null);
+  }, [cameras, selectedId]);
+  const selected = cameras.find((camera) => camera.id === selectedId) || null;
 
   const online = cameras.filter((camera) => camera.status === 'online').length;
   const offline = cameras.length - online;
@@ -136,8 +199,22 @@ export default function CameraWallPage({ cameras, onBack }) {
       </div>
 
       {cameras.length ? (
-        <div className={`vision-live-grid cols-${columns}`} ref={gridRef}>
-          {cameras.map((camera) => <LiveTile key={camera.id} camera={camera} />)}
+        <div className={`camera-wall-layout${selected ? ' has-panel' : ''}`}>
+          <div className={`vision-live-grid cols-${columns}`} ref={gridRef}>
+            {cameras.map((camera) => (
+              <LiveTile
+                key={camera.id}
+                camera={camera}
+                selected={camera.id === selectedId}
+                onSelect={() => setSelectedId((current) => (current === camera.id ? null : camera.id))}
+              />
+            ))}
+          </div>
+          {selected ? (
+            <ControlPanel camera={selected} user={user} onCameraChange={onCameraChange} onClose={() => setSelectedId(null)} />
+          ) : (
+            <Empty className="camera-wall-hint" image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('wallPickCamera')} />
+          )}
         </div>
       ) : (
         <div className="vision-table-panel">

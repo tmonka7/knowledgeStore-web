@@ -8,6 +8,16 @@ const contactSchema = new mongoose.Schema({
   ownerId: { type: String, required: true, index: true },
   fullName: { type: String, required: true, trim: true },
   email: { type: String, default: '', trim: true },
+  // Every number, each with a label ("Mobile", "Work" …). `phone` repeats the
+  // first one, so anything that only knows a single number still finds it.
+  phones: {
+    type: [{
+      _id: false,
+      label: { type: String, default: '', trim: true },
+      number: { type: String, required: true, trim: true },
+    }],
+    default: [],
+  },
   phone: { type: String, default: '', trim: true },
   company: { type: String, default: '', trim: true },
   jobTitle: { type: String, default: '', trim: true },

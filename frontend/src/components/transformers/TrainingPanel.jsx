@@ -22,6 +22,10 @@ const LEARNING_RATES = [1e-5, 2e-5, 3e-5, 5e-5, 1e-4];
 const formatBytes = (bytes) => (bytes >= 1e6 ? `${(bytes / 1e6).toFixed(0)} MB` : `${Math.ceil(bytes / 1e3)} KB`);
 
 
+// The pair a new dataset, training run or multilingual test starts with.
+const DEFAULT_SOURCE = 'en';
+const DEFAULT_TARGET = 'zh';
+
 // Mirrors LANGUAGE_ALIASES in backend/python/ks_common.py.
 const LANGUAGE_ALIASES = { jp: 'ja', jpn: 'ja', kor: 'ko', zho: 'zh', chi: 'zh', eng: 'en', spa: 'es' };
 
@@ -128,14 +132,16 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
   const dataset = datasets.find((item) => item.id === form.datasetId) || null;
   const languages = dataset?.languages || [];
 
-  // Source and target have to be languages of the chosen dataset.
+  // Source and target have to be languages of the chosen dataset; en → zh
+  // when the dataset has them and nothing else was chosen.
   useEffect(() => {
     if (!dataset) return;
     setForm((current) => {
-      const source = languages.includes(current.source) ? current.source : languages[0];
+      const prefer = (code) => (languages.includes(code) ? code : null);
+      const source = languages.includes(current.source) ? current.source : prefer(DEFAULT_SOURCE) || languages[0];
       const target = languages.includes(current.target) && current.target !== source
         ? current.target
-        : languages.find((code) => code !== source);
+        : (source !== DEFAULT_TARGET && prefer(DEFAULT_TARGET)) || languages.find((code) => code !== source);
       return { ...current, source, target };
     });
   }, [dataset?.id, languages.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -461,7 +467,7 @@ function TranslationTest({ model, compare }) {
     setResult(null);
     const languages = model.languages || [];
     setPair(open
-      ? { source: 'en', target: ['ko', 'zh', 'es', 'ja'].find((code) => languages.includes(code)) || languages[0] || '' }
+      ? { source: DEFAULT_SOURCE, target: [DEFAULT_TARGET, 'ko', 'es', 'ja'].find((code) => languages.includes(code)) || languages[0] || '' }
       : { source: model.source, target: model.target });
   }, [model.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setResult(null); }, [compare?.id]);

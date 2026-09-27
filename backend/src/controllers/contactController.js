@@ -4,12 +4,33 @@ import {
   getContacts,
 } from '../models/contactModel.js';
 
-const asPlain = (document) => (document?.toObject ? document.toObject() : document);
+const MAX_PHONES = 10;
+const PHONE_PATTERN = /^[+()\d\s.-]{5,32}$/;
+
+/** A contact saved before it could hold several numbers has only `phone`: show it as the one entry. */
+const withPhones = (contact) => ({
+  ...contact,
+  phones: contact.phones?.length ? contact.phones : contact.phone ? [{ label: '', number: contact.phone }] : [],
+});
+
+const asPlain = (document) => withPhones(document?.toObject ? document.toObject() : document);
+
+/** The numbers sent — `phones` [{ label, number }], or a lone `phone` from an older client — blanks dropped. */
+const phoneFields = (body) => {
+  const list = Array.isArray(body.phones)
+    ? body.phones.map((entry) => ({
+      label: String(entry?.label || '').trim().slice(0, 40),
+      number: String(entry?.number || '').trim(),
+    }))
+    : [{ label: '', number: String(body.phone || '').trim() }];
+  const phones = list.filter((entry) => entry.number);
+  return { phones, phone: phones[0]?.number || '' };
+};
 
 const contactFields = (body = {}) => ({
   fullName: String(body.fullName || '').trim(),
   email: String(body.email || '').trim(),
-  phone: String(body.phone || '').trim(),
+  ...phoneFields(body),
   company: String(body.company || '').trim(),
   jobTitle: String(body.jobTitle || '').trim(),
   group: String(body.group || '').trim() || 'General',
@@ -27,9 +48,9 @@ const validate = (contact) => {
   if (contact.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact.email)) {
     return 'Enter a valid email address, or leave it empty.';
   }
-  if (contact.phone && !/^[+()\d\s.-]{5,32}$/.test(contact.phone)) {
-    return 'Enter a valid phone number, or leave it empty.';
-  }
+  if (contact.phones.length > MAX_PHONES) return `A contact can have at most ${MAX_PHONES} phone numbers.`;
+  const invalid = contact.phones.find((entry) => !PHONE_PATTERN.test(entry.number));
+  if (invalid) return `"${invalid.number}" is not a valid phone number.`;
   return '';
 };
 

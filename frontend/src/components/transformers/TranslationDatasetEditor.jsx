@@ -17,7 +17,7 @@ import AlignedTextPanes from './AlignedTextPanes';
 const { Text } = Typography;
 const { TextArea } = Input;
 
-const DEFAULT_LANGUAGES = ['en', 'es'];
+const DEFAULT_LANGUAGES = ['en', 'zh'];
 
 const blankDraft = () => ({ id: null, name: '', languages: DEFAULT_LANGUAGES, rows: [emptyRow(DEFAULT_LANGUAGES)] });
 

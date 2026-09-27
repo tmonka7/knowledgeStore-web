@@ -24,11 +24,6 @@ const PTZ_DEFAULTS = {
   enabled: true,
   username: '',
   password: '',
-  panRangeDegrees: 360,
-  hfovDegrees: 65,
-  maxZoomFactor: 20,
-  homeDegrees: 0,
-  settleMs: 900,
 };
 
 export default function CameraDiscovery({ open, onClose, onSelect }) {

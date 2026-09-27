@@ -7,6 +7,7 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import StatusBadge, { cameraTone } from './ui/StatusBadge';
+import { RecordingTag } from './camera/RecordButton';
 import { useLanguage } from '../i18n';
 
 /** A browser can only preview an http(s) source; rtsp:// needs a player. */
@@ -47,6 +48,7 @@ export default function CameraCard({ camera, onView, onEdit, onDelete }) {
         >
           {camera.status === 'online' ? t('online') : camera.status === 'maintenance' ? t('maintenance') : t('offline')}
         </StatusBadge>
+        <span className="vision-camera-rec"><RecordingTag camera={camera} /></span>
       </div>
 
       <div className="vision-camera-body">

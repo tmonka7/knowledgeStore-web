@@ -48,6 +48,7 @@ import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import { descriptorFromFile, imageDataFromFile } from '../lib/faceRecognition';
+import VoiceEnrollment, { clipsToDataUrls } from '../components/voice/VoiceEnrollment';
 import { useLanguage } from '../i18n';
 
 const { Text } = Typography;
@@ -97,6 +98,7 @@ const STATUS_TONE = { pending: 'amber', allowed: 'green', denied: 'red' };
 const DELETION_LABELS = {
   records: 'data records (with their files)',
   walletEntries: 'wallet entries',
+  speakers: 'enrolled speakers (voice samples)',
   contacts: 'contacts',
   schedules: 'schedule entries',
   posts: 'posts they wrote',
@@ -154,6 +156,13 @@ export default function UsersPage({
   const [draftRole, setDraftRole] = useState('user');
   const [saving, setSaving] = useState(false);
   const [faceUpdate, setFaceUpdate] = useState(null);
+  // Voice sign-in: 'idle', 'record' (new clips being taken) or 'remove' (cleared on save).
+  const [voiceMode, setVoiceMode] = useState('idle');
+  const [voiceDraft, setVoiceDraft] = useState({ clips: [], done: false });
+  const [voiceAvailable, setVoiceAvailable] = useState(false);
+  useEffect(() => {
+    api.get('/auth/voice').then(({ data }) => setVoiceAvailable(Boolean(data.available))).catch(() => {});
+  }, []);
   const [faceUpdating, setFaceUpdating] = useState(false);
   const [faceUpdateError, setFaceUpdateError] = useState('');
   const [faceFileName, setFaceFileName] = useState('');
@@ -245,6 +254,8 @@ export default function UsersPage({
     setFaceUpdate(null);
     setFaceUpdateError('');
     setFaceFileName('');
+    setVoiceMode('idle');
+    setVoiceDraft({ clips: [], done: false });
     editForm.setFieldsValue({
       fullName: record.fullName,
       email: record.email,
@@ -262,6 +273,8 @@ export default function UsersPage({
     setFaceUpdate(null);
     setFaceUpdateError('');
     setFaceFileName('');
+    setVoiceMode('idle');
+    setVoiceDraft({ clips: [], done: false });
     editForm.resetFields();
   };
 
@@ -324,6 +337,11 @@ export default function UsersPage({
       return;
     }
 
+    if (voiceMode === 'record' && voiceDraft.clips.length && !voiceDraft.done) {
+      message.warning(t('voiceEnrollIncomplete'));
+      return;
+    }
+
     setSaving(true);
     const ok = await handleUpdateUser(editingUser.id, {
       ...values,
@@ -334,6 +352,9 @@ export default function UsersPage({
       permissions: selectedPermissions,
       // The API expects `faceDescriptor`; `faceUpdate` stores it as `descriptor`.
       ...(faceUpdate ? { faceDescriptor: faceUpdate.descriptor, faceImage: faceUpdate.faceImage } : {}),
+      // New voice clips replace the voiceprints on the server; or they are cleared.
+      ...(voiceMode === 'record' && voiceDraft.done ? { voiceClips: await clipsToDataUrls(voiceDraft.clips) } : {}),
+      ...(voiceMode === 'remove' ? { removeVoice: true } : {}),
     });
     setSaving(false);
     if (ok) {
@@ -735,6 +756,45 @@ export default function UsersPage({
                   )}
                   {faceUpdate && !faceUpdateError && (
                     <Alert type="success" showIcon className="user-editor-alert" message="New face photo ready. Save changes to apply it." />
+                  )}
+
+                  {voiceAvailable && (
+                    <div className="user-editor-voice">
+                      <div className="user-editor-voice-head">
+                        <strong>{t('voiceSignIn')}</strong>
+                        <span className="vision-cell-muted">
+                          {editingUser.hasVoice
+                            ? t('voiceEnrolledOn', { date: formatDate(editingUser.voiceEnrolledAt) })
+                            : t('voiceNotEnrolled')}
+                        </span>
+                      </div>
+                      {voiceMode === 'idle' && (
+                        <div className="user-editor-voice-actions">
+                          <Button onClick={() => setVoiceMode('record')}>
+                            {editingUser.hasVoice ? t('voiceReRecord') : t('voiceRecord')}
+                          </Button>
+                          {editingUser.hasVoice && (
+                            <Button danger onClick={() => setVoiceMode('remove')}>{t('voiceRemove')}</Button>
+                          )}
+                        </div>
+                      )}
+                      {voiceMode === 'record' && (
+                        <>
+                          <VoiceEnrollment onChange={(clips, done) => setVoiceDraft({ clips, done })} />
+                          {voiceDraft.done && <Alert type="success" showIcon className="user-editor-alert" message={t('voiceReadyToSave')} />}
+                          <Button type="link" onClick={() => { setVoiceMode('idle'); setVoiceDraft({ clips: [], done: false }); }}>{t('cancel')}</Button>
+                        </>
+                      )}
+                      {voiceMode === 'remove' && (
+                        <Alert
+                          type="warning"
+                          showIcon
+                          className="user-editor-alert"
+                          message={t('voiceWillBeRemoved')}
+                          action={<Button size="small" onClick={() => setVoiceMode('idle')}>{t('undo')}</Button>}
+                        />
+                      )}
+                    </div>
                   )}
 
                   <Form

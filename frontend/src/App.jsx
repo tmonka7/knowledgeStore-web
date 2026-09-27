@@ -329,10 +329,27 @@ function App() {
     }
   };
 
+  /** The third way in: a voice — a few seconds of the person talking, identified on the server. */
+  const handleVoiceLogin = async (blob) => {
+    setLoading(true);
+    try {
+      const form = new FormData();
+      form.append('audio', blob, 'voice.wav');
+      // No time limit: the first sign-in after a restart loads the model.
+      const { data } = await api.post('/auth/login/voice', form, { timeout: 0 });
+      startSession(data);
+    } catch (error) {
+      reportSignInFailure(error, 'Voice sign-in failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRegister = async (values) => {
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/register', values);
+      // No time limit: voice clips are analysed on the server before the account is created.
+      const { data } = await api.post('/auth/register', values, { timeout: 0 });
       // No session: the account is created but still pending, so signing in
       // would only produce a screen where every request is refused.
       message.success(data.message || 'Account created. An administrator must approve it.', 8);
@@ -713,6 +730,7 @@ function App() {
         loginForm={loginForm}
         handleLogin={handleLogin}
         handleFaceLogin={handleFaceLogin}
+        handleVoiceLogin={handleVoiceLogin}
         handleRegister={handleRegister}
       />
     );

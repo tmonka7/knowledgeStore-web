@@ -90,6 +90,7 @@ export default function MeetingFormModal({
             extra="You can always join your own meeting."
           >
             <Select
+              showSearch
               mode="multiple"
               allowClear
               placeholder="Select people"

@@ -19,6 +19,9 @@ export const sanitizeUser = (user) => ({
   job: user.job || '',
   permissions: Array.isArray(user.permissions) ? user.permissions : [],
   faceImage: user.faceImage || null,
+  // Whether the account can sign in by voice; the voiceprints never leave the server.
+  hasVoice: Boolean(user.voiceEnrolledAt),
+  voiceEnrolledAt: user.voiceEnrolledAt || null,
   createdAt: user.createdAt,
 });
 

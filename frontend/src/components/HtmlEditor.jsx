@@ -26,6 +26,9 @@ export default function HtmlEditor({ value, onChange, height = 320 }) {
         content_style: [contentCss, contentUiCss].join('\n'),
         height,
         menubar: false,
+        // No "Build with TinyMCE" link in the status bar, and no upgrade button.
+        branding: false,
+        promotion: false,
         plugins: 'table lists link image code',
         toolbar: [
           'undo redo | blocks fontfamily fontsize',

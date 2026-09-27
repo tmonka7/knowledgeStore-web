@@ -1,5 +1,11 @@
 import { createCamera, getCameraById, getCameraForControl, getCameras, publicCamera } from '../models/store.js';
 import { discoverCameras, forgetSnapshotUrl, localSubnet } from '../helpers/ptz/index.js';
+import {
+  cameraChanged, cameraRemoved, recordingStatus,
+} from '../helpers/cameraRecorder.js';
+
+/** A camera for the page: publicCamera plus whether (and how well) it is recording. */
+const cameraOut = (camera) => ({ ...publicCamera(camera), recording: recordingStatus(camera) });
 
 const cameraFields = (body = {}) => ({
   name: String(body.name || '').trim(),
@@ -22,7 +28,7 @@ const number = (value, fallback, low, high) => {
  * password, so the settings form cannot send it back; an absent or empty
  * password therefore means "leave it alone", not "clear it". Without that, the
  * first time anyone edited a camera's name the PTZ password would be wiped and
- * attendance would start failing with an authentication error nobody changed.
+ * PTZ control would start failing with an authentication error nobody changed.
  */
 const ptzFields = (body = {}, existing = {}) => {
   const ptz = body.ptz;
@@ -39,13 +45,8 @@ const ptzFields = (body = {}, existing = {}) => {
     profileToken: String(ptz.profileToken ?? current.profileToken ?? '').trim(),
     profileName: String(ptz.profileName ?? current.profileName ?? '').trim(),
     snapshotUrl: String(ptz.snapshotUrl ?? current.snapshotUrl ?? '').trim(),
-    panRangeDegrees: number(ptz.panRangeDegrees ?? current.panRangeDegrees, 360, 1, 360),
-    hfovDegrees: number(ptz.hfovDegrees ?? current.hfovDegrees, 65, 1, 180),
-    maxZoomFactor: number(ptz.maxZoomFactor ?? current.maxZoomFactor, 20, 1, 60),
-    homeDegrees: number(ptz.homeDegrees ?? current.homeDegrees, 0, -180, 180),
     tilt: number(ptz.tilt ?? current.tilt, 0, -1, 1),
     moveSpeed: number(ptz.moveSpeed ?? current.moveSpeed, 0.6, 0.05, 1),
-    settleMs: number(ptz.settleMs ?? current.settleMs, 900, 0, 10_000),
     timeoutMs: number(ptz.timeoutMs ?? current.timeoutMs, 8000, 1000, 60_000),
   };
 };
@@ -70,7 +71,7 @@ const validatePtz = (ptz) => {
 
 export const listCameras = async (req, res) => {
   const cameras = await getCameras();
-  return res.json({ cameras: cameras.map(publicCamera) });
+  return res.json({ cameras: cameras.map(cameraOut) });
 };
 
 /*
@@ -143,7 +144,7 @@ export const createCameraRecord = async (req, res) => {
   if (ptzError) return res.status(400).json({ message: ptzError });
 
   const created = await createCamera(ptz ? { ...camera, ptz } : camera);
-  return res.status(201).json({ camera: publicCamera(created) });
+  return res.status(201).json({ camera: cameraOut(created) });
 };
 
 export const updateCamera = async (req, res) => {
@@ -160,6 +161,7 @@ export const updateCamera = async (req, res) => {
   const ptzError = validatePtz(ptz);
   if (ptzError) return res.status(400).json({ message: ptzError });
 
+  const addressChanged = updates.address !== camera.address;
   Object.assign(camera, updates);
   if (ptz) camera.ptz = ptz;
   await camera.save();
@@ -167,8 +169,9 @@ export const updateCamera = async (req, res) => {
   // The ONVIF snapshot URL is cached per camera, and it is derived from the
   // profile and address that may have just changed.
   forgetSnapshotUrl(camera.id);
+  if (addressChanged) cameraChanged(camera);
 
-  return res.json({ camera: publicCamera(camera) });
+  return res.json({ camera: cameraOut(camera) });
 };
 
 export const deleteCamera = async (req, res) => {
@@ -177,5 +180,6 @@ export const deleteCamera = async (req, res) => {
 
   await camera.deleteOne();
   forgetSnapshotUrl(camera.id);
+  cameraRemoved(camera.id);
   return res.json({ ok: true });
 };

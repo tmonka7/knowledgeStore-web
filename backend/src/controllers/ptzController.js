@@ -121,7 +121,7 @@ export const movePtz = async (req, res) => {
  * often unreachable (HTTP Digest). Served from here they are same-origin, and
  * face recognition in the page can read them.
  *
- * no-store because a cached frame in a sweep is a frame of the wrong angle.
+ * no-store because a cached frame is of wherever the camera used to point.
  */
 export const cameraFrame = async (req, res) => {
   const camera = await loadCamera(req, res);
