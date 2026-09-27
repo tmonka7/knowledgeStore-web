@@ -31,11 +31,12 @@ For Speaker recognition: "ecapa" fetches SpeechBrain's ECAPA-TDNN speaker
 embedding model (speechbrain/spkrec-ecapa-voxceleb, Apache-2.0, about 90 MB).
 
 For OCR (PaddleOCR 3, Apache-2.0): "paddleocr" fetches the PP-OCRv5 mobile
-models, about 60 MB — text detection, the text-line orientation classifier, and
+models, about 90 MB — text detection, the text-line orientation classifier,
 recognition for Chinese and Japanese (one model, which reads English too),
-English, Korean and Russian. "paddleocr-server" adds the larger server
-detection and Chinese/Japanese recognition models (about 170 MB), which are
-more accurate and slower.
+English, Korean and Russian, and the layout and table-structure models that
+keep a page's titles, tables and figures. "paddleocr-server" adds the larger
+server detection, Chinese/Japanese recognition and layout models (about
+300 MB), which are more accurate and slower.
 
 For Voice recognition (whisper.cpp, run through pywhispercpp): "ggml-tiny",
 "ggml-tiny.en", "ggml-base", "ggml-base.en" (also ggml-small[.en]) fetch the
@@ -86,11 +87,17 @@ OCR_MODELS = {
     "en_PP-OCRv5_mobile_rec": {"ocrRole": "rec", "variant": "mobile", "languages": ["en"]},
     "korean_PP-OCRv5_mobile_rec": {"ocrRole": "rec", "variant": "mobile", "languages": ["ko", "en"]},
     "eslav_PP-OCRv5_mobile_rec": {"ocrRole": "rec", "variant": "mobile", "languages": ["ru", "en"]},
+    # Layout: where the titles, paragraphs, tables and figures of a page are,
+    # and the structure (rows, columns, merged cells) of each table.
+    "PP-DocLayout-M": {"ocrRole": "layout", "variant": "mobile"},
+    "PP-DocLayout_plus-L": {"ocrRole": "layout", "variant": "server"},
+    "SLANet_plus": {"ocrRole": "table"},
 }
 OCR_SETS = {
     "paddleocr": ["PP-OCRv5_mobile_det", "PP-LCNet_x1_0_textline_ori", "PP-OCRv5_mobile_rec",
-                  "en_PP-OCRv5_mobile_rec", "korean_PP-OCRv5_mobile_rec", "eslav_PP-OCRv5_mobile_rec"],
-    "paddleocr-server": ["PP-OCRv5_server_det", "PP-OCRv5_server_rec"],
+                  "en_PP-OCRv5_mobile_rec", "korean_PP-OCRv5_mobile_rec", "eslav_PP-OCRv5_mobile_rec",
+                  "PP-DocLayout-M", "SLANet_plus"],
+    "paddleocr-server": ["PP-OCRv5_server_det", "PP-OCRv5_server_rec", "PP-DocLayout_plus-L"],
 }
 YOLO_NAME = re.compile(r"yolo[0-9a-z]*[nsmlx](-seg)?")
 GGML_REPO = "ggerganov/whisper.cpp"

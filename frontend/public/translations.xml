@@ -1098,11 +1098,8 @@
   <text id="ocrNoModels" en="The OCR models are not installed on the server" es="Los modelos de OCR no estan instalados en el servidor" zh="服务器上未安装 OCR 模型" jp="サーバに OCR モデルがインストールされていません" />
   <text id="ocrNoModelsHelp" en="An administrator installs PaddleOCR and its models once, on the server:" es="Un administrador instala PaddleOCR y sus modelos una vez, en el servidor:" zh="管理员需在服务器上安装一次 PaddleOCR 及其模型：" jp="管理者がサーバに PaddleOCR とそのモデルを一度インストールします：" />
   <text id="ocrEngineFailed" en="OCR could not start" es="No se pudo iniciar el OCR" zh="无法启动 OCR" jp="OCR を開始できませんでした" />
-  <text id="ocrSettings" en="Image and language" es="Imagen e idioma" zh="图片和语言" jp="画像と言語" />
   <text id="ocrLanguage" en="Language of the text" es="Idioma del texto" zh="文字语言" jp="文字の言語" />
   <text id="ocrLanguageMissing" en="No model for this language on the server" es="No hay modelo para este idioma en el servidor" zh="服务器上没有该语言的模型" jp="この言語のモデルがサーバにありません" />
-  <text id="ocrRecognitionModel" en="Recognition model" es="Modelo de reconocimiento" zh="识别模型" jp="認識モデル" />
-  <text id="ocrDetectionModel" en="Detection model" es="Modelo de deteccion" zh="检测模型" jp="検出モデル" />
   <text id="ocrRotated" en="Rotated text" es="Texto girado" zh="旋转文字" jp="回転した文字" />
   <text id="ocrRotatedHelp" en="Also read lines that are upside down. A little slower." es="Lee tambien las lineas al reves. Algo mas lento." zh="同时识别上下颠倒的文字行，速度稍慢。" jp="上下逆さまの行も読み取ります。少し遅くなります。" />
   <text id="ocrChooseImage" en="Choose an image or PDF" es="Elige una imagen o un PDF" zh="选择图片或 PDF" jp="画像または PDF を選択" />
@@ -1111,11 +1108,9 @@
   <text id="ocrCopy" en="Copy the text" es="Copiar el texto" zh="复制文字" jp="文字をコピー" />
   <text id="ocrCopied" en="Text copied" es="Texto copiado" zh="文字已复制" jp="文字をコピーしました" />
   <text id="ocrCopyFailed" en="Could not copy the text" es="No se pudo copiar el texto" zh="无法复制文字" jp="文字をコピーできませんでした" />
-  <text id="ocrDownload" en="Download as .txt" es="Descargar como .txt" zh="下载为 .txt" jp=".txt でダウンロード" />
+  <text id="ocrDownload" en="Download" es="Descargar" zh="下载" jp="ダウンロード" />
   <text id="ocrNoResult" en="Choose an image or PDF to read its text" es="Elige una imagen o un PDF para leer su texto" zh="选择图片或 PDF 以识别其中的文字" jp="文字を読み取る画像または PDF を選択してください" />
   <text id="ocrNothingFound" en="No text was found" es="No se encontro texto" zh="未找到文字" jp="文字が見つかりませんでした" />
-  <text id="ocrLineCount" en="{count} of {total} lines" es="{count} de {total} lineas" zh="{count} / {total} 行" jp="{count} / {total} 行" />
-  <text id="ocrTook" en="{seconds} s" es="{seconds} s" zh="{seconds} 秒" jp="{seconds} 秒" />
   <text id="ocrMinScore" en="Hide lines below confidence {value}" es="Ocultar lineas con confianza menor que {value}" zh="隐藏置信度低于 {value} 的行" jp="信頼度 {value} 未満の行を隠す" />
   <text id="ocrFailed" en="The text could not be read" es="No se pudo leer el texto" zh="无法识别文字" jp="文字を読み取れませんでした" />
   <text id="ocrNotImage" en="Choose an image or a PDF" es="Elige una imagen o un PDF" zh="请选择图片或 PDF" jp="画像または PDF を選択してください" />
@@ -1123,5 +1118,24 @@
   <text id="ocrFirstSlow" en="The first image after the server starts OCR can take a minute or more while the models load." es="La primera imagen despues de iniciar el OCR en el servidor puede tardar un minuto o mas mientras se cargan los modelos." zh="服务器启动 OCR 后的第一张图片可能需要一分钟以上，用于加载模型。" jp="サーバで OCR を開始した後の最初の画像は、モデルの読み込みのため 1 分以上かかることがあります。" />
   <text id="ocrPage" en="Page {page}" es="Pagina {page}" zh="第 {page} 页" jp="{page} ページ" />
   <text id="ocrPdfTruncated" en="Only the first {read} of the {count} pages were read." es="Solo se leyeron las primeras {read} de las {count} paginas." zh="共 {count} 页，只识别了前 {read} 页。" jp="{count} ページのうち最初の {read} ページだけを読み取りました。" />
-  <text id="ocrPdfSlow" en="A PDF is read page by page, a few seconds each." es="Un PDF se lee pagina a pagina, unos segundos cada una." zh="PDF 逐页识别，每页需几秒钟。" jp="PDF は 1 ページずつ読み取り、1 ページ数秒かかります。" />
+  <text id="ocrOriginal" en="Original" es="Original" zh="原文" jp="原本" />
+  <text id="ocrRecognised" en="Recognised" es="Reconocido" zh="识别结果" jp="認識結果" />
+  <text id="ocrViewLayout" en="Layout" es="Diseno" zh="版面" jp="レイアウト" />
+  <text id="ocrViewText" en="Text" es="Texto" zh="文本" jp="テキスト" />
+  <text id="ocrFont" en="Font for the recognised text" es="Fuente del texto reconocido" zh="识别文字的字体" jp="認識した文字のフォント" />
+  <text id="ocrFontAuto" en="Automatic (by language)" es="Automatica (segun el idioma)" zh="自动（按语言）" jp="自動（言語に合わせる）" />
+  <text id="ocrFontSans" en="Sans serif" es="Sin serifa" zh="无衬线" jp="ゴシック体" />
+  <text id="ocrFontSerif" en="Serif" es="Con serifa" zh="衬线" jp="明朝体" />
+  <text id="ocrFontMono" en="Monospaced" es="Monoespaciada" zh="等宽" jp="等幅" />
+  <text id="ocrFontCjk" en="Chinese, Korean, Japanese" es="Chino, coreano, japones" zh="中文、韩文、日文" jp="中国語・韓国語・日本語" />
+  <text id="ocrLayoutSwitch" en="Keep layout" es="Mantener diseno" zh="保留版面" jp="レイアウトを保持" />
+  <text id="ocrLayoutHelp" en="Also find titles, tables and figures, and show the result laid out as the original. A few seconds slower a page." es="Busca tambien titulos, tablas e imagenes, y muestra el resultado con el diseno del original. Unos segundos mas por pagina." zh="同时识别标题、表格和图片，并按原文版面显示结果。每页多用几秒。" jp="見出し・表・図も検出し、原本と同じレイアウトで結果を表示します。1 ページあたり数秒遅くなります。" />
+  <text id="ocrProgress" en="Reading page {page} of {total} ({done} done)" es="Leyendo la pagina {page} de {total} ({done} listas)" zh="正在识别第 {page} / {total} 页（已完成 {done} 页）" jp="{total} ページ中 {page} ページ目を読み取り中（{done} ページ完了）" />
+  <text id="ocrOpening" en="Opening the file…" es="Abriendo el archivo…" zh="正在打开文件…" jp="ファイルを開いています…" />
+  <text id="ocrCancel" en="Cancel" es="Cancelar" zh="取消" jp="キャンセル" />
+  <text id="ocrCancelled" en="Cancelled after {done} of {total} pages." es="Cancelado tras {done} de {total} paginas." zh="已取消，完成了 {done} / {total} 页。" jp="{total} ページ中 {done} ページで取り消しました。" />
+  <text id="ocrDownloadHtml" en="Download laid out (.html)" es="Descargar con diseno (.html)" zh="下载版面（.html）" jp="レイアウト付きでダウンロード（.html）" />
+  <text id="ocrDownloadTxt" en="Download text (.txt)" es="Descargar texto (.txt)" zh="下载文本（.txt）" jp="テキストをダウンロード（.txt）" />
+  <text id="ocrPageOf" en="Page {page} of {total}" es="Pagina {page} de {total}" zh="第 {page} / {total} 页" jp="{page} / {total} ページ" />
+  <text id="ocrPageReading" en="Reading page {page}…" es="Leyendo la pagina {page}…" zh="正在识别第 {page} 页…" jp="{page} ページ目を読み取り中…" />
 </translations>

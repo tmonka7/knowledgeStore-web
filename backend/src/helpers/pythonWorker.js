@@ -4,7 +4,8 @@
 //
 // Protocol: one JSON object per line. The worker's first line is
 // {"ready": true, ...} or {"fatal": "..."}; after that it answers each
-// {"id", ...request} with {"id", "ok": true, ...} or {"id", "ok": false, "error"}.
+// {"id", ...request} with {"id", "ok": true, ...} or {"id", "ok": false, "error"},
+// and may send {"id", "progress": true, ...} lines before that answer.
 //
 // Requests are queued and sent one at a time: each model already uses every
 // core for one. A worker that dies is started again on the next request, one
@@ -91,11 +92,18 @@ export const createPythonWorker = ({
         } else if (message.fatal) {
           clearTimeout(timer);
           reject(new JobError(message.fatal, 503));
+        } else if (message.progress && state.pending.has(message.id)) {
+          state.pending.get(message.id).progress?.(message);
         } else if (state.pending.has(message.id)) {
           const { resolve: done, reject: failed } = state.pending.get(message.id);
           state.pending.delete(message.id);
-          if (message.ok) done(message);
-          else failed(new JobError(message.error || `${label} failed.`));
+          if (message.ok) {
+            done(message);
+          } else {
+            const error = new JobError(message.error || `${label} failed.`);
+            error.cancelled = Boolean(message.cancelled);
+            failed(error);
+          }
         }
       });
       child.on('error', (error) => {
@@ -124,12 +132,17 @@ export const createPythonWorker = ({
     return state;
   };
 
-  const send = async (request, timeoutMs) => {
+  const send = async (request, timeoutMs, { id = randomUUID(), onProgress, isCancelled } = {}) => {
+    // Cancelled while it waited its turn: not sent at all.
+    if (isCancelled?.()) {
+      const error = new JobError('cancelled');
+      error.cancelled = true;
+      throw error;
+    }
     if (!worker) worker = start();
     const current = worker;
     await current.ready;
     return new Promise((resolve, reject) => {
-      const id = randomUUID();
       const timer = setTimeout(() => {
         current.pending.delete(id);
         // A stuck model cannot be interrupted from here: restart the worker.
@@ -137,6 +150,7 @@ export const createPythonWorker = ({
         reject(new JobError(`${label} took too long and was stopped.`, 504));
       }, timeoutMs);
       current.pending.set(id, {
+        progress: onProgress,
         resolve: (value) => { clearTimeout(timer); resolve(value); },
         reject: (error) => { clearTimeout(timer); reject(error); },
       });
@@ -153,11 +167,16 @@ export const createPythonWorker = ({
       return info;
     },
 
-    /** Queue one request; resolves to the worker's reply. */
-    request: async (payload, timeoutMs, busyMessage = `${label} is busy; try again in a moment.`) => {
+    /**
+     * Queue one request; resolves to the worker's reply. `options.id` names
+     * the request (to cancel it with notify), `options.onProgress` receives
+     * its progress lines, and `options.isCancelled` is asked before it is
+     * sent, so a request cancelled while it waits never reaches the worker.
+     */
+    request: async (payload, timeoutMs, busyMessage = `${label} is busy; try again in a moment.`, options = {}) => {
       if (waiting >= maxWaiting) throw new JobError(busyMessage, 429);
       waiting += 1;
-      const turn = queue.then(() => send(payload, timeoutMs));
+      const turn = queue.then(() => send(payload, timeoutMs, options));
       queue = turn.catch(() => {});
       try {
         return await turn;
@@ -165,6 +184,13 @@ export const createPythonWorker = ({
         waiting -= 1;
         armIdle();
       }
+    },
+
+    /** Send a line that expects no answer (such as a cancel) to a running worker; false if none. */
+    notify: (payload) => {
+      if (!worker?.child.stdin.writable) return false;
+      worker.child.stdin.write(`${JSON.stringify(payload)}\n`);
+      return true;
     },
 
     stop,

@@ -42,7 +42,7 @@ The Models tab exports it to ONNX with `speaker_export.py` into
 older one; without it the graph starts from filterbank features instead
 (`ecapa_fbank.onnx`).
 
-For OCR (PaddleOCR 3 with the PP-OCRv5 models, Apache-2.0, about 60 MB):
+For OCR (PaddleOCR 3 with the PP-OCRv5 models, Apache-2.0, about 90 MB):
 
 ```
 pip install paddlepaddle paddleocr
@@ -56,8 +56,11 @@ turns upside-down lines round (the page's **Rotated text** switch), and one
 recognition model per script reads them — `en_PP-OCRv5_mobile_rec` (English),
 `PP-OCRv5_mobile_rec` (Chinese and Japanese, and English too),
 `korean_PP-OCRv5_mobile_rec` (Korean) and `eslav_PP-OCRv5_mobile_rec`
-(Russian). `ocr_worker.py` loads them from these folders only; PaddleOCR's own
-download is never used. oneDNN is turned off, because PaddlePaddle 3.3 fails
+(Russian). For **Keep layout**, `PP-DocLayout-M` finds a page's titles,
+paragraphs, tables and figures, and `SLANet_plus` recognises each table's rows,
+columns and merged cells, which the worker fills with the lines read in each
+cell (`paddleocr-server` adds the larger `PP-DocLayout_plus-L`). `ocr_worker.py`
+loads them from these folders only; PaddleOCR's own download is never used. oneDNN is turned off, because PaddlePaddle 3.3 fails
 with it on these models on the CPU (`OCR_MKLDNN=1` turns it back on).
 
 For Voice recognition on the Speech to Text page (whisper.cpp, MIT):

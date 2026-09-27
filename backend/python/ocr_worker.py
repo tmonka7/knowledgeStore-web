@@ -5,17 +5,31 @@ read from the folders download_models.py puts them in; nothing is fetched.
 
 Protocol, one JSON object per line:
   in  {"id": "...", "image": "<path>", "pdf": false, "maxPages": 30,
-       "det": "<folder>", "rec": "<folder>", "textline": "<folder>" | null}
-  out {"id": "...", "ok": true, "pageCount": 1, "took": 0.42,
-       "pages": [{"page": 1, "width": 1280, "height": 720, "image": null,
-                  "lines": [{"text": "...", "score": 0.98, "box": [[x, y] x 4]}]}]}
-      {"id": "...", "ok": false, "error": "..."}
-With "pdf": true the file is a PDF: its first maxPages pages are rendered and
-read, and each page carries "image", a JPEG preview (a data: URL) the page can
-show, since a browser cannot draw a PDF page under the boxes itself. Boxes are
+       "det": "<folder>", "rec": "<folder>", "textline": "<folder>" | null,
+       "layout": "<folder>" | null, "table": "<folder>" | null}
+      {"cancel": "<id>"}   stop that request after the page being read
+  out {"id": "...", "progress": true, "done": 0, "total": 12, "pageCount": 40}
+      {"id": "...", "progress": true, "done": 3, "total": 12,
+       "page": {"page": 3, "width": 1700, "height": 2200, "image": "data:…" | null,
+                "lines": [{"text": "...", "score": 0.98, "box": [[x, y] x 4], "role": "title"}],
+                "blocks": [{"type": "table", "box": [x1, y1, x2, y2], "html": "<table>…"},
+                           {"type": "figure", "box": [x1, y1, x2, y2], "image": "data:…"}]}}
+      {"id": "...", "ok": true, "done": 12, "total": 12, "pageCount": 40, "took": 31.2}
+      {"id": "...", "ok": false, "error": "...", "cancelled": false}
+Every page is sent as soon as it is read, so the page can show progress and
+the pages read so far; the final reply only closes the request. An image is
+one page. With "pdf": true the file is a PDF: its first maxPages pages are
+rendered and read, and each page carries "image", a JPEG preview (a data:
+URL), since a browser cannot draw a PDF page under the boxes itself. Boxes are
 in the rendered page's pixels, which the preview keeps the proportions of.
+With a "layout" model each line also gets a "role" — title, text, caption,
+header, footer, or table / figure for a line inside one — and the page gets
+"blocks": its tables, rebuilt as HTML with the "table" model and the lines in
+each cell, and its figures, cut out of the page. Without one, lines have no
+role and there are no blocks.
 The first line out is {"ready": true, ...} or {"fatal": "..."}.
 """
+import collections
 import json
 import os
 import sys
@@ -39,11 +53,82 @@ MAX_LOADED = 2
 # print. The previews sent back are smaller, as a page only shows them.
 PDF_DPI = 200
 PREVIEW_WIDTH = 1400
+FIGURE_WIDTH = 1000
+
+# PP-DocLayout labels, by what the page does with them.
+TITLE_LABELS = {"doc_title", "paragraph_title"}
+CAPTION_LABELS = {"figure_title", "table_title", "chart_title", "figure_table_chart_title"}
+HEADER_LABELS = {"header", "header_image"}
+FOOTER_LABELS = {"footer", "footer_image", "footnote", "number"}
+FIGURE_LABELS = {"image", "chart", "seal", "header_image", "footer_image"}
+
 
 
 def reply(message):
     REPLY.write(json.dumps(message, ensure_ascii=False) + "\n")
     REPLY.flush()
+
+
+class Input:
+    """Lines from stdin, read without Python's buffering so the pipe can be
+    peeked at: between two pages the worker looks for a cancel without
+    waiting for one.
+
+    Not a thread blocked in a read: on Windows a read pending on the pipe
+    stalls every DLL load in the process (the loader queries the standard
+    handles), and loading PaddleOCR is a long run of DLL loads.
+    """
+
+    def __init__(self, fd=0):
+        self.fd = fd
+        self.buffer = b""
+        self.closed = False
+        if os.name == "nt":
+            import ctypes
+            import msvcrt
+            from ctypes import wintypes
+
+            self._handle = msvcrt.get_osfhandle(fd)
+            self._peek = ctypes.windll.kernel32.PeekNamedPipe
+            self._peek.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p,
+                                   ctypes.POINTER(wintypes.DWORD), ctypes.c_void_p]
+            self._ctypes, self._wintypes = ctypes, wintypes
+
+    def _waiting(self):
+        """Bytes that can be read without blocking (1 at end of input, so the read sees it)."""
+        if os.name == "nt":
+            count = self._wintypes.DWORD(0)
+            if not self._peek(self._handle, None, 0, None, self._ctypes.byref(count), None):
+                return 1  # A closed pipe: the read returns b"" and marks the end.
+            return count.value
+        import select
+        return 1 if select.select([self.fd], [], [], 0)[0] else 0
+
+    def _fill(self, size):
+        chunk = os.read(self.fd, size)
+        if not chunk:
+            self.closed = True
+        self.buffer += chunk
+
+    def _take_lines(self):
+        *lines, self.buffer = self.buffer.split(b"\n")
+        return [line.decode("utf-8", "replace").strip() for line in lines if line.strip()]
+
+    def available(self):
+        """The complete lines that have arrived, without waiting."""
+        while not self.closed and (waiting := self._waiting()):
+            self._fill(max(1, waiting))
+        return self._take_lines()
+
+    def wait(self):
+        """At least one line, waiting for it; [] once stdin is closed."""
+        while b"\n" not in self.buffer and not self.closed:
+            self._fill(65536)
+        return self._take_lines()
+
+
+class Cancelled(Exception):
+    pass
 
 
 def model_name(folder):
@@ -96,39 +181,36 @@ def read_image(path):
     return np.ascontiguousarray(np.asarray(image)[:, :, ::-1])
 
 
-def pdf_pages(path, max_pages):
-    """(pages as BGR pixels, number of pages in the document) for a PDF."""
-    import numpy as np
+def open_pdf(path):
     import pypdfium2 as pdfium
 
     try:
-        document = pdfium.PdfDocument(path)
+        return pdfium.PdfDocument(path)
     except pdfium.PdfiumError as error:
         raise ValueError(f"this PDF cannot be opened ({error}); it may be damaged or password-protected") from None
+
+
+def render_page(document, index):
+    """One PDF page as BGR pixels, rendered at PDF_DPI."""
+    import numpy as np
+
+    page = document[index]
     try:
-        count = len(document)
-        pages = []
-        for index in range(min(count, max_pages)):
-            page = document[index]
-            try:
-                image = page.render(scale=PDF_DPI / 72).to_pil().convert("RGB")
-            finally:
-                page.close()
-            pages.append(np.ascontiguousarray(np.asarray(image)[:, :, ::-1]))
-        return pages, count
+        image = page.render(scale=PDF_DPI / 72).to_pil().convert("RGB")
     finally:
-        document.close()
+        page.close()
+    return np.ascontiguousarray(np.asarray(image)[:, :, ::-1])
 
 
-def preview(pixels):
-    """A JPEG data: URL of a page, at most PREVIEW_WIDTH wide."""
+def preview(pixels, max_width=PREVIEW_WIDTH):
+    """A JPEG data: URL of a page (or part of one), at most max_width wide."""
     import base64
     import io
     from PIL import Image
 
     image = Image.fromarray(pixels[:, :, ::-1])
-    if image.width > PREVIEW_WIDTH:
-        image = image.resize((PREVIEW_WIDTH, round(image.height * PREVIEW_WIDTH / image.width)), Image.LANCZOS)
+    if image.width > max_width:
+        image = image.resize((max_width, round(image.height * max_width / image.width)), Image.LANCZOS)
     buffer = io.BytesIO()
     image.save(buffer, "JPEG", quality=80)
     return "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
@@ -143,6 +225,146 @@ def read_lines(ocr, pixels):
         for text, score, poly in zip(result["rec_texts"], result["rec_scores"], result["rec_polys"])
         if str(text).strip()
     ]
+
+
+def layout_models(layout_dir, table_dir):
+    from paddleocr import LayoutDetection, TableStructureRecognition
+
+    options = {"enable_mkldnn": os.environ.get("OCR_MKLDNN") == "1"}
+    layout = LayoutDetection(model_name=model_name(layout_dir), model_dir=layout_dir, **options)
+    table = TableStructureRecognition(model_name=model_name(table_dir), model_dir=table_dir, **options) \
+        if table_dir else None
+    return layout, table
+
+
+def _center(box):
+    xs = [point[0] for point in box]
+    ys = [point[1] for point in box]
+    return sum(xs) / len(xs), sum(ys) / len(ys)
+
+
+def _inside(point, rect):
+    x, y = point
+    return rect[0] <= x <= rect[2] and rect[1] <= y <= rect[3]
+
+
+def _overlap(a, b):
+    """Intersection over the smaller of two rectangles."""
+    width = min(a[2], b[2]) - max(a[0], b[0])
+    height = min(a[3], b[3]) - max(a[1], b[1])
+    if width <= 0 or height <= 0:
+        return 0.0
+    smaller = min((a[2] - a[0]) * (a[3] - a[1]), (b[2] - b[0]) * (b[3] - b[1])) or 1
+    return width * height / smaller
+
+
+def _cell_text(lines):
+    """The lines in one cell, top to bottom, as HTML."""
+    from html import escape
+
+    rows = []
+    for line in sorted(lines, key=lambda item: _center(item["box"])[1]):
+        y = _center(line["box"])[1]
+        height = abs(line["box"][3][1] - line["box"][0][1]) or 1
+        if rows and abs(rows[-1][0] - y) < height / 2:
+            rows[-1][1].append(line)
+        else:
+            rows.append([y, [line]])
+    return "<br>".join(
+        " ".join(escape(item["text"]) for item in sorted(row, key=lambda item: _center(item["box"])[0]))
+        for _, row in rows
+    )
+
+
+def table_html(table_model, pixels, rect, lines):
+    """A table region as HTML: the structure from the model, each cell filled
+    with the text lines whose centre falls in it."""
+    x1, y1, x2, y2 = rect
+    result = table_model.predict(pixels[y1:y2, x1:x2].copy())[0]
+    cells = []
+    for coords in result["bbox"]:
+        xs, ys = coords[0::2], coords[1::2]
+        cells.append([min(xs) + x1, min(ys) + y1, max(xs) + x1, max(ys) + y1])
+    taken = set()
+
+    def fill(index):
+        if index >= len(cells):
+            return ""
+        chosen = [i for i, line in enumerate(lines) if i not in taken and _inside(_center(line["box"]), cells[index])]
+        taken.update(chosen)
+        return _cell_text([lines[i] for i in chosen])
+
+    html, cell, opening = [], 0, False
+    for token in result["structure"]:
+        if token in ("<html>", "</html>", "<body>", "</body>"):
+            continue
+        if token == "<td></td>":
+            html.append(f"<td>{fill(cell)}</td>")
+            cell += 1
+        elif token == "<td":
+            html.append("<td")
+            opening = True
+        elif opening and token == ">":
+            html.append(">" + fill(cell))
+            cell += 1
+            opening = False
+        elif opening:
+            html.append(token)  # colspan="2", rowspan="3"
+        else:
+            html.append(token)
+    return "".join(html)
+
+
+def crop_image(pixels, rect):
+    x1, y1, x2, y2 = rect
+    return preview(pixels[y1:y2, x1:x2], FIGURE_WIDTH)
+
+
+def analyse_layout(models, pixels, lines):
+    """Give each line its role and find the page's tables and figures."""
+    layout, table_model = models
+    height, width = pixels.shape[:2]
+    regions = []
+    for box in layout.predict(pixels)[0]["boxes"]:
+        x1, y1, x2, y2 = (int(round(float(value))) for value in box["coordinate"])
+        rect = [max(0, x1), max(0, y1), min(width, x2), min(height, y2)]
+        if rect[2] - rect[0] > 4 and rect[3] - rect[1] > 4:
+            regions.append({"label": box["label"], "score": float(box["score"]), "rect": rect})
+
+    # One figure where the model saw both an image and a chart in one place.
+    figures = []
+    for region in sorted((r for r in regions if r["label"] in FIGURE_LABELS), key=lambda r: -r["score"]):
+        if all(_overlap(region["rect"], other["rect"]) < 0.7 for other in figures):
+            figures.append(region)
+    tables = [r for r in regions if r["label"] == "table"]
+
+    for line in lines:
+        center = _center(line["box"])
+        found = next((r for r in tables if _inside(center, r["rect"])), None) \
+            or next((r for r in figures if _inside(center, r["rect"])), None) \
+            or next((r for r in regions if _inside(center, r["rect"])), None)
+        label = found["label"] if found else "text"
+        line["role"] = ("table" if label == "table" else "figure" if label in FIGURE_LABELS
+                        else "title" if label in TITLE_LABELS else "caption" if label in CAPTION_LABELS
+                        else "header" if label in HEADER_LABELS else "footer" if label in FOOTER_LABELS
+                        else "text")
+
+    blocks = []
+    for region in tables:
+        inside = [line for line in lines if _inside(_center(line["box"]), region["rect"])]
+        try:
+            html = table_html(table_model, pixels, region["rect"], inside) if table_model else None
+        except Exception:  # noqa: BLE001  (a table that cannot be rebuilt stays as lines)
+            traceback.print_exc()
+            html = None
+        if html:
+            blocks.append({"type": "table", "box": region["rect"], "html": html})
+        else:
+            for line in inside:
+                line["role"] = "text"
+    for region in figures:
+        blocks.append({"type": "figure", "box": region["rect"], "image": crop_image(pixels, region["rect"])})
+    return blocks
 
 
 def installed_version(*distributions):
@@ -174,6 +396,24 @@ def main():
            "paddle": installed_version("paddlepaddle", "paddlepaddle-gpu") or "",
            "paddleocr": installed_version("paddleocr") or ""})
 
+    # Requests queue here and are read one at a time; a cancel is picked up
+    # between the pages of the one being read, or before a queued one starts.
+    stdin = Input()
+    requests = collections.deque()
+    cancelled = set()
+
+    def take(lines):
+        for raw in lines:
+            try:
+                message = json.loads(raw)
+            except ValueError as error:
+                reply({"id": None, "ok": False, "error": f"not JSON: {error}"})
+                continue
+            if message.get("cancel"):
+                cancelled.add(message["cancel"])
+            else:
+                requests.append(message)
+
     started = time.time()
     try:
         import paddleocr  # noqa: F401  (loads paddle and paddlex too)
@@ -184,6 +424,14 @@ def main():
         load_error = f"PaddleOCR could not be loaded ({error or error.__class__.__name__})"
 
     loaded = {}
+    layouts = {}
+
+    def layout_pipeline(layout_dir, table_dir):
+        key = (layout_dir, table_dir)
+        if key not in layouts:
+            layouts.clear()
+            layouts[key] = layout_models(layout_dir, table_dir)
+        return layouts[key]
 
     def pipeline(det, rec, textline):
         key = (det, rec, textline)
@@ -193,37 +441,62 @@ def main():
             loaded[key] = build(det, rec, textline)
         return loaded[key]
 
-    for line in sys.stdin:
-        line = line.strip()
-        if not line:
-            continue
-        request_id = None
+    while True:
+        take(stdin.available())
+        while not requests:
+            if stdin.closed:
+                return
+            take(stdin.wait())
+        request = requests.popleft()
+        request_id = request.get("id")
+        document = None
+
+        def check_cancelled():
+            take(stdin.available())
+            if request_id in cancelled:
+                raise Cancelled()
+
         try:
-            request = json.loads(line)
-            request_id = request.get("id")
             if not request.get("image") or not request.get("det") or not request.get("rec"):
                 raise ValueError("the request needs an image and the detection and recognition models")
             if load_error:
                 raise RuntimeError(load_error)
+            check_cancelled()
             started = time.time()
-            if request.get("pdf"):
+            pdf = bool(request.get("pdf"))
+            if pdf:
                 if find_spec("pypdfium2") is None:
                     raise RuntimeError("reading PDFs needs pypdfium2. Run: pip install pypdfium2")
-                images, count = pdf_pages(request["image"], max(1, int(request.get("maxPages") or 30)))
+                document = open_pdf(request["image"])
+                page_count = len(document)
+                total = min(page_count, max(1, int(request.get("maxPages") or 30)))
             else:
-                images, count = [read_image(request["image"])], 1
+                image = read_image(request["image"])
+                page_count = total = 1
+            reply({"id": request_id, "progress": True, "done": 0, "total": total, "pageCount": page_count})
             ocr = pipeline(request["det"], request["rec"], request.get("textline") or None)
-            pages = []
-            for number, pixels in enumerate(images, start=1):
+            layout = layout_pipeline(request["layout"], request.get("table") or None) if request.get("layout") else None
+            for index in range(total):
+                check_cancelled()
+                pixels = render_page(document, index) if pdf else image
                 height, width = pixels.shape[:2]
-                pages.append({"page": number, "width": width, "height": height,
-                              "image": preview(pixels) if request.get("pdf") else None,
-                              "lines": read_lines(ocr, pixels)})
-            reply({"id": request_id, "ok": True, "pages": pages, "pageCount": count,
+                lines = read_lines(ocr, pixels)
+                page = {"page": index + 1, "width": width, "height": height,
+                        "dpi": PDF_DPI if pdf else None,
+                        "image": preview(pixels) if pdf else None, "lines": lines,
+                        "blocks": analyse_layout(layout, pixels, lines) if layout else []}
+                reply({"id": request_id, "progress": True, "done": index + 1, "total": total, "page": page})
+            reply({"id": request_id, "ok": True, "done": total, "total": total, "pageCount": page_count,
                    "took": round(time.time() - started, 3)})
+        except Cancelled:
+            reply({"id": request_id, "ok": False, "error": "cancelled", "cancelled": True})
         except Exception as error:  # noqa: BLE001  (one bad request must not end the worker)
             traceback.print_exc()
             reply({"id": request_id, "ok": False, "error": str(error) or error.__class__.__name__})
+        finally:
+            if document is not None:
+                document.close()
+            cancelled.discard(request_id)
 
 
 if __name__ == "__main__":

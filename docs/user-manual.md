@@ -550,38 +550,62 @@ python backend/python/download_models.py ecapa
 ## 8d-4. OCR (reading text in images)
 
 **Tools → AI → OCR** reads the text in an image or a PDF with PaddleOCR
-(PP-OCRv5): English, Chinese, Korean, Japanese or Russian.
+(PP-OCRv5): English, Chinese, Korean, Japanese or Russian. The model is chosen
+by the language.
 
-1. Pick the **language** of the text. A language the server has no model for
-   is greyed out.
-2. **Choose an image or PDF**, drop one on the box, or paste a screenshot
-   with Ctrl+V anywhere on the page (PNG, JPEG, BMP, WebP or PDF, up to
-   50 MB). It is read straight away; **Read text** reads it again after you
-   change a setting.
-3. The result shows the image with a box round each line — green when the
-   model is sure, amber or red when it is not — and the lines as text.
-   Pointing at a box highlights its line and the other way round. **Copy**
-   copies all the text, **Download** saves it as a .txt file, and each line
-   has its own copy button. **Hide lines below confidence** leaves out lines
-   the model was unsure of (usually specks and stray marks).
+1. In the bar at the top, pick the **language** of the text. A language the
+   server has no model for is greyed out.
+2. **Choose an image or PDF**, drop one on the left side, or paste a
+   screenshot with Ctrl+V anywhere on the page (PNG, JPEG, BMP, WebP or PDF,
+   up to 50 MB). It is read straight away; **Read text** reads it again after
+   you change a setting.
+3. The bar shows the **progress** — which page is being read, and how many
+   are done. Pages appear as soon as they are read, so you can start with the
+   first while the rest are read. **Cancel** stops after the page in hand.
 
-**PDFs** are read page by page, a few seconds a page, and only the first
-30 pages (the administrator can change this with `OCR_MAX_PAGES`). The pages
-appear as pictures with the boxes on them; move between them with the page
-arrows. **Copy** and **Download** take the text of every page read, each
-under a "Page N" heading. Every page is read in the one language chosen, so a
-PDF that mixes languages page by page is best read once per language. A
-password-protected PDF cannot be read.
+**Original** (left) is the file, with a box round each line read — green when
+the model is sure, amber or red when it is not — and dashed boxes round the
+tables and figures found. A PDF has a column of page thumbnails; click one to
+go to that page.
 
-Turn on **Rotated text** when the page is upside down or lines run in
-different directions; it is a little slower. Photos from a phone are turned
-the way the phone shows them. If the server has more than one model for a
-language, **Recognition model** picks one — for example the Chinese model also
-reads English, and is better for a page that mixes the two.
+**Recognised** (right) shows what was read:
 
-The file is read on the server and deleted straight away; nothing is kept.
-If the page says the OCR models are not installed, an administrator runs, on
-the server:
+- **Layout** draws each page as the original was laid out: every line where
+  it stood and at its size, titles in bold, tables rebuilt as tables (with
+  their rows, columns and merged cells), and figures and charts cut from the
+  page.
+- **Text** lists the lines, each with its size (in points for a PDF, in
+  pixels for an image) and how sure the model was.
+
+The two sides move together: scrolling one scrolls the other to the same
+place on the same page, and pointing at a line, a table or a figure on either
+side highlights it on both, bringing it into view on the other.
+
+The **font** box sets the font the recognised text is drawn in. *Automatic*
+picks one with the letters of the language chosen; the list also has common
+Latin fonts and Chinese, Korean and Japanese ones, each shown in itself. The
+font of the original is not detected — choose the closest.
+
+**Copy** copies the text of every page, in reading order, with each table as
+tab-separated rows (it pastes into a spreadsheet as a table). **Download**
+saves the pages **laid out**, as an HTML file that opens in any browser or in
+Word, in the font chosen, or the **text** as a .txt file.
+
+**Keep layout** finds the titles, tables and figures; it adds a few seconds a
+page. Turn it off to read only the lines. **Rotated text** also reads lines
+that are upside down. **Hide lines below confidence** leaves out lines the
+model was unsure of (usually specks and stray marks). Photos from a phone are
+turned the way the phone shows them.
+
+**PDFs** are read page by page, and only the first 30 pages (the
+administrator can change this with `OCR_MAX_PAGES`). Every page is read in the
+one language chosen, so a PDF that mixes languages page by page is best read
+once per language. A password-protected PDF cannot be read. The first file
+after the server starts OCR can take a minute or more while the models load.
+
+The file is read on the server and deleted when it has been read (or the
+reading is cancelled); nothing is kept. If the page says the OCR models are
+not installed, an administrator runs, on the server:
 
 ```
 pip install paddlepaddle paddleocr

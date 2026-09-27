@@ -153,6 +153,8 @@ const ocrView = [requireAuth, requirePermission('ocr:view')];
 const ocrUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 50 * 1024 * 1024, files: 1 } });
 router.get('/tools/ocr/status', ...ocrView, asyncRoute(ocr.status));
 router.post('/tools/ocr/recognize', ...ocrView, ocrUpload.single('image'), asyncRoute(ocr.recognize));
+router.get('/tools/ocr/jobs/:id', ...ocrView, asyncRoute(ocr.job));
+router.post('/tools/ocr/jobs/:id/cancel', ...ocrView, asyncRoute(ocr.cancel));
 
 /*
  * YOLO and Speech to Text: the same shape as the Transformers routes above,

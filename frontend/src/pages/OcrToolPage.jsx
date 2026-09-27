@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Empty, Pagination, Row, Segmented, Select, Slider, Space, Spin, Switch, Tag, Tooltip, Typography,
-  message,
+  useCallback, useEffect, useMemo, useRef, useState,
+} from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import {
+  Alert, Button, Card, Dropdown, Empty, Progress, Segmented, Select, Slider, Space, Spin, Switch, Tag, Tooltip,
+  Typography, message,
 } from 'antd';
 import {
-  CopyOutlined, DownloadOutlined, FileImageOutlined, FilePdfOutlined, ReloadOutlined, ScanOutlined,
+  CopyOutlined, DownloadOutlined, FileImageOutlined, FilePdfOutlined, ReloadOutlined, ScanOutlined, StopOutlined,
 } from '@ant-design/icons';
 import api from '../api';
 import { MONO } from '../components/ml/JobView';
@@ -16,35 +19,164 @@ const { Paragraph, Text } = Typography;
 const LANGUAGE_LABELS = { en: 'English', zh: '中文', ko: '조선어', ja: '日本語', ru: 'Русский' };
 // Mirrors the upload limit on /tools/ocr/recognize.
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const POLL_MS = 700;
 const NONE = [];
+const PANE_HEIGHT = 'max(480px, calc(100vh - 330px))';
+
+/*
+ * Fonts for the recognised text. "Automatic" follows the language, with a
+ * font that has its script; the others are common fonts, each shown in the
+ * list in itself. A font the computer lacks falls back to the next one.
+ */
+const AUTO_FONTS = {
+  en: 'Arial, Helvetica, sans-serif',
+  ru: 'Arial, "Segoe UI", sans-serif',
+  zh: '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", "Noto Sans CJK SC", sans-serif',
+  ja: '"Yu Gothic", Meiryo, "Hiragino Sans", "Noto Sans JP", "Noto Sans CJK JP", sans-serif',
+  ko: '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", sans-serif',
+};
+const FONT_GROUPS = [
+  {
+    key: 'ocrFontSans',
+    fonts: [['Arial', 'Arial, sans-serif'], ['Helvetica', 'Helvetica, Arial, sans-serif'], ['Segoe UI', '"Segoe UI", sans-serif'],
+      ['Verdana', 'Verdana, sans-serif'], ['Tahoma', 'Tahoma, sans-serif']],
+  },
+  { key: 'ocrFontSerif', fonts: [['Times New Roman', '"Times New Roman", Times, serif'], ['Georgia', 'Georgia, serif'], ['Cambria', 'Cambria, serif']] },
+  { key: 'ocrFontMono', fonts: [['Courier New', '"Courier New", monospace'], ['Consolas', 'Consolas, monospace']] },
+  {
+    key: 'ocrFontCjk',
+    fonts: [
+      ['微软雅黑 Microsoft YaHei', '"Microsoft YaHei", sans-serif'], ['宋体 SimSun', 'SimSun, serif'], ['黑体 SimHei', 'SimHei, sans-serif'],
+      ['楷体 KaiTi', 'KaiTi, serif'], ['맑은 고딕 Malgun Gothic', '"Malgun Gothic", sans-serif'], ['바탕 Batang', 'Batang, serif'],
+      ['굴림 Gulim', 'Gulim, sans-serif'], ['游ゴシック Yu Gothic', '"Yu Gothic", sans-serif'], ['ＭＳ 明朝 MS Mincho', '"MS Mincho", serif'],
+      ['メイリオ Meiryo', 'Meiryo, sans-serif'],
+    ],
+  },
+];
+
+const TABLE_CSS = `
+.ocr-table table { border-collapse: collapse; width: 100%; height: 100%; table-layout: fixed; }
+.ocr-table td, .ocr-table th { border: 1px solid #555; padding: 0.15em 0.35em; vertical-align: middle; overflow: hidden; word-break: break-word; color: #000; }
+`;
 
 const isPdf = (file) => file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '');
-
 const lineColor = (score) => (score >= 0.9 ? '#52c41a' : score >= 0.7 ? '#faad14' : '#ff4d4f');
+const lineKey = (page, index) => `${page}:${index}`;
+const blockKey = (page, index) => `${page}:b${index}`;
+
+const center = (box) => [box.reduce((sum, [x]) => sum + x, 0) / box.length, box.reduce((sum, [, y]) => sum + y, 0) / box.length];
+const inside = ([x, y], [x1, y1, x2, y2]) => x >= x1 && x <= x2 && y >= y1 && y <= y2;
+const side = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+/** A line's height and length in the page's pixels: the mean of its two sides. */
+const lineHeight = (box) => Math.max(1, (side(box[0], box[3]) + side(box[1], box[2])) / 2);
+const lineWidth = (box) => Math.max(1, (side(box[0], box[1]) + side(box[3], box[2])) / 2);
+/** The printed size of a line of text: points on a PDF page (its resolution is known), pixels in an image. */
+const fontSizeLabel = (page, line) => {
+  const size = lineHeight(line.box) * 0.75;
+  return page.dpi ? `${Math.round((size * 72) / page.dpi)} pt` : `${Math.round(size)} px`;
+};
+
+/**
+ * The table HTML the server rebuilt, reduced to table markup: only table
+ * elements, line breaks and colspan/rowspan survive, whatever it contains.
+ */
+const cleanTable = (html) => {
+  const source = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+  const allowed = new Set(['TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH', 'BR']);
+  const copy = (node, into) => {
+    node.childNodes.forEach((child) => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        into.appendChild(document.createTextNode(child.textContent));
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        if (!allowed.has(child.tagName)) {
+          copy(child, into);
+          return;
+        }
+        const element = document.createElement(child.tagName);
+        ['colspan', 'rowspan'].forEach((name) => {
+          const value = Number(child.getAttribute(name));
+          if (value > 1 && value < 100) element.setAttribute(name, String(value));
+        });
+        copy(child, element);
+        into.appendChild(element);
+      }
+    });
+  };
+  const holder = document.createElement('div');
+  copy(source.body, holder);
+  return holder.innerHTML;
+};
+
+/** A table's rows as tab-separated text. */
+const tableText = (html) => [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('tr')]
+  .map((row) => [...row.querySelectorAll('td, th')].map((cell) => cell.textContent.trim()).join('\t'))
+  .join('\n');
+
+/**
+ * What the two panes need of one page: the lines kept at the chosen
+ * confidence, its tables and figures, and which of those each line is in.
+ */
+const preparePage = (page, minScore) => {
+  const blocks = (page.blocks || []).map((block, index) => ({
+    ...block, index, html: block.type === 'table' ? cleanTable(block.html || '') : undefined,
+  }));
+  const lines = page.lines.map((line, index) => {
+    const at = center(line.box);
+    const block = line.role === 'table' || line.role === 'figure' ? blocks.find((item) => inside(at, item.box)) : null;
+    return { ...line, index, block: block ? block.index : null, inTable: block?.type === 'table' };
+  }).filter((line) => line.score >= minScore);
+  return { ...page, blocks, lines };
+};
+
+/** A page's text in reading order, each table as tab-separated rows where it stands. */
+const pageText = (page) => {
+  const tables = page.blocks.filter((block) => block.type === 'table')
+    .map((block) => ({ y: block.box[1], text: tableText(block.html) }))
+    .sort((a, b) => a.y - b.y);
+  const out = [];
+  let next = 0;
+  for (const line of page.lines.filter((item) => !item.inTable)) {
+    const y = center(line.box)[1];
+    while (next < tables.length && tables[next].y <= y) out.push(tables[next++].text);
+    out.push(line.text);
+  }
+  while (next < tables.length) out.push(tables[next++].text);
+  return out.join('\n');
+};
 
 /**
  * Read the text in an image, or in each page of a PDF, with PaddleOCR
  * (PP-OCRv5) on the server, in English, Chinese, Korean, Japanese or Russian.
- * The file is sent, read and deleted on the server within the request;
- * nothing is kept. A PDF's pages come back as preview images to draw the
- * boxes on, since the browser cannot show a PDF page as an image.
+ * The original is on the left and what was read on the right — laid out as
+ * the page was, with its titles, tables and figures, or as plain text — and
+ * the two sides scroll and point together. A file is read as a job whose
+ * pages appear as they are read.
  */
 export default function OcrToolPage() {
   const { t } = useLanguage();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [language, setLanguage] = useState('en');
-  const [recognitionId, setRecognitionId] = useState('');
-  const [detectionId, setDetectionId] = useState('');
   const [rotated, setRotated] = useState(false);
+  const [withLayout, setWithLayout] = useState(true);
   const [file, setFile] = useState(null);
   const [url, setUrl] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null);
-  const [pageIndex, setPageIndex] = useState(0);
+  const [job, setJob] = useState(null); // { id, status, done, total, pageCount, error, took }
+  const [pages, setPages] = useState(NONE);
+  const [starting, setStarting] = useState(false);
   const [minScore, setMinScore] = useState(0.5);
-  const [hovered, setHovered] = useState(-1);
+  const [view, setView] = useState('layout');
+  const [font, setFont] = useState('auto');
+  const [hovered, setHovered] = useState(null); // { key, from: 'left' | 'right' }
+  const [currentPage, setCurrentPage] = useState(1);
   const [dragging, setDragging] = useState(false);
+  const pollRef = useRef(null);
+  const jobRef = useRef(null);
+  const pagesRef = useRef(NONE);
+  const leftRef = useRef(null);
+  const rightRef = useRef(null);
+  const syncing = useRef({ pane: null, until: 0 });
+  const inputRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,9 +203,9 @@ export default function OcrToolPage() {
 
   const languages = status?.languages || NONE;
   const current = languages.find((item) => item.code === language);
-  const readers = (status?.recognition || []).filter((model) => current?.models.includes(model.id))
-    .sort((a, b) => current.models.indexOf(a.id) - current.models.indexOf(b.id));
   const ready = Boolean(status?.installed && status.engine?.ok);
+  const hasLayout = Boolean(status?.layout?.length);
+  const running = job?.status === 'running';
 
   // The first language the server has a model for, when the chosen one has none.
   useEffect(() => {
@@ -82,29 +214,78 @@ export default function OcrToolPage() {
       if (available) setLanguage(available.code);
     }
   }, [languages, current?.default]);
-  useEffect(() => { setRecognitionId(''); }, [language]);
+
+  /* ------------------------------------------------------------ the job */
+
+  const stopPolling = () => {
+    clearTimeout(pollRef.current);
+    pollRef.current = null;
+  };
+
+  const poll = useCallback(async (id) => {
+    try {
+      const { data } = await api.get(`/tools/ocr/jobs/${id}`, { params: { from: pagesRef.current.length } });
+      if (jobRef.current !== id) return;
+      const next = data.job;
+      if (next.pages.length) {
+        pagesRef.current = [...pagesRef.current, ...next.pages];
+        setPages(pagesRef.current);
+      }
+      setJob(next);
+      if (next.status === 'running') pollRef.current = setTimeout(() => poll(id), POLL_MS);
+    } catch (error) {
+      if (jobRef.current !== id) return;
+      setJob((before) => ({ ...before, status: 'failed', error: error.response?.data?.message || error.message }));
+    }
+  }, []);
+
+  const cancel = async () => {
+    const id = jobRef.current;
+    stopPolling();
+    if (!id) return;
+    try {
+      const { data } = await api.post(`/tools/ocr/jobs/${id}/cancel`);
+      if (jobRef.current === id) setJob(data.job);
+    } catch {
+      /* Already finished or gone: nothing to stop. */
+    }
+  };
 
   const run = async (chosen = file) => {
     if (!chosen) return;
-    setBusy(true);
-    setHovered(-1);
-    setPageIndex(0);
+    if (running) await cancel();
+    stopPolling();
+    setStarting(true);
+    setHovered(null);
+    setCurrentPage(1);
+    pagesRef.current = NONE;
+    setPages(NONE);
+    setJob(null);
+    jobRef.current = null;
     const form = new FormData();
     form.append('image', chosen);
     form.append('language', language);
-    if (recognitionId) form.append('recognitionId', recognitionId);
-    if (detectionId) form.append('detectionId', detectionId);
     form.append('rotated', rotated ? 'true' : 'false');
+    form.append('layout', withLayout ? 'true' : 'false');
     try {
       const { data } = await api.post('/tools/ocr/recognize', form, { timeout: 0 });
-      setResult(data);
+      jobRef.current = data.job.id;
+      setJob(data.job);
+      leftRef.current?.scrollTo({ top: 0 });
+      rightRef.current?.scrollTo({ top: 0 });
+      poll(data.job.id);
     } catch (error) {
-      setResult(null);
       message.error(error.response?.data?.message || t('ocrFailed'));
     } finally {
-      setBusy(false);
+      setStarting(false);
     }
   };
+
+  // Leaving the page stops a job still reading.
+  useEffect(() => () => {
+    stopPolling();
+    if (jobRef.current) api.post(`/tools/ocr/jobs/${jobRef.current}/cancel`).catch(() => {});
+  }, []);
 
   const choose = (chosen) => {
     if (!chosen) return;
@@ -117,8 +298,13 @@ export default function OcrToolPage() {
       return;
     }
     setFile(chosen);
-    setResult(null);
-    if (ready) run(chosen);
+    if (ready) {
+      run(chosen);
+    } else {
+      pagesRef.current = NONE;
+      setPages(NONE);
+      setJob(null);
+    }
   };
 
   // A screenshot pasted anywhere on the page is read like a chosen file.
@@ -133,16 +319,82 @@ export default function OcrToolPage() {
     return () => window.removeEventListener('paste', onPaste);
   });
 
-  const pages = result?.pages || NONE;
-  const page = pages[pageIndex] || null;
-  const keep = (lines) => lines.map((line, index) => ({ ...line, index })).filter((line) => line.score >= minScore);
-  const shown = useMemo(() => keep(page?.lines || []), [page, minScore]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Copy and Download take every page read, each under its number when there are several.
-  const text = useMemo(() => pages.map((item) => {
-    const body = keep(item.lines).map((line) => line.text).join('\n');
-    return pages.length > 1 ? `--- ${t('ocrPage', { page: item.page })} ---\n${body}` : body;
-  }).join('\n\n').trim(), [pages, minScore, t]); // eslint-disable-line react-hooks/exhaustive-deps
-  const source = page?.image || url;
+  /* ------------------------------------------------------------ the pages */
+
+  const prepared = useMemo(() => pages.map((page) => preparePage(page, minScore)), [pages, minScore]);
+  const layoutFound = prepared.some((page) => page.blocks.length || page.lines.some((line) => line.role));
+  const fontFamily = font === 'auto' ? AUTO_FONTS[language] || AUTO_FONTS.en : font;
+  // A slot for every page, read or still to come, so the thumbnails and both
+  // panes hold the whole document from the start.
+  const total = job?.total || (file && !isPdf(file) ? 1 : 0);
+  const slots = useMemo(
+    () => Array.from({ length: Math.max(total, prepared.length) }, (_, index) => prepared[index] || null),
+    [total, prepared],
+  );
+  const aspect = prepared[0] ? prepared[0].height / prepared[0].width : 1.414;
+
+  const text = useMemo(() => prepared.map((page) => {
+    const body = pageText(page);
+    return prepared.length > 1 ? `--- ${t('ocrPage', { page: page.page })} ---\n${body}` : body;
+  }).join('\n\n').trim(), [prepared, t]);
+
+  /* ----------------------------------------------- scrolling in step */
+
+  // A pane scrolled to follow the other must not be followed back.
+  const hold = (pane) => { syncing.current = { pane, until: Date.now() + 150 }; };
+  const held = (pane) => syncing.current.pane === pane && Date.now() < syncing.current.until;
+
+  /** The page a pane is at, and how far down it (0..1). */
+  const position = (pane) => {
+    const sections = [...pane.querySelectorAll('[data-page]')];
+    if (!sections.length) return null;
+    let at = sections[0];
+    for (const section of sections) {
+      if (section.offsetTop <= pane.scrollTop + 1) at = section;
+      else break;
+    }
+    const fraction = Math.min(1, Math.max(0, (pane.scrollTop - at.offsetTop) / Math.max(1, at.offsetHeight)));
+    return { page: Number(at.dataset.page), fraction };
+  };
+
+  const follow = (from, to) => {
+    if (!from || !to) return;
+    const at = position(from);
+    if (!at) return;
+    setCurrentPage(at.page);
+    if (held(from)) return;
+    const target = to.querySelector(`[data-page="${at.page}"]`);
+    if (!target) return;
+    hold(to);
+    to.scrollTop = target.offsetTop + at.fraction * target.offsetHeight;
+  };
+
+  /** Scroll a pane just enough to bring an element into the middle, when it is out of view. */
+  const reveal = (pane, key) => {
+    const element = pane?.querySelector(`[data-key="${key}"]`);
+    if (!element) return;
+    const box = pane.getBoundingClientRect();
+    const rect = element.getBoundingClientRect();
+    if (rect.top >= box.top && rect.bottom <= box.bottom) return;
+    hold(pane);
+    pane.scrollTop += rect.top - box.top - box.height / 2 + rect.height / 2;
+  };
+
+  // Pointing at a line on one side shows it on the other.
+  useEffect(() => {
+    if (hovered) reveal(hovered.from === 'left' ? rightRef.current : leftRef.current, hovered.key);
+  }, [hovered]); // eslint-disable-line react-hooks/exhaustive-deps -- reveal reads only refs
+
+  const pointLeft = useCallback((key) => setHovered(key ? { key, from: 'left' } : null), []);
+  const pointRight = useCallback((key) => setHovered(key ? { key, from: 'right' } : null), []);
+  const hoveredKey = hovered?.key || null;
+
+  const goToPage = (number) => {
+    const target = leftRef.current?.querySelector(`[data-page="${number}"]`);
+    if (target) leftRef.current.scrollTo({ top: target.offsetTop, behavior: 'smooth' });
+  };
+
+  /* ------------------------------------------------------------ output */
 
   const copy = async () => {
     try {
@@ -153,16 +405,50 @@ export default function OcrToolPage() {
     }
   };
 
-  const download = () => {
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const save = (content, type, extension) => {
+    const blob = new Blob([content], { type });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `${(file?.name || 'ocr').replace(/\.[^.]+$/, '')}.txt`;
+    link.download = `${(file?.name || 'ocr').replace(/\.[^.]+$/, '')}.${extension}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   };
+
+  // The laid-out pages as one HTML file: the same drawing as the right pane, in the chosen font.
+  const saveHtml = () => {
+    const body = prepared.map((page) => renderToStaticMarkup(
+      <div className="page"><PageLayout page={page} fontFamily={fontFamily} /></div>,
+    )).join('\n');
+    const title = (file?.name || 'OCR').replace(/[<>&"]/g, '');
+    save(`<!DOCTYPE html>
+<html lang="${language}"><head><meta charset="utf-8"><title>${title}</title>
+<style>
+body { margin: 0; padding: 24px; background: #eee; }
+.page { max-width: 900px; margin: 0 auto 24px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.page svg { display: block; width: 100%; height: auto; }
+${TABLE_CSS}
+</style></head><body>
+${body}
+</body></html>
+`, 'text/html;charset=utf-8', 'html');
+  };
+
+  /* ------------------------------------------------------------ view */
+
+  const progress = job?.total ? Math.round((job.done / job.total) * 100) : 0;
+  const dropHint = t('ocrDropHint', { mb: MAX_FILE_BYTES / 1024 / 1024, pages: status?.maxPages || 30 });
+  const fontOptions = [
+    { value: 'auto', label: t('ocrFontAuto'), name: t('ocrFontAuto') },
+    ...FONT_GROUPS.map((group) => ({
+      label: t(group.key),
+      options: group.fonts.map(([name, family]) => ({ value: family, label: <span style={{ fontFamily: family }}>{name}</span>, name })),
+    })),
+  ];
+  const pending = (index) => (
+    <PendingPage aspect={aspect} reading={running && index === prepared.length} label={t('ocrPageReading', { page: index + 1 })} />
+  );
 
   return (
     <div className="vision-page vision-stack">
@@ -193,251 +479,448 @@ export default function OcrToolPage() {
         <Alert type="error" showIcon message={t('ocrEngineFailed')} description={status.engine.message} />
       )}
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={9}>
-          <Card bordered={false} title={t('ocrSettings')}>
-            <Space direction="vertical" size={16} style={{ width: '100%' }}>
-              <div>
-                <Text type="secondary">{t('ocrLanguage')}</Text>
-                <Segmented
-                  block
-                  value={language}
-                  onChange={(value) => { setLanguage(value); setResult(null); }}
-                  options={(languages.length ? languages : Object.keys(LANGUAGE_LABELS).map((code) => ({ code })))
-                    .map((item) => ({
-                      value: item.code,
-                      label: (
-                        <Tooltip title={item.default === null ? t('ocrLanguageMissing') : ''}>
-                          <span>{LANGUAGE_LABELS[item.code] || item.code}</span>
-                        </Tooltip>
-                      ),
-                      disabled: item.default === null,
-                    }))}
-                />
-              </div>
-
-              {readers.length > 1 && (
-                <div>
-                  <Text type="secondary">{t('ocrRecognitionModel')}</Text>
-                  <Select
-                    style={{ width: '100%' }}
-                    value={recognitionId || current?.default}
-                    onChange={(value) => { setRecognitionId(value); setResult(null); }}
-                    options={readers.map((model) => ({
-                      value: model.id,
-                      label: `${model.name} · ${model.languages.map((code) => LANGUAGE_LABELS[code] || code).join(', ')}`,
-                    }))}
-                  />
-                </div>
-              )}
-              {(status?.detection || []).length > 1 && (
-                <div>
-                  <Text type="secondary">{t('ocrDetectionModel')}</Text>
-                  <Select
-                    style={{ width: '100%' }}
-                    value={detectionId || status.detection[0].id}
-                    onChange={(value) => { setDetectionId(value); setResult(null); }}
-                    options={status.detection.map((model) => ({ value: model.id, label: model.name }))}
-                  />
-                </div>
-              )}
-              {(status?.textline || []).length > 0 && (
-                <Space align="start">
-                  <Switch checked={rotated} onChange={(value) => { setRotated(value); setResult(null); }} />
-                  <div>
-                    <Text>{t('ocrRotated')}</Text>
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 12 }}>{t('ocrRotatedHelp')}</Text>
-                  </div>
-                </Space>
-              )}
-
-              <label
-                onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  setDragging(false);
-                  choose(event.dataTransfer.files?.[0]);
-                }}
-                style={{
-                  display: 'block',
-                  padding: '24px 16px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  borderRadius: 8,
-                  border: `1px dashed ${dragging ? '#1677ff' : '#d9d9d9'}`,
-                  background: dragging ? 'rgba(22, 119, 255, 0.06)' : 'transparent',
-                }}
-              >
-                <input
-                  type="file"
-                  accept="image/*,application/pdf,.pdf"
-                  style={{ display: 'none' }}
-                  onChange={(event) => {
-                    const chosen = event.target.files?.[0];
-                    event.target.value = '';
-                    choose(chosen);
-                  }}
-                />
-                <Space size={8}>
-                  <FileImageOutlined style={{ fontSize: 28, color: '#1677ff' }} />
-                  <FilePdfOutlined style={{ fontSize: 28, color: '#ff4d4f' }} />
-                </Space>
-                <div style={{ marginTop: 8 }}><Text strong>{t('ocrChooseImage')}</Text></div>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  {t('ocrDropHint', { mb: MAX_FILE_BYTES / 1024 / 1024, pages: status?.maxPages || 30 })}
-                </Text>
-                {file && <div style={{ marginTop: 8 }}><Tag>{file.name}</Tag></div>}
-              </label>
-
-              <Button type="primary" block icon={<ScanOutlined />} loading={busy} disabled={!file || !ready} onClick={() => run()}>
+      <Card bordered={false} styles={{ body: { padding: 16 } }}>
+        <Space wrap size={[20, 12]} align="end" style={{ width: '100%' }}>
+          <Space direction="vertical" size={2}>
+            <Text type="secondary" style={{ fontSize: 12 }}>{t('ocrLanguage')}</Text>
+            <Segmented
+              value={language}
+              onChange={setLanguage}
+              options={(languages.length ? languages : Object.keys(LANGUAGE_LABELS).map((code) => ({ code })))
+                .map((item) => ({
+                  value: item.code,
+                  label: (
+                    <Tooltip title={item.default === null ? t('ocrLanguageMissing') : ''}>
+                      <span>{LANGUAGE_LABELS[item.code] || item.code}</span>
+                    </Tooltip>
+                  ),
+                  disabled: item.default === null,
+                }))}
+            />
+          </Space>
+          {hasLayout && (
+            <Tooltip title={t('ocrLayoutHelp')}>
+              <Space size={6}>
+                <Switch size="small" checked={withLayout} onChange={setWithLayout} />
+                <Text>{t('ocrLayoutSwitch')}</Text>
+              </Space>
+            </Tooltip>
+          )}
+          {(status?.textline || NONE).length > 0 && (
+            <Tooltip title={t('ocrRotatedHelp')}>
+              <Space size={6}>
+                <Switch size="small" checked={rotated} onChange={setRotated} />
+                <Text>{t('ocrRotated')}</Text>
+              </Space>
+            </Tooltip>
+          )}
+          <Space direction="vertical" size={0} style={{ width: 190 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>{t('ocrMinScore', { value: minScore.toFixed(2) })}</Text>
+            <Slider min={0} max={0.95} step={0.05} value={minScore} onChange={setMinScore} style={{ margin: '4px 0' }} />
+          </Space>
+          <Space wrap>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*,application/pdf,.pdf"
+              style={{ display: 'none' }}
+              onChange={(event) => {
+                const chosen = event.target.files?.[0];
+                event.target.value = '';
+                choose(chosen);
+              }}
+            />
+            <Tooltip title={dropHint}>
+              <Button icon={<FileImageOutlined />} onClick={() => inputRef.current?.click()}>{t('ocrChooseImage')}</Button>
+            </Tooltip>
+            {running ? (
+              <Button danger icon={<StopOutlined />} onClick={cancel}>{t('ocrCancel')}</Button>
+            ) : (
+              <Button type="primary" icon={<ScanOutlined />} loading={starting} disabled={!file || !ready} onClick={() => run()}>
                 {t('ocrRead')}
               </Button>
-              {busy && (
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  {isPdf(file) ? `${t('ocrPdfSlow')} ` : ''}{t('ocrFirstSlow')}
-                </Text>
-              )}
-            </Space>
-          </Card>
-        </Col>
+            )}
+            {file && <Tag icon={isPdf(file) ? <FilePdfOutlined /> : <FileImageOutlined />}>{file.name}</Tag>}
+          </Space>
+        </Space>
 
-        <Col xs={24} lg={15}>
-          <Card
-            bordered={false}
-            title={t('result')}
-            extra={result && (
-              <Space wrap>
-                <Tooltip title={t('ocrCopy')}>
-                  <Button icon={<CopyOutlined />} disabled={!text} onClick={copy} />
-                </Tooltip>
-                <Tooltip title={t('ocrDownload')}>
-                  <Button icon={<DownloadOutlined />} disabled={!text} onClick={download} />
-                </Tooltip>
-              </Space>
-            )}
+        {(running || starting) && (
+          <div style={{ marginTop: 12 }}>
+            <Progress percent={progress} status="active" size="small" showInfo={Boolean(job?.total)} />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {job?.total
+                ? t('ocrProgress', { done: job.done, total: job.total, page: Math.min(job.done + 1, job.total) })
+                : t('ocrOpening')}
+              {!job?.done ? ` ${t('ocrFirstSlow')}` : ''}
+            </Text>
+          </div>
+        )}
+        {job?.status === 'cancelled' && (
+          <Alert style={{ marginTop: 12 }} type="info" showIcon message={t('ocrCancelled', { done: job.done, total: job.total || '?' })} />
+        )}
+        {job?.status === 'failed' && <Alert style={{ marginTop: 12 }} type="error" showIcon message={job.error || t('ocrFailed')} />}
+        {job?.status === 'succeeded' && job.pageCount > (job.total || 0) && (
+          <Alert style={{ marginTop: 12 }} type="info" showIcon message={t('ocrPdfTruncated', { read: job.total, count: job.pageCount })} />
+        )}
+      </Card>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
+        {/* ------------------------------------------------ the original */}
+        <Card
+          bordered={false}
+          title={t('ocrOriginal')}
+          styles={{ body: { padding: 0 } }}
+          extra={slots.length > 1 && <Text type="secondary">{t('ocrPageOf', { page: currentPage, total: slots.length })}</Text>}
+        >
+          <div
+            style={{ display: 'flex', height: PANE_HEIGHT }}
+            onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragging(false);
+              choose(event.dataTransfer.files?.[0]);
+            }}
           >
-            {!file ? (
-              <Empty description={t('ocrNoResult')} />
-            ) : (
-              <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                {result && result.pageCount > pages.length && (
-                  <Alert type="info" showIcon message={t('ocrPdfTruncated', { read: pages.length, count: result.pageCount })} />
-                )}
-                {pages.length > 1 && (
-                  <Pagination
-                    simple
-                    current={pageIndex + 1}
-                    total={pages.length}
-                    pageSize={1}
-                    onChange={(value) => { setPageIndex(value - 1); setHovered(-1); }}
-                  />
-                )}
-                {source ? (
-                  <OcrImage
-                    key={source}
-                    url={source}
-                    page={page}
-                    lines={result ? shown : NONE}
-                    hovered={hovered}
-                    onHover={setHovered}
-                  />
-                ) : (
-                  // A PDF has nothing to show until the server sends its pages back.
-                  <div style={{ padding: 48, textAlign: 'center' }}>
-                    {busy ? <Spin /> : <FilePdfOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />}
-                    <div style={{ marginTop: 12 }}><Text type="secondary">{file.name}</Text></div>
-                  </div>
-                )}
-                {result && page && (
-                  <>
-                    <Space wrap size={[8, 4]}>
-                      {pages.length > 1 && <Tag color="blue">{t('ocrPage', { page: page.page })}</Tag>}
-                      <Tag>{t('ocrLineCount', { count: shown.length, total: page.lines.length })}</Tag>
-                      <Tag>{t('ocrTook', { seconds: result.took?.toFixed(2) })}</Tag>
-                      <Tag>{result.models.recognition}</Tag>
-                    </Space>
-                    <div>
-                      <Text type="secondary">{t('ocrMinScore', { value: minScore.toFixed(2) })}</Text>
-                      <Slider min={0} max={0.95} step={0.05} value={minScore} onChange={setMinScore} />
-                    </div>
-                    {shown.length ? (
-                      <div style={{ maxHeight: 420, overflowY: 'auto' }}>
-                        {shown.map((line) => (
-                          <div
-                            key={line.index}
-                            onMouseEnter={() => setHovered(line.index)}
-                            onMouseLeave={() => setHovered(-1)}
-                            style={{
-                              display: 'flex',
-                              gap: 8,
-                              alignItems: 'baseline',
-                              padding: '4px 8px',
-                              borderRadius: 4,
-                              background: hovered === line.index ? 'rgba(22, 119, 255, 0.08)' : 'transparent',
-                            }}
-                          >
-                            <Text copyable style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{line.text}</Text>
-                            <Text style={{ color: lineColor(line.score), fontSize: 12 }}>{(line.score * 100).toFixed(0)}%</Text>
-                          </div>
-                        ))}
-                      </div>
+            {slots.length > 1 && (
+              <div style={{ width: 92, flex: 'none', overflowY: 'auto', padding: 8, borderRight: '1px solid rgba(128,128,128,0.2)' }}>
+                {slots.map((page, index) => (
+                  <button
+                    type="button"
+                    // eslint-disable-next-line react/no-array-index-key
+                    key={index}
+                    onClick={() => goToPage(index + 1)}
+                    title={t('ocrPage', { page: index + 1 })}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: 2,
+                      marginBottom: 8,
+                      cursor: 'pointer',
+                      background: 'transparent',
+                      borderRadius: 4,
+                      border: `2px solid ${currentPage === index + 1 ? '#1677ff' : 'transparent'}`,
+                    }}
+                  >
+                    {page?.image ? (
+                      <img src={page.image} alt="" style={{ width: '100%', display: 'block', boxShadow: '0 0 2px rgba(0,0,0,0.3)' }} />
                     ) : (
-                      <Text type="secondary">{t('ocrNothingFound')}</Text>
+                      <div style={{ aspectRatio: `1 / ${aspect}`, display: 'grid', placeItems: 'center', background: 'rgba(128,128,128,0.12)' }}>
+                        {running && index === prepared.length ? <Spin size="small" /> : null}
+                      </div>
                     )}
-                  </>
-                )}
-              </Space>
+                    <Text type="secondary" style={{ fontSize: 11 }}>{index + 1}</Text>
+                  </button>
+                ))}
+              </div>
             )}
-          </Card>
-        </Col>
-      </Row>
+            <div
+              ref={leftRef}
+              onScroll={() => follow(leftRef.current, rightRef.current)}
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                position: 'relative',
+                padding: 12,
+                background: dragging ? 'rgba(22, 119, 255, 0.06)' : 'rgba(128,128,128,0.06)',
+                outline: dragging ? '2px dashed #1677ff' : 'none',
+              }}
+            >
+              {!file ? (
+                <Empty
+                  style={{ marginTop: 80 }}
+                  image={<FileImageOutlined style={{ fontSize: 48, color: '#1677ff' }} />}
+                  description={(
+                    <Space direction="vertical" size={4}>
+                      <Text>{t('ocrNoResult')}</Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>{dropHint}</Text>
+                    </Space>
+                  )}
+                />
+              ) : slots.length === 0 ? (
+                <div style={{ padding: 48, textAlign: 'center' }}>
+                  {running || starting ? <Spin /> : <FilePdfOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />}
+                  <div style={{ marginTop: 12 }}><Text type="secondary">{file.name}</Text></div>
+                </div>
+              ) : slots.map((page, index) => (
+                // eslint-disable-next-line react/no-array-index-key
+                <section key={index} data-page={index + 1} style={{ marginBottom: 12 }}>
+                  {page || url
+                    ? <OriginalPage url={page?.image || url} page={page} hoveredKey={hoveredKey} onPoint={pointLeft} />
+                    : pending(index)}
+                </section>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* ------------------------------------------------ what was read */}
+        <Card
+          bordered={false}
+          title={t('ocrRecognised')}
+          styles={{ body: { padding: 0 } }}
+          extra={(
+            <Space wrap size={8}>
+              {layoutFound && (
+                <Segmented
+                  size="small"
+                  value={view}
+                  onChange={setView}
+                  options={[{ value: 'layout', label: t('ocrViewLayout') }, { value: 'text', label: t('ocrViewText') }]}
+                />
+              )}
+              <Tooltip title={t('ocrFont')}>
+                <Select
+                  size="small"
+                  showSearch
+                  value={font}
+                  onChange={setFont}
+                  options={fontOptions}
+                  filterOption={(input, option) => String(option?.name || '').toLowerCase().includes(input.toLowerCase())}
+                  style={{ width: 190 }}
+                  popupMatchSelectWidth={240}
+                  aria-label={t('ocrFont')}
+                />
+              </Tooltip>
+              <Tooltip title={t('ocrCopy')}>
+                <Button size="small" icon={<CopyOutlined />} disabled={!text} onClick={copy} />
+              </Tooltip>
+              <Dropdown
+                disabled={!prepared.length}
+                menu={{
+                  items: [{ key: 'html', label: t('ocrDownloadHtml') }, { key: 'txt', label: t('ocrDownloadTxt') }],
+                  onClick: ({ key }) => (key === 'html' ? saveHtml() : save(text, 'text/plain;charset=utf-8', 'txt')),
+                }}
+              >
+                <Button size="small" icon={<DownloadOutlined />} disabled={!prepared.length} aria-label={t('ocrDownload')} />
+              </Dropdown>
+            </Space>
+          )}
+        >
+          <div
+            ref={rightRef}
+            onScroll={() => follow(rightRef.current, leftRef.current)}
+            style={{ height: PANE_HEIGHT, overflowY: 'auto', position: 'relative', padding: 12, background: 'rgba(128,128,128,0.06)' }}
+          >
+            {!slots.length || (!prepared.length && !running && !starting) ? (
+              <Empty style={{ marginTop: 80 }} description={job?.status === 'failed' ? t('ocrFailed') : t('ocrNoResult')} />
+            ) : slots.map((page, index) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <section key={index} data-page={index + 1} style={{ marginBottom: 12 }}>
+                {!page ? pending(index) : view === 'layout' && layoutFound ? (
+                  <div style={{ background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+                    <PageLayout page={page} fontFamily={fontFamily} hoveredKey={hoveredKey} onPoint={pointRight} interactive />
+                  </div>
+                ) : (
+                  <PageText page={page} fontFamily={fontFamily} hoveredKey={hoveredKey} onPoint={pointRight} multi={slots.length > 1} t={t} />
+                )}
+              </section>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/** A page not read yet: its place, at the proportions of the first page. */
+function PendingPage({ aspect, reading, label }) {
+  return (
+    <div style={{ aspectRatio: `1 / ${aspect}`, display: 'grid', placeItems: 'center', background: 'rgba(128,128,128,0.12)' }}>
+      {reading ? <Space direction="vertical" align="center"><Spin /><Text type="secondary">{label}</Text></Space> : null}
     </div>
   );
 }
 
 /**
- * The image with each line's box over it. Boxes are in the image's pixels as
- * the server read it (after any EXIF rotation, as the browser shows it; for a
- * PDF, the page as rendered, which its preview keeps the proportions of), so
- * the overlay uses those pixels as its viewBox.
+ * The original, with a box round each line read and each table and figure
+ * found. Boxes are in the pixels the server read (after any EXIF rotation, as
+ * the browser shows it; for a PDF, the page as rendered, which its preview
+ * keeps the proportions of).
  */
-function OcrImage({ url, page, lines, hovered, onHover }) {
+function OriginalPage({ url, page, hoveredKey, onPoint }) {
   const [natural, setNatural] = useState(null);
   const width = page?.width || natural?.width;
   const height = page?.height || natural?.height;
   return (
-    <div style={{ position: 'relative', width: '100%', lineHeight: 0 }}>
+    <div style={{ position: 'relative', lineHeight: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.2)', background: '#fff' }}>
       <img
         src={url}
         alt=""
         onLoad={(event) => setNatural({ width: event.target.naturalWidth, height: event.target.naturalHeight })}
-        style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 640, objectFit: 'contain' }}
+        style={{ width: '100%', height: 'auto', display: 'block' }}
       />
-      {lines.length > 0 && width && height && (
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          preserveAspectRatio="xMidYMid meet"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-        >
-          {lines.map((line) => (
-            <polygon
-              key={line.index}
-              points={line.box.map(([x, y]) => `${x},${y}`).join(' ')}
-              fill={lineColor(line.score)}
-              fillOpacity={hovered === line.index ? 0.35 : 0.12}
-              stroke={lineColor(line.score)}
-              strokeWidth={hovered === line.index ? 3 : 1.5}
-              vectorEffect="non-scaling-stroke"
-              onMouseEnter={() => onHover(line.index)}
-              onMouseLeave={() => onHover(-1)}
-            >
-              <title>{line.text}</title>
-            </polygon>
-          ))}
+      {page && width && height && (
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+          {page.blocks.map((block) => {
+            const [x1, y1, x2, y2] = block.box;
+            const key = blockKey(page.page, block.index);
+            const color = block.type === 'table' ? '#1677ff' : '#722ed1';
+            return (
+              <rect
+                key={key}
+                data-key={key}
+                x={x1}
+                y={y1}
+                width={x2 - x1}
+                height={y2 - y1}
+                fill={color}
+                fillOpacity={hoveredKey === key ? 0.15 : 0.03}
+                stroke={color}
+                strokeDasharray="6 4"
+                strokeWidth={hoveredKey === key ? 3 : 1.5}
+                vectorEffect="non-scaling-stroke"
+                onMouseEnter={() => onPoint(key)}
+                onMouseLeave={() => onPoint(null)}
+              />
+            );
+          })}
+          {page.lines.map((line) => {
+            const own = lineKey(page.page, line.index);
+            // A line in a table or figure points at it; the right side draws it whole.
+            const target = line.block === null ? own : blockKey(page.page, line.block);
+            const lit = hoveredKey === own || (line.block === null && hoveredKey === target);
+            return (
+              <polygon
+                key={own}
+                data-key={own}
+                points={line.box.map(([x, y]) => `${x},${y}`).join(' ')}
+                fill={lineColor(line.score)}
+                fillOpacity={lit ? 0.35 : 0.1}
+                stroke={lineColor(line.score)}
+                strokeWidth={lit ? 3 : 1}
+                vectorEffect="non-scaling-stroke"
+                onMouseEnter={() => onPoint(target)}
+                onMouseLeave={() => onPoint(null)}
+              >
+                <title>{`${line.text} — ${fontSizeLabel(page, line)}`}</title>
+              </polygon>
+            );
+          })}
         </svg>
       )}
+    </div>
+  );
+}
+
+/**
+ * A page as it was laid out: each line where it stood, at its size (bold if
+ * a title, grey if a header or footer), each table rebuilt, each figure cut
+ * from the page. Drawn in the page's own pixels, so it scales with the pane.
+ * Also rendered to static markup for the HTML download, with `interactive` off.
+ */
+function PageLayout({
+  page, fontFamily, hoveredKey = null, onPoint = () => {}, interactive = false,
+}) {
+  const tableSize = (block) => {
+    const heights = page.lines.filter((line) => line.block === block.index).map((line) => lineHeight(line.box)).sort((a, b) => a - b);
+    return (heights[Math.floor(heights.length / 2)] || 24) * 0.72;
+  };
+  const events = (key) => (interactive ? { onMouseEnter: () => onPoint(key), onMouseLeave: () => onPoint(null) } : {});
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox={`0 0 ${page.width} ${page.height}`}
+      style={{ display: 'block', width: '100%', height: 'auto', fontFamily }}
+    >
+      {interactive && <style>{TABLE_CSS}</style>}
+      <rect x={0} y={0} width={page.width} height={page.height} fill="#fff" />
+      {page.blocks.map((block) => {
+        const [x1, y1, x2, y2] = block.box;
+        const key = blockKey(page.page, block.index);
+        const lit = hoveredKey === key;
+        const outline = lit && (
+          <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} fill="#1677ff" fillOpacity={0.08} stroke="#1677ff" strokeWidth={3} vectorEffect="non-scaling-stroke" />
+        );
+        return block.type === 'figure' ? (
+          <g key={key} data-key={interactive ? key : undefined} {...events(key)}>
+            <image href={block.image} x={x1} y={y1} width={x2 - x1} height={y2 - y1} preserveAspectRatio="none" />
+            {outline}
+          </g>
+        ) : (
+          <g key={key} data-key={interactive ? key : undefined} {...events(key)}>
+            <foreignObject x={x1} y={y1} width={x2 - x1} height={y2 - y1} style={{ overflow: 'visible' }}>
+              <div
+                className="ocr-table"
+                style={{
+                  width: '100%', height: '100%', fontFamily, fontSize: tableSize(block), lineHeight: 1.2,
+                }}
+                // The server's table, reduced to table markup by cleanTable.
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{ __html: block.html }}
+              />
+            </foreignObject>
+            {outline}
+          </g>
+        );
+      })}
+      {page.lines.filter((line) => line.block === null).map((line) => {
+        const key = lineKey(page.page, line.index);
+        const [left, top] = line.box[0];
+        const height = lineHeight(line.box);
+        const width = lineWidth(line.box);
+        const angle = (Math.atan2(line.box[1][1] - line.box[0][1], line.box[1][0] - line.box[0][0]) * 180) / Math.PI;
+        const lit = hoveredKey === key;
+        return (
+          <g
+            key={key}
+            data-key={interactive ? key : undefined}
+            transform={Math.abs(angle) > 1 ? `rotate(${angle.toFixed(2)} ${left} ${top})` : undefined}
+            {...events(key)}
+          >
+            {interactive && <rect x={left} y={top} width={width} height={height} fill="#1677ff" fillOpacity={lit ? 0.15 : 0} />}
+            <text
+              x={left}
+              y={top + height * 0.8}
+              fontSize={height * 0.78}
+              fontWeight={line.role === 'title' ? 700 : 400}
+              fill={line.role === 'header' || line.role === 'footer' ? '#555' : '#000'}
+              textLength={width}
+              lengthAdjust="spacingAndGlyphs"
+            >
+              {line.text}
+              {interactive && <title>{`${line.text} — ${fontSizeLabel(page, line)}`}</title>}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/** A page as plain lines, with each line's size and how sure the model was of it. */
+function PageText({
+  page, fontFamily, hoveredKey, onPoint, multi, t,
+}) {
+  return (
+    <div style={{ background: '#fff', padding: '8px 4px', boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}>
+      {multi && <div style={{ padding: '0 8px 6px' }}><Tag color="blue">{t('ocrPage', { page: page.page })}</Tag></div>}
+      {page.lines.length ? page.lines.map((line) => {
+        const own = lineKey(page.page, line.index);
+        const target = line.block === null ? own : blockKey(page.page, line.block);
+        return (
+          <div
+            key={own}
+            data-key={own}
+            onMouseEnter={() => onPoint(own)}
+            onMouseLeave={() => onPoint(null)}
+            style={{
+              display: 'flex',
+              gap: 8,
+              alignItems: 'baseline',
+              padding: '3px 8px',
+              borderRadius: 4,
+              background: hoveredKey === own || hoveredKey === target ? 'rgba(22, 119, 255, 0.1)' : 'transparent',
+            }}
+          >
+            <Text copyable style={{ flex: 1, whiteSpace: 'pre-wrap', fontFamily, fontWeight: line.role === 'title' ? 700 : 400, color: '#000' }}>
+              {line.text}
+            </Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>{fontSizeLabel(page, line)}</Text>
+            <Text style={{ color: lineColor(line.score), fontSize: 12, minWidth: 34, textAlign: 'right' }}>{(line.score * 100).toFixed(0)}%</Text>
+          </div>
+        );
+      }) : <Text type="secondary" style={{ padding: 8 }}>{t('ocrNothingFound')}</Text>}
     </div>
   );
 }
