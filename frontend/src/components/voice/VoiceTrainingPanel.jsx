@@ -1,9 +1,9 @@
 import {
-  forwardRef, useEffect, useRef, useState,
+  forwardRef, useCallback, useEffect, useRef, useState,
 } from 'react';
 import {
   Alert, Button, Card, Checkbox, Col, Collapse, Empty, Input, InputNumber, Popconfirm, Progress, Row, Select, Space, Table,
-  Tag, Tooltip, Typography,
+  Tag, Tooltip, Typography, message,
 } from 'antd';
 import {
   DeleteOutlined, DownloadOutlined, ExperimentOutlined, ReloadOutlined, RocketOutlined, SoundOutlined,
@@ -47,16 +47,32 @@ const errorText = (error) => {
 };
 
 /**
- * Train voice: a Supertonic voice learned from a Speech to Text dataset — the
- * recordings of one person, with their transcripts — then tested against
+ * Train voice: a Supertonic voice learned from a dataset of one person's
+ * recordings with their text — a voice dataset recorded on the Datasets tab,
+ * or a Speech to Text dataset — then tested against
  * those recordings. Supertonic itself cannot be retrained (it is released as
  * ONNX only); what is trained is a voice style, the same kind of file as its
  * own ten voices, so a trained voice is used on Read aloud like any other.
  */
-export default function VoiceTrainingPanel({ onVoicesChanged }) {
+export default function VoiceTrainingPanel({ onVoicesChanged, datasetsVersion = 0 }) {
   const { t } = useLanguage();
-  const area = useMlArea('voice', t);
-  const { models, datasets, jobs } = area;
+  // Datasets come from two stores, so they are loaded here rather than by useMlArea.
+  const area = useMlArea('voice', t, { datasets: false });
+  const { models, jobs } = area;
+  const [datasets, setDatasets] = useState([]);
+  const loadDatasets = useCallback(async () => {
+    try {
+      const { data } = await api.get('/tools/voice/training-datasets');
+      setDatasets(data.datasets || []);
+    } catch (error) {
+      message.error(error.response?.data?.message || t('mlDatasetsLoadFailed'));
+    }
+  }, [t]);
+  useEffect(() => { loadDatasets(); }, [loadDatasets, datasetsVersion]);
+  const reload = () => {
+    area.reload();
+    loadDatasets();
+  };
   const [form, setForm] = useState({
     datasetId: '', baseVoice: 'auto', name: '', steps: 300, learningRate: 0.003, device: 'auto',
   });
@@ -65,7 +81,7 @@ export default function VoiceTrainingPanel({ onVoicesChanged }) {
   const testRef = useRef(null);
   const set = (patch) => setForm((current) => ({ ...current, ...patch }));
 
-  const ready = datasets.filter((dataset) => dataset.complete && dataset.supported);
+  const ready = datasets.filter((dataset) => dataset.complete && dataset.supported && (dataset.transcribed || 0) > 0);
   const dataset = ready.find((item) => item.id === form.datasetId) || null;
   useEffect(() => {
     if (!dataset && ready.length) set({ datasetId: ready[0].id });
@@ -137,6 +153,11 @@ export default function VoiceTrainingPanel({ onVoicesChanged }) {
   const datasetColumns = [
     { title: t('trainDataset'), dataIndex: 'name' },
     {
+      title: t('voiceDsSource'),
+      dataIndex: 'source',
+      render: (source) => (source === 'voice' ? <Tag color="blue">{t('voiceDsTab')}</Tag> : <Tag>{t('speechToText')}</Tag>),
+    },
+    {
       title: t('mlSpokenLanguage'),
       key: 'language',
       render: (_, item) => {
@@ -157,7 +178,7 @@ export default function VoiceTrainingPanel({ onVoicesChanged }) {
         title={t('voiceTrainTitle')}
         extra={(
           <Tooltip title={t('translationReload')}>
-            <Button icon={<ReloadOutlined />} loading={area.loading} onClick={area.reload} />
+            <Button icon={<ReloadOutlined />} loading={area.loading} onClick={reload} />
           </Tooltip>
         )}
       >
@@ -173,7 +194,14 @@ export default function VoiceTrainingPanel({ onVoicesChanged }) {
                 value={form.datasetId || undefined}
                 placeholder={t('translationPickDataset')}
                 onChange={(datasetId) => set({ datasetId })}
-                options={ready.map((item) => ({ value: item.id, label: `${item.name} (${item.language}, ${item.transcribed})` }))}
+                options={[
+                  { source: 'voice', label: t('voiceDsTitle') },
+                  { source: 'speech', label: t('voiceDatasetsTitle') },
+                ].map((group) => ({
+                  label: group.label,
+                  options: ready.filter((item) => item.source === group.source)
+                    .map((item) => ({ value: item.id, label: `${item.name} (${item.language}, ${item.transcribed})` })),
+                })).filter((group) => group.options.length)}
               />
             </Col>
             <Col xs={24} md={8}>
@@ -276,7 +304,7 @@ export default function VoiceTrainingPanel({ onVoicesChanged }) {
 
       <VoiceTest ref={testRef} voices={models} value={testId} onChange={setTestId} />
 
-      <Card bordered={false} title={t('voiceDatasetsTitle')}>
+      <Card bordered={false} title={t('voiceTrainDatasetsTitle')}>
         <Space direction="vertical" style={{ width: '100%' }}>
           <Text type="secondary">{t('voiceDatasetsHelp')}</Text>
           <Table

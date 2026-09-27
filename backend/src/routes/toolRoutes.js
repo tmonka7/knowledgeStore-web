@@ -141,11 +141,24 @@ router.post('/tools/speech/synthesize', ...synthesisView, asyncRoute(synthesizeS
  * on the Speech to Text page. Trained voices are private to their owner.
  */
 const voiceTrain = [...synthesisView, requirePermission('text-to-speech:train')];
+const voiceClipUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 20 * 1024 * 1024, files: 1 } });
+
+// Voice datasets (the Datasets tab): recorded line by line, personal, and
+// managed with the page like Speech to Text datasets.
+router.get('/tools/voice/datasets', ...synthesisView, asyncRoute(voiceTraining.listVoiceDatasets));
+router.post('/tools/voice/datasets', ...synthesisView, asyncRoute(voiceTraining.createVoiceDatasetRecord));
+router.get('/tools/voice/datasets/:id', ...synthesisView, asyncRoute(voiceTraining.getVoiceDatasetRecord));
+router.put('/tools/voice/datasets/:id', ...synthesisView, asyncRoute(voiceTraining.updateVoiceDataset));
+router.delete('/tools/voice/datasets/:id', ...synthesisView, asyncRoute(voiceTraining.deleteVoiceDataset));
+router.get('/tools/voice/datasets/:id/clips/:line', ...synthesisView, asyncRoute(voiceTraining.getVoiceClip));
+router.put('/tools/voice/datasets/:id/clips/:line', ...synthesisView, voiceClipUpload.single('audio'), asyncRoute(voiceTraining.putVoiceClip));
+router.delete('/tools/voice/datasets/:id/clips/:line', ...synthesisView, asyncRoute(voiceTraining.removeVoiceClip));
+
 const scoreUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 32 * 1024 * 1024, files: 1 } });
 router.get('/tools/voice/models', ...voiceTrain, asyncRoute(voiceTraining.listVoices));
 router.delete('/tools/voice/models/:id', ...voiceTrain, asyncRoute(voiceTraining.removeVoice));
 router.post('/tools/voice/models/:id/score', ...voiceTrain, scoreUpload.single('audio'), asyncRoute(voiceTraining.scoreVoice));
-router.get('/tools/voice/datasets', ...voiceTrain, asyncRoute(voiceTraining.listVoiceDatasets));
+router.get('/tools/voice/training-datasets', ...voiceTrain, asyncRoute(voiceTraining.listTrainingDatasets));
 router.post('/tools/voice/train', ...voiceTrain, asyncRoute(voiceTraining.trainVoice));
 router.get('/tools/voice/devices', ...voiceTrain, asyncRoute(voiceTraining.voiceDevices));
 router.get('/tools/voice/jobs', ...voiceTrain, asyncRoute(voiceTraining.listVoiceJobs));

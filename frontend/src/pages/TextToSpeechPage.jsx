@@ -6,27 +6,21 @@ import {
   Typography, message,
 } from 'antd';
 import {
-  ClearOutlined, DeleteOutlined, DownloadOutlined, FileTextOutlined, ReloadOutlined, RocketOutlined, SoundOutlined,
-  StopOutlined,
+  ClearOutlined, DatabaseOutlined, DeleteOutlined, DownloadOutlined, FileTextOutlined, ReloadOutlined, RocketOutlined,
+  SoundOutlined, StopOutlined,
 } from '@ant-design/icons';
 import api from '../api';
 import { MONO } from '../components/ml/JobView';
+import VoiceDatasetPanel from '../components/voice/VoiceDatasetPanel';
 import VoiceTrainingPanel from '../components/voice/VoiceTrainingPanel';
 import { useLanguage } from '../i18n';
 import { can } from '../permissions';
 import { joinWavs, splitForSpeech, wavSeconds } from '../lib/speechSynthesis';
+import { TTS_LANGUAGE_LABELS as LANGUAGE_LABELS } from '../lib/voiceScripts';
 
 const { Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
-// Each language in its own script, as a language picker shows them (Korean as on the OCR page).
-const LANGUAGE_LABELS = {
-  en: 'English', ko: '조선어', ja: '日本語', ar: 'العربية', bg: 'Български', cs: 'Čeština', da: 'Dansk', de: 'Deutsch',
-  el: 'Ελληνικά', es: 'Español', et: 'Eesti', fi: 'Suomi', fr: 'Français', hi: 'हिन्दी', hr: 'Hrvatski', hu: 'Magyar',
-  id: 'Bahasa Indonesia', it: 'Italiano', lt: 'Lietuvių', lv: 'Latviešu', nl: 'Nederlands', pl: 'Polski', pt: 'Português',
-  ro: 'Română', ru: 'Русский', sk: 'Slovenčina', sl: 'Slovenščina', sv: 'Svenska', tr: 'Türkçe', uk: 'Українська',
-  vi: 'Tiếng Việt',
-};
 // The page's language, as a first choice of what to read.
 const UI_TO_SPEECH = { en: 'en', es: 'es', jp: 'ja', zh: 'en' };
 const PREFS_KEY = 'text-to-speech-prefs';
@@ -67,8 +61,9 @@ const fileName = (text) => `${(text.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_
 const TRAINED = 'trained:';
 
 /**
- * Tools > AI > Text to Speech: Read aloud, and — with 'text-to-speech:train' —
- * Train voice, which learns a voice from someone's recordings and tests it.
+ * Tools > AI > Text to Speech: Read aloud; Datasets, where a person's voice is
+ * recorded line by line from a script; and — with 'text-to-speech:train' —
+ * Train voice, which learns a voice from those recordings and tests it.
  */
 export default function TextToSpeechPage({ user }) {
   const { t } = useLanguage();
@@ -78,6 +73,8 @@ export default function TextToSpeechPage({ user }) {
   // Read aloud re-reads its voices when shown, so a voice just trained is there.
   const [tab, setTab] = useState('read');
   const [voicesVersion, setVoicesVersion] = useState(0);
+  // Train voice re-reads its datasets when shown, so one just recorded is there.
+  const [datasetsVersion, setDatasetsVersion] = useState(0);
 
   return (
     <div className="vision-page vision-stack">
@@ -92,6 +89,7 @@ export default function TextToSpeechPage({ user }) {
         onChange={(key) => {
           setTab(key);
           if (key === 'read') setVoicesVersion((value) => value + 1);
+          if (key === 'train') setDatasetsVersion((value) => value + 1);
         }}
         items={[
           {
@@ -100,10 +98,15 @@ export default function TextToSpeechPage({ user }) {
             children: <ReadAloud reloadKey={voicesVersion} />,
           },
           {
+            key: 'datasets',
+            label: <span><DatabaseOutlined /> {t('voiceDsTab')}</span>,
+            children: <VoiceDatasetPanel />,
+          },
+          {
             key: 'train',
             label: <span><RocketOutlined /> {t('voiceTrainTab')}</span>,
             children: canTrain
-              ? <VoiceTrainingPanel />
+              ? <VoiceTrainingPanel datasetsVersion={datasetsVersion} />
               : <Alert type="info" showIcon message={t('voiceTrainNeedsPermission')} />,
           },
         ]}

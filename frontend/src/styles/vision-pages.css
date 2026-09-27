@@ -3773,3 +3773,18 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* Text to Speech › Datasets — the lines of a script being recorded. */
+.voice-ds-lines {
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.voice-ds-lines .ant-list-item.is-current {
+  background: color-mix(in srgb, var(--v-primary) 10%, transparent);
+}
+
+.voice-ds-sentence.ant-input {
+  font-size: 18px;
+  line-height: 1.6;
+}

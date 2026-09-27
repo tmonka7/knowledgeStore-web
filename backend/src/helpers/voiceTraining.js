@@ -2,7 +2,8 @@
 //
 // Supertonic's models cannot be fine-tuned (they are released as ONNX only),
 // but a voice can be trained: tts_train_voice.py learns a voice style that
-// sounds like the speaker of a Speech to Text dataset. A trained voice is a
+// sounds like the speaker of a voice dataset (recorded on the page's Datasets
+// tab) or of a Speech to Text dataset. A trained voice is a
 // model of its own, task "voice", owned by whoever trained it: a folder with
 // voice.json (used like the model's own F1 … M5) and target.json (the
 // recordings' voiceprint, which a test scores speech against).
@@ -11,7 +12,9 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { getDataset, datasetFolder, listDatasets } from './mlDatasets.js';
+import {
+  datasetFolder, getDataset, listDatasets, voiceSummary,
+} from './mlDatasets.js';
 import { startTrainingJob } from './mlJobs.js';
 import { baseSpeakerModel, baseVoiceprint } from './speakerRecognition.js';
 import { TASK as SYNTHESIS, TTS_LANGUAGES } from './textToSpeech.js';
@@ -46,16 +49,32 @@ export const findVoice = async (ownerId, voiceId) => {
   return { ...model, voiceFile: path.join(model.folder, 'voice.json') };
 };
 
-/** The Speech to Text datasets a voice can be trained on (read-only here). */
-export const voiceDatasets = async (ownerId) => (await listDatasets(ownerId, 'speech')).map((dataset) => ({
-  ...dataset,
-  supported: TTS_LANGUAGES.includes(String(dataset.language || '').toLowerCase().split(/[-_]/)[0]),
-}));
+const supported = (dataset) => TTS_LANGUAGES.includes(String(dataset.language || '').toLowerCase().split(/[-_]/)[0]);
+
+/**
+ * Every dataset a voice can be trained on: the caller's voice datasets
+ * (source "voice"), then their Speech to Text datasets (source "speech").
+ */
+export const trainingDatasets = async (ownerId) => [
+  ...(await listDatasets(ownerId, 'voice')).map((dataset) => ({ ...voiceSummary(dataset), source: 'voice', supported: supported(dataset) })),
+  ...(await listDatasets(ownerId, 'speech')).map((dataset) => ({ ...dataset, source: 'speech', supported: supported(dataset) })),
+];
+
+/** Which store a dataset id is in: a voice dataset, else a Speech to Text one. */
+const findTrainingDataset = async (ownerId, datasetId) => {
+  try {
+    return { kind: 'voice', dataset: await getDataset(ownerId, 'voice', datasetId) };
+  } catch {
+    return { kind: 'speech', dataset: await getDataset(ownerId, 'speech', datasetId) };
+  }
+};
 
 export const startVoiceTraining = async ({ ownerId, datasetId, baseModelId, name, options = {} }) => {
-  const dataset = await getDataset(ownerId, 'speech', datasetId);
+  const { kind, dataset } = await findTrainingDataset(ownerId, datasetId);
   if (!dataset.complete) throw new JobError('This dataset has not finished uploading. Save it to the server again.');
-  if ((dataset.transcribed || 0) < 1) throw new JobError('The dataset has no transcribed clips.');
+  if ((dataset.transcribed || 0) < 1) {
+    throw new JobError(kind === 'voice' ? 'Record at least one line of the dataset first.' : 'The dataset has no transcribed clips.');
+  }
   const language = String(dataset.language || '').toLowerCase().split(/[-_]/)[0];
   if (!TTS_LANGUAGES.includes(language)) {
     throw new JobError(`Supertonic cannot read "${dataset.language}", the language of this dataset.`);
@@ -81,7 +100,7 @@ export const startVoiceTraining = async ({ ownerId, datasetId, baseModelId, name
     title,
     script: 'tts_train_voice.py',
     args: [
-      '--data', await datasetFolder(ownerId, 'speech', datasetId),
+      '--data', await datasetFolder(ownerId, kind, datasetId),
       '--language', language,
       '--model', model.folder,
       '--ecapa', ecapaModel.folder,
@@ -97,6 +116,7 @@ export const startVoiceTraining = async ({ ownerId, datasetId, baseModelId, name
       synthesisModel: model.id,
       datasetId: dataset.id,
       datasetName: dataset.name,
+      datasetSource: kind,
       options: { steps, learningRate },
     },
   });

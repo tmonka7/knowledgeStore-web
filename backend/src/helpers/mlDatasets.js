@@ -12,6 +12,15 @@
 //   datasets/speech/<id>/audio/<file name>.wav
 //   datasets/speech/<id>/metadata.jsonl         {"audio": "audio/x.wav", "text": …}
 //
+//   datasets/voice/<id>/ks-dataset.json         name, owner, language, speaker, script
+//   datasets/voice/<id>/audio/<line id>.wav      one recording per line of the script
+//   datasets/voice/<id>/metadata.jsonl          as for speech, so training reads either
+//
+// Voice datasets (Text to Speech) are recorded on the page line by line
+// rather than uploaded as a folder: each clip is sent as soon as it is
+// recorded, and the script — the lines to read, recorded or not — is kept in
+// ks-dataset.json. See saveVoiceScript.
+//
 // Uploading is incremental: the page asks which files the server already has
 // (by path and size) and sends only the rest, in batches, then sends the
 // labels or transcripts last. Files the page no longer has are removed at that
@@ -29,6 +38,7 @@ const SAFE_ID = /^[0-9a-f-]{36}$/;
 export const DATASET_KINDS = {
   yolo: { folder: 'images', pattern: /\.(jpe?g|png|bmp|webp|tiff?)$/i, label: 'image' },
   speech: { folder: 'audio', pattern: /\.wav$/i, label: 'WAV file' },
+  voice: { folder: 'audio', pattern: /\.wav$/i, label: 'WAV file' },
 };
 
 const rootOf = (kind) => path.join(DATASETS_DIR, kind);
@@ -232,6 +242,163 @@ export const saveTranscripts = async (ownerId, id, { language, transcripts, keep
   };
   await writeMeta(folder, updated);
   return publicMeta(updated);
+};
+
+/*
+ * Voice datasets (Text to Speech): a script of lines, each with an id, and a
+ * recording per line as audio/<line id>.wav.
+ */
+const LINE_ID = /^[a-z0-9]{4,40}$/;
+const MAX_LINES = 2000;
+const MAX_LINE_CHARS = 500;
+const MAX_CLIP_BYTES = 20 * 1024 * 1024;
+
+/** Seconds of audio in a PCM WAV, from its header, or 0 if it cannot be read. */
+const wavSeconds = async (file) => {
+  let handle;
+  try {
+    handle = await fs.open(file, 'r');
+    const header = Buffer.alloc(44);
+    await handle.read(header, 0, 44, 0);
+    const byteRate = header.readUInt32LE(28);
+    const { size } = await handle.stat();
+    return byteRate ? Math.round(((size - 44) / byteRate) * 10) / 10 : 0;
+  } catch {
+    return 0;
+  } finally {
+    await handle?.close();
+  }
+};
+
+const cleanScript = (script) => {
+  if (!Array.isArray(script)) throw new JobError('The script must be a list of lines.');
+  if (script.length > MAX_LINES) throw new JobError(`A script may have at most ${MAX_LINES} lines.`);
+  const seen = new Set();
+  return script.map((line) => {
+    const id = String(line?.id || '');
+    if (!LINE_ID.test(id) || seen.has(id)) throw new JobError('Every line of the script needs its own id.');
+    seen.add(id);
+    return { id, text: String(line?.text || '').replace(/\s+/g, ' ').trim().slice(0, MAX_LINE_CHARS) };
+  });
+};
+
+/**
+ * Save a voice dataset's details and script, and bring the rest in line with
+ * it: recordings of lines no longer in the script are deleted, and
+ * metadata.jsonl lists every recorded line that has text. `fields` may hold
+ * any of name, language, speaker and script; the rest are kept.
+ */
+export const saveVoiceScript = async (ownerId, id, fields = {}) => {
+  const { folder, meta } = await locate(ownerId, 'voice', id);
+  const next = { ...meta };
+  if (fields.name !== undefined) {
+    next.name = String(fields.name || '').trim().slice(0, 120);
+    if (!next.name) throw new JobError('A dataset name is required.');
+  }
+  if (fields.language !== undefined) {
+    const code = String(fields.language || '').trim();
+    if (!/^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$/.test(code)) throw new JobError('Pick the language the lines are in.');
+    next.language = code;
+  }
+  if (fields.speaker !== undefined) next.speaker = String(fields.speaker || '').trim().slice(0, 120);
+  if (fields.script !== undefined) next.script = cleanScript(fields.script);
+  next.script = next.script || [];
+
+  const audioFolder = path.join(folder, 'audio');
+  await prune(folder, 'voice', next.script.map((line) => `${line.id}.wav`));
+  const lines = [];
+  let seconds = 0;
+  let recorded = 0;
+  for (const line of next.script) {
+    const file = path.join(audioFolder, `${line.id}.wav`);
+    if (!(await exists(file))) continue;
+    recorded += 1;
+    seconds += await wavSeconds(file);
+    if (line.text) lines.push(JSON.stringify({ audio: `audio/${line.id}.wav`, text: line.text }));
+  }
+  await fs.writeFile(path.join(folder, 'metadata.jsonl'), lines.length ? `${lines.join('\n')}\n` : '', 'utf8');
+
+  const updated = {
+    ...next,
+    lines: next.script.length,
+    recorded,
+    transcribed: lines.length,
+    seconds: Math.round(seconds * 10) / 10,
+    ...(await summarise(folder, 'voice')),
+    complete: true,
+    updatedAt: new Date().toISOString(),
+  };
+  await writeMeta(folder, updated);
+  return publicMeta(updated);
+};
+
+/** A voice dataset for the list: everything but the script itself. */
+export const voiceSummary = ({ script: _script, ...meta }) => meta;
+
+export const createVoiceDataset = async (ownerId, fields = {}) => {
+  const dataset = await createDataset(ownerId, 'voice', fields);
+  try {
+    return await saveVoiceScript(ownerId, dataset.id, {
+      language: fields.language, speaker: fields.speaker, script: fields.script || [],
+    });
+  } catch (error) {
+    await deleteDataset(ownerId, 'voice', dataset.id);
+    throw error;
+  }
+};
+
+/** A voice dataset with the length of each line's recording (0: not recorded). */
+export const getVoiceDataset = async (ownerId, id) => {
+  const { folder, meta } = await locate(ownerId, 'voice', id);
+  const script = await Promise.all((meta.script || []).map(async (line) => {
+    const file = path.join(folder, 'audio', `${line.id}.wav`);
+    return { ...line, seconds: (await exists(file)) ? await wavSeconds(file) : 0 };
+  }));
+  return { ...publicMeta(meta), script };
+};
+
+const clipFile = (folder, lineId) => {
+  if (!LINE_ID.test(String(lineId || ''))) throw new JobError('That line does not exist.', 404);
+  return path.join(folder, 'audio', `${lineId}.wav`);
+};
+
+/** Store (or replace) the recording of one line: `upload` is a multer file holding a WAV. */
+export const saveVoiceClip = async (ownerId, id, lineId, upload) => {
+  try {
+    const { folder, meta } = await locate(ownerId, 'voice', id);
+    if (!(meta.script || []).some((line) => line.id === lineId)) throw new JobError('That line does not exist.', 404);
+    if (!upload) throw new JobError('No recording was sent.');
+    if (upload.size > MAX_CLIP_BYTES) throw new JobError('That recording is too long.');
+    const handle = await fs.open(upload.path, 'r');
+    const header = Buffer.alloc(12);
+    await handle.read(header, 0, 12, 0);
+    await handle.close();
+    if (header.toString('ascii', 0, 4) !== 'RIFF' || header.toString('ascii', 8, 12) !== 'WAVE') {
+      throw new JobError('The recording is not a WAV file.');
+    }
+    const target = clipFile(folder, lineId);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.copyFile(upload.path, target);
+    await saveVoiceScript(ownerId, id);
+    return getVoiceDataset(ownerId, id);
+  } finally {
+    if (upload) await fs.rm(upload.path, { force: true });
+  }
+};
+
+export const deleteVoiceClip = async (ownerId, id, lineId) => {
+  const { folder } = await locate(ownerId, 'voice', id);
+  await fs.rm(clipFile(folder, lineId), { force: true });
+  await saveVoiceScript(ownerId, id);
+  return getVoiceDataset(ownerId, id);
+};
+
+/** The path of one line's recording, for streaming it back to the page. */
+export const voiceClipPath = async (ownerId, id, lineId) => {
+  const { folder } = await locate(ownerId, 'voice', id);
+  const file = clipFile(folder, lineId);
+  if (!(await exists(file))) throw new JobError('That line has not been recorded.', 404);
+  return file;
 };
 
 export const deleteDataset = async (ownerId, kind, id) => {

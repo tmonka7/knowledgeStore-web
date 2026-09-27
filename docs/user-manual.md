@@ -703,6 +703,33 @@ pip install onnxruntime
 python backend/python/download_models.py supertonic-3
 ```
 
+### Recording a voice dataset
+
+A voice is trained from recordings of one person reading sentences aloud. The
+**Datasets** tab records them. Anyone who can open Text to Speech can use it,
+and datasets are private to whoever made them.
+
+1. Choose **New dataset**. Give it a name and the speaker's name, and choose
+   the language. The **Script** is filled with built-in sentences for English,
+   조선어, 日本語, Español, Deutsch, Français and Русский. Edit them, or paste
+   your own, one sentence per line (for other languages you must paste your
+   own).
+2. Choose **Create and start recording**. The dataset opens on line 1: press
+   **Record**, read the sentence at your usual pace, and press **Stop** (it
+   stops by itself after 30 seconds). The recording is saved on the server at
+   once, and the next unrecorded line comes up. **Choose a recording** uses an
+   audio file instead of the microphone.
+3. Click any line in the list to listen to it, **Record again**, **Delete
+   recording**, change its text, or **Remove this line**. **Add line** and
+   **Edit script** add or change sentences. Editing keeps the recordings of
+   lines whose text you did not change, and warns before deleting the others.
+
+The bar shows how many lines are recorded and how much speech there is. Three
+minutes or more gives a good likeness; training works with less. A line whose
+recording looks too short (cut off) or too long (long pauses) for its sentence
+is marked in yellow. Record in a quiet room, with the same microphone
+throughout.
+
 ### Training a voice
 
 The **Train voice** tab (it needs the *Text to Speech: train* permission,
@@ -713,11 +740,13 @@ the person and adjusts it until it sounds like the recordings. The new voice
 then appears in the **Voice** list on Read aloud, under *Trained voices*, and
 speaks every language Supertonic reads, best in the one it was trained in.
 
-1. On **Speech to Text > Transcribe**, record or open clips of **one person**
-   speaking, transcribe them, and save the dataset to the server. Half a
-   minute of clear speech is enough to start; a few minutes is better. The
-   language must be one Supertonic reads.
-2. On **Train voice**, choose the dataset under **Recordings**. **Start from**
+1. Record a voice dataset of **one person** on the **Datasets** tab (above).
+   A Speech to Text dataset works too: on **Speech to Text > Transcribe**,
+   open clips of one person, transcribe them, and save the dataset to the
+   server. Half a minute of clear speech is enough to start; a few minutes is
+   better. The language must be one Supertonic reads.
+2. On **Train voice**, choose the dataset under **Recordings**. Voice
+   datasets and Speech to Text datasets are listed separately. **Start from**
    is best left on *Most similar*. **Steps**: 300 is a good start (about 15
    minutes on a server without a GPU, a minute or two with one); more steps
    give a closer likeness.
