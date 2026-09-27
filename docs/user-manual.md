@@ -563,19 +563,23 @@ by the language.
    are done. Pages appear as soon as they are read, so you can start with the
    first while the rest are read. **Cancel** stops after the page in hand.
 
-**Original** (left) is the file, with a box round each line read — green when
-the model is sure, amber or red when it is not — and dashed boxes round the
-tables and figures found. A PDF has a column of page thumbnails; click one to
+**Original** (left) is the file, with a box round each line read and dashed
+boxes round the tables and figures found. A PDF has a column of page thumbnails; click one to
 go to that page.
 
 **Recognised** (right) shows what was read:
 
 - **Layout** draws each page as the original was laid out: every line where
-  it stood and at its size, titles in bold, tables rebuilt as tables (with
-  their rows, columns and merged cells), and figures and charts cut from the
-  page.
-- **Text** lists the lines, each with its size (in points for a PDF, in
-  pixels for an image) and how sure the model was.
+  it stood, at its size, in its colour, and bold where the original is bold;
+  tables rebuilt as tables in their place, with the original's column widths,
+  row heights and merged cells; and pictures and charts in their place, cut
+  from the page.
+- **Text** lists the lines, each in its colour and weight, with its size (in
+  points for a PDF, in pixels for an image).
+
+If the server lacks the layout models, a warning says so: the text is still
+laid out where it stood, but tables and figures cannot be found until an
+administrator installs them.
 
 The two sides move together: scrolling one scrolls the other to the same
 place on the same page, and pointing at a line, a table or a figure on either
@@ -587,15 +591,25 @@ Latin fonts and Chinese, Korean and Japanese ones, each shown in itself. The
 font of the original is not detected — choose the closest.
 
 **Copy** copies the text of every page, in reading order, with each table as
-tab-separated rows (it pastes into a spreadsheet as a table). **Download**
-saves the pages **laid out**, as an HTML file that opens in any browser or in
-Word, in the font chosen, or the **text** as a .txt file.
+tab-separated rows (it pastes into a spreadsheet as a table). **Export** saves:
+
+- **Word (.docx)** — a Word page for each page, of the original's size, with
+  its paragraphs in reading order (two columns are read one after the other)
+  at their size, weight, colour, indent and spacing; its tables as Word tables
+  with their column widths, row heights and merged cells; and its pictures at
+  their size. Everything can be edited. The font is the one chosen.
+- **Excel (.xlsx)** — a sheet for each page: each table in cells, merged
+  cells kept, numbers and percentages as numbers you can calculate with
+  (1,200 is 1200, 30% is 0.3), and the text between the tables a paragraph a
+  row. Pictures are not carried over; a note marks where each was.
+- **Web page (.html)** — the pages exactly as the Layout view draws them.
+- **Plain text (.txt)**.
 
 **Keep layout** finds the titles, tables and figures; it adds a few seconds a
 page. Turn it off to read only the lines. **Rotated text** also reads lines
-that are upside down. **Hide lines below confidence** leaves out lines the
-model was unsure of (usually specks and stray marks). Photos from a phone are
-turned the way the phone shows them.
+that are upside down. Lines the model could not really read (specks and stray
+marks) are left out. Photos from a phone are turned the way the phone shows
+them.
 
 **PDFs** are read page by page, and only the first 30 pages (the
 administrator can change this with `OCR_MAX_PAGES`). Every page is read in the

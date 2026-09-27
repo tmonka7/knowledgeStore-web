@@ -3,7 +3,7 @@ import {
 } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
-  Alert, Button, Card, Dropdown, Empty, Progress, Segmented, Select, Slider, Space, Spin, Switch, Tag, Tooltip,
+  Alert, Button, Card, Dropdown, Empty, Progress, Segmented, Select, Space, Spin, Switch, Tag, Tooltip,
   Typography, message,
 } from 'antd';
 import {
@@ -12,6 +12,9 @@ import {
 import api from '../api';
 import { MONO } from '../components/ml/JobView';
 import { useLanguage } from '../i18n';
+import {
+  lineHeight, linePoints, lineWidth, pageText, preparePage,
+} from '../lib/ocrDocument';
 
 const { Paragraph, Text } = Typography;
 
@@ -60,89 +63,13 @@ const TABLE_CSS = `
 `;
 
 const isPdf = (file) => file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '');
-const lineColor = (score) => (score >= 0.9 ? '#52c41a' : score >= 0.7 ? '#faad14' : '#ff4d4f');
 const lineKey = (page, index) => `${page}:${index}`;
 const blockKey = (page, index) => `${page}:b${index}`;
-
-const center = (box) => [box.reduce((sum, [x]) => sum + x, 0) / box.length, box.reduce((sum, [, y]) => sum + y, 0) / box.length];
-const inside = ([x, y], [x1, y1, x2, y2]) => x >= x1 && x <= x2 && y >= y1 && y <= y2;
-const side = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
-/** A line's height and length in the page's pixels: the mean of its two sides. */
-const lineHeight = (box) => Math.max(1, (side(box[0], box[3]) + side(box[1], box[2])) / 2);
-const lineWidth = (box) => Math.max(1, (side(box[0], box[1]) + side(box[3], box[2])) / 2);
-/** The printed size of a line of text: points on a PDF page (its resolution is known), pixels in an image. */
-const fontSizeLabel = (page, line) => {
-  const size = lineHeight(line.box) * 0.75;
-  return page.dpi ? `${Math.round((size * 72) / page.dpi)} pt` : `${Math.round(size)} px`;
-};
-
-/**
- * The table HTML the server rebuilt, reduced to table markup: only table
- * elements, line breaks and colspan/rowspan survive, whatever it contains.
- */
-const cleanTable = (html) => {
-  const source = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
-  const allowed = new Set(['TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH', 'BR']);
-  const copy = (node, into) => {
-    node.childNodes.forEach((child) => {
-      if (child.nodeType === Node.TEXT_NODE) {
-        into.appendChild(document.createTextNode(child.textContent));
-      } else if (child.nodeType === Node.ELEMENT_NODE) {
-        if (!allowed.has(child.tagName)) {
-          copy(child, into);
-          return;
-        }
-        const element = document.createElement(child.tagName);
-        ['colspan', 'rowspan'].forEach((name) => {
-          const value = Number(child.getAttribute(name));
-          if (value > 1 && value < 100) element.setAttribute(name, String(value));
-        });
-        copy(child, element);
-        into.appendChild(element);
-      }
-    });
-  };
-  const holder = document.createElement('div');
-  copy(source.body, holder);
-  return holder.innerHTML;
-};
-
-/** A table's rows as tab-separated text. */
-const tableText = (html) => [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('tr')]
-  .map((row) => [...row.querySelectorAll('td, th')].map((cell) => cell.textContent.trim()).join('\t'))
-  .join('\n');
-
-/**
- * What the two panes need of one page: the lines kept at the chosen
- * confidence, its tables and figures, and which of those each line is in.
- */
-const preparePage = (page, minScore) => {
-  const blocks = (page.blocks || []).map((block, index) => ({
-    ...block, index, html: block.type === 'table' ? cleanTable(block.html || '') : undefined,
-  }));
-  const lines = page.lines.map((line, index) => {
-    const at = center(line.box);
-    const block = line.role === 'table' || line.role === 'figure' ? blocks.find((item) => inside(at, item.box)) : null;
-    return { ...line, index, block: block ? block.index : null, inTable: block?.type === 'table' };
-  }).filter((line) => line.score >= minScore);
-  return { ...page, blocks, lines };
-};
-
-/** A page's text in reading order, each table as tab-separated rows where it stands. */
-const pageText = (page) => {
-  const tables = page.blocks.filter((block) => block.type === 'table')
-    .map((block) => ({ y: block.box[1], text: tableText(block.html) }))
-    .sort((a, b) => a.y - b.y);
-  const out = [];
-  let next = 0;
-  for (const line of page.lines.filter((item) => !item.inTable)) {
-    const y = center(line.box)[1];
-    while (next < tables.length && tables[next].y <= y) out.push(tables[next++].text);
-    out.push(line.text);
-  }
-  while (next < tables.length) out.push(tables[next++].text);
-  return out.join('\n');
-};
+const LINE_COLOR = '#1677ff';
+/** The printed size of a line: points on a PDF page (its resolution is known), pixels in an image. */
+const fontSizeLabel = (page, line) => (page.dpi
+  ? `${Math.round(linePoints(page, line))} pt`
+  : `${Math.round(lineHeight(line.box) * 0.75)} px`);
 
 /**
  * Read the text in an image, or in each page of a PDF, with PaddleOCR
@@ -164,7 +91,6 @@ export default function OcrToolPage() {
   const [job, setJob] = useState(null); // { id, status, done, total, pageCount, error, took }
   const [pages, setPages] = useState(NONE);
   const [starting, setStarting] = useState(false);
-  const [minScore, setMinScore] = useState(0.5);
   const [view, setView] = useState('layout');
   const [font, setFont] = useState('auto');
   const [hovered, setHovered] = useState(null); // { key, from: 'left' | 'right' }
@@ -321,8 +247,10 @@ export default function OcrToolPage() {
 
   /* ------------------------------------------------------------ the pages */
 
-  const prepared = useMemo(() => pages.map((page) => preparePage(page, minScore)), [pages, minScore]);
-  const layoutFound = prepared.some((page) => page.blocks.length || page.lines.some((line) => line.role));
+  const prepared = useMemo(() => pages.map((page) => preparePage(page)), [pages]);
+  // Tables and figures are found only with the layout models; say so when
+  // they are missing rather than showing a page that silently lacks them.
+  const layoutMissing = Boolean(status?.installed) && !hasLayout;
   const fontFamily = font === 'auto' ? AUTO_FONTS[language] || AUTO_FONTS.en : font;
   // A slot for every page, read or still to come, so the thumbnails and both
   // panes hold the whole document from the start.
@@ -409,11 +337,39 @@ export default function OcrToolPage() {
     const blob = new Blob([content], { type });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `${(file?.name || 'ocr').replace(/\.[^.]+$/, '')}.${extension}`;
+    link.download = `${baseName}.${extension}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  };
+
+  const baseName = (file?.name || 'ocr').replace(/\.[^.]+$/, '');
+  const [exporting, setExporting] = useState('');
+  const exportAs = async (kind) => {
+    if (kind === 'html') {
+      saveHtml();
+      return;
+    }
+    if (kind === 'txt') {
+      save(text, 'text/plain;charset=utf-8', 'txt');
+      return;
+    }
+    setExporting(kind);
+    try {
+      const { toDocx, toXlsx } = await import('../lib/ocrExport');
+      const blob = kind === 'docx'
+        ? await toDocx(prepared, { fontFamily, title: baseName })
+        : await toXlsx(prepared, {
+          sheetName: (page) => t('ocrPage', { page: page.page }),
+          figureLabel: (number) => t('ocrFigure', { number }),
+        });
+      save(blob, blob.type, kind);
+    } catch (error) {
+      message.error(t('ocrExportFailed', { reason: error.message }));
+    } finally {
+      setExporting('');
+    }
   };
 
   // The laid-out pages as one HTML file: the same drawing as the right pane, in the chosen font.
@@ -514,10 +470,6 @@ ${body}
               </Space>
             </Tooltip>
           )}
-          <Space direction="vertical" size={0} style={{ width: 190 }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>{t('ocrMinScore', { value: minScore.toFixed(2) })}</Text>
-            <Slider min={0} max={0.95} step={0.05} value={minScore} onChange={setMinScore} style={{ margin: '4px 0' }} />
-          </Space>
           <Space wrap>
             <input
               ref={inputRef}
@@ -554,6 +506,15 @@ ${body}
               {!job?.done ? ` ${t('ocrFirstSlow')}` : ''}
             </Text>
           </div>
+        )}
+        {layoutMissing && (
+          <Alert
+            style={{ marginTop: 12 }}
+            type="warning"
+            showIcon
+            message={t('ocrLayoutMissing')}
+            description={<pre style={{ ...MONO, margin: 0 }}>python backend/python/download_models.py paddleocr</pre>}
+          />
         )}
         {job?.status === 'cancelled' && (
           <Alert style={{ marginTop: 12 }} type="info" showIcon message={t('ocrCancelled', { done: job.done, total: job.total || '?' })} />
@@ -661,14 +622,12 @@ ${body}
           styles={{ body: { padding: 0 } }}
           extra={(
             <Space wrap size={8}>
-              {layoutFound && (
-                <Segmented
-                  size="small"
-                  value={view}
-                  onChange={setView}
-                  options={[{ value: 'layout', label: t('ocrViewLayout') }, { value: 'text', label: t('ocrViewText') }]}
-                />
-              )}
+              <Segmented
+                size="small"
+                value={view}
+                onChange={setView}
+                options={[{ value: 'layout', label: t('ocrViewLayout') }, { value: 'text', label: t('ocrViewText') }]}
+              />
               <Tooltip title={t('ocrFont')}>
                 <Select
                   size="small"
@@ -688,11 +647,24 @@ ${body}
               <Dropdown
                 disabled={!prepared.length}
                 menu={{
-                  items: [{ key: 'html', label: t('ocrDownloadHtml') }, { key: 'txt', label: t('ocrDownloadTxt') }],
-                  onClick: ({ key }) => (key === 'html' ? saveHtml() : save(text, 'text/plain;charset=utf-8', 'txt')),
+                  items: [
+                    { key: 'docx', label: t('ocrDownloadDocx') },
+                    { key: 'xlsx', label: t('ocrDownloadXlsx') },
+                    { key: 'html', label: t('ocrDownloadHtml') },
+                    { key: 'txt', label: t('ocrDownloadTxt') },
+                  ],
+                  onClick: ({ key }) => exportAs(key),
                 }}
               >
-                <Button size="small" icon={<DownloadOutlined />} disabled={!prepared.length} aria-label={t('ocrDownload')} />
+                <Button
+                  size="small"
+                  icon={<DownloadOutlined />}
+                  loading={Boolean(exporting)}
+                  disabled={!prepared.length}
+                  aria-label={t('ocrDownload')}
+                >
+                  {t('ocrExport')}
+                </Button>
               </Dropdown>
             </Space>
           )}
@@ -707,7 +679,7 @@ ${body}
             ) : slots.map((page, index) => (
               // eslint-disable-next-line react/no-array-index-key
               <section key={index} data-page={index + 1} style={{ marginBottom: 12 }}>
-                {!page ? pending(index) : view === 'layout' && layoutFound ? (
+                {!page ? pending(index) : view === 'layout' ? (
                   <div style={{ background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
                     <PageLayout page={page} fontFamily={fontFamily} hoveredKey={hoveredKey} onPoint={pointRight} interactive />
                   </div>
@@ -785,9 +757,9 @@ function OriginalPage({ url, page, hoveredKey, onPoint }) {
                 key={own}
                 data-key={own}
                 points={line.box.map(([x, y]) => `${x},${y}`).join(' ')}
-                fill={lineColor(line.score)}
-                fillOpacity={lit ? 0.35 : 0.1}
-                stroke={lineColor(line.score)}
+                fill={LINE_COLOR}
+                fillOpacity={lit ? 0.3 : 0.06}
+                stroke={LINE_COLOR}
                 strokeWidth={lit ? 3 : 1}
                 vectorEffect="non-scaling-stroke"
                 onMouseEnter={() => onPoint(target)}
@@ -873,8 +845,8 @@ function PageLayout({
               x={left}
               y={top + height * 0.8}
               fontSize={height * 0.78}
-              fontWeight={line.role === 'title' ? 700 : 400}
-              fill={line.role === 'header' || line.role === 'footer' ? '#555' : '#000'}
+              fontWeight={line.bold ? 700 : 400}
+              fill={line.color || '#000'}
               textLength={width}
               lengthAdjust="spacingAndGlyphs"
             >
@@ -888,7 +860,7 @@ function PageLayout({
   );
 }
 
-/** A page as plain lines, with each line's size and how sure the model was of it. */
+/** A page as plain lines, each in its colour and weight, with its size. */
 function PageText({
   page, fontFamily, hoveredKey, onPoint, multi, t,
 }) {
@@ -913,11 +885,10 @@ function PageText({
               background: hoveredKey === own || hoveredKey === target ? 'rgba(22, 119, 255, 0.1)' : 'transparent',
             }}
           >
-            <Text copyable style={{ flex: 1, whiteSpace: 'pre-wrap', fontFamily, fontWeight: line.role === 'title' ? 700 : 400, color: '#000' }}>
+            <Text copyable style={{ flex: 1, whiteSpace: 'pre-wrap', fontFamily, fontWeight: line.bold ? 700 : 400, color: line.color || '#000' }}>
               {line.text}
             </Text>
             <Text type="secondary" style={{ fontSize: 11 }}>{fontSizeLabel(page, line)}</Text>
-            <Text style={{ color: lineColor(line.score), fontSize: 12, minWidth: 34, textAlign: 'right' }}>{(line.score * 100).toFixed(0)}%</Text>
           </div>
         );
       }) : <Text type="secondary" style={{ padding: 8 }}>{t('ocrNothingFound')}</Text>}

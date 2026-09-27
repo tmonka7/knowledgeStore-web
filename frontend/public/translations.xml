@@ -1111,7 +1111,6 @@
   <text id="ocrDownload" en="Download" es="Descargar" zh="下载" jp="ダウンロード" />
   <text id="ocrNoResult" en="Choose an image or PDF to read its text" es="Elige una imagen o un PDF para leer su texto" zh="选择图片或 PDF 以识别其中的文字" jp="文字を読み取る画像または PDF を選択してください" />
   <text id="ocrNothingFound" en="No text was found" es="No se encontro texto" zh="未找到文字" jp="文字が見つかりませんでした" />
-  <text id="ocrMinScore" en="Hide lines below confidence {value}" es="Ocultar lineas con confianza menor que {value}" zh="隐藏置信度低于 {value} 的行" jp="信頼度 {value} 未満の行を隠す" />
   <text id="ocrFailed" en="The text could not be read" es="No se pudo leer el texto" zh="无法识别文字" jp="文字を読み取れませんでした" />
   <text id="ocrNotImage" en="Choose an image or a PDF" es="Elige una imagen o un PDF" zh="请选择图片或 PDF" jp="画像または PDF を選択してください" />
   <text id="ocrTooLarge" en="The file is larger than {mb} MB" es="El archivo supera los {mb} MB" zh="文件超过 {mb} MB" jp="ファイルが {mb} MB を超えています" />
@@ -1134,8 +1133,14 @@
   <text id="ocrOpening" en="Opening the file…" es="Abriendo el archivo…" zh="正在打开文件…" jp="ファイルを開いています…" />
   <text id="ocrCancel" en="Cancel" es="Cancelar" zh="取消" jp="キャンセル" />
   <text id="ocrCancelled" en="Cancelled after {done} of {total} pages." es="Cancelado tras {done} de {total} paginas." zh="已取消，完成了 {done} / {total} 页。" jp="{total} ページ中 {done} ページで取り消しました。" />
-  <text id="ocrDownloadHtml" en="Download laid out (.html)" es="Descargar con diseno (.html)" zh="下载版面（.html）" jp="レイアウト付きでダウンロード（.html）" />
-  <text id="ocrDownloadTxt" en="Download text (.txt)" es="Descargar texto (.txt)" zh="下载文本（.txt）" jp="テキストをダウンロード（.txt）" />
+  <text id="ocrDownloadHtml" en="Web page, laid out (.html)" es="Pagina web con diseno (.html)" zh="网页，保留版面（.html）" jp="Web ページ、レイアウト付き（.html）" />
+  <text id="ocrDownloadTxt" en="Plain text (.txt)" es="Texto sin formato (.txt)" zh="纯文本（.txt）" jp="プレーンテキスト（.txt）" />
   <text id="ocrPageOf" en="Page {page} of {total}" es="Pagina {page} de {total}" zh="第 {page} / {total} 页" jp="{page} / {total} ページ" />
   <text id="ocrPageReading" en="Reading page {page}…" es="Leyendo la pagina {page}…" zh="正在识别第 {page} 页…" jp="{page} ページ目を読み取り中…" />
+  <text id="ocrExport" en="Export" es="Exportar" zh="导出" jp="エクスポート" />
+  <text id="ocrDownloadDocx" en="Word (.docx)" es="Word (.docx)" zh="Word（.docx）" jp="Word（.docx）" />
+  <text id="ocrDownloadXlsx" en="Excel (.xlsx)" es="Excel (.xlsx)" zh="Excel（.xlsx）" jp="Excel（.xlsx）" />
+  <text id="ocrExportFailed" en="The file could not be made: {reason}" es="No se pudo crear el archivo: {reason}" zh="无法生成文件：{reason}" jp="ファイルを作成できませんでした：{reason}" />
+  <text id="ocrFigure" en="Figure {number}" es="Figura {number}" zh="图 {number}" jp="図 {number}" />
+  <text id="ocrLayoutMissing" en="Tables and figures cannot be found: the layout models are not installed on the server. The text is still laid out where it stood. An administrator runs:" es="No se pueden encontrar tablas ni imagenes: los modelos de diseno no estan instalados en el servidor. El texto se sigue mostrando en su sitio. Un administrador ejecuta:" zh="无法识别表格和图片：服务器上未安装版面模型。文字仍按原位置显示。管理员需运行：" jp="表と図を検出できません：サーバにレイアウトモデルがインストールされていません。文字は元の位置に表示されます。管理者が実行します：" />
 </translations>

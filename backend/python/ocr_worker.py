@@ -11,8 +11,10 @@ Protocol, one JSON object per line:
   out {"id": "...", "progress": true, "done": 0, "total": 12, "pageCount": 40}
       {"id": "...", "progress": true, "done": 3, "total": 12,
        "page": {"page": 3, "width": 1700, "height": 2200, "image": "data:…" | null,
-                "lines": [{"text": "...", "score": 0.98, "box": [[x, y] x 4], "role": "title"}],
-                "blocks": [{"type": "table", "box": [x1, y1, x2, y2], "html": "<table>…"},
+                "lines": [{"text": "...", "score": 0.98, "box": [[x, y] x 4], "color": "#1f3a93",
+                           "bold": true, "role": "title", "region": 3}],
+                "blocks": [{"type": "table", "box": [x1, y1, x2, y2], "html": "<table>…",
+                            "columns": [x, …], "rows": [y, …]},
                            {"type": "figure", "box": [x1, y1, x2, y2], "image": "data:…"}]}}
       {"id": "...", "ok": true, "done": 12, "total": 12, "pageCount": 40, "took": 31.2}
       {"id": "...", "ok": false, "error": "...", "cancelled": false}
@@ -23,10 +25,14 @@ rendered and read, and each page carries "image", a JPEG preview (a data:
 URL), since a browser cannot draw a PDF page under the boxes itself. Boxes are
 in the rendered page's pixels, which the preview keeps the proportions of.
 With a "layout" model each line also gets a "role" — title, text, caption,
-header, footer, or table / figure for a line inside one — and the page gets
+header, footer, or table / figure for a line inside one — and "region", the
+layout region it is in (lines of one region are one block of text), and the page gets
 "blocks": its tables, rebuilt as HTML with the "table" model and the lines in
 each cell, and its figures, cut out of the page. Without one, lines have no
-role and there are no blocks.
+role and there are no blocks. A table's "columns" and "rows" are the edges of
+its grid on the page, when the cells found line up into one (else absent).
+Every line has the colour of its ink, and "bold" when its strokes are
+markedly heavier than the page's other text of that size.
 The first line out is {"ready": true, ...} or {"fatal": "..."}.
 """
 import collections
@@ -227,6 +233,68 @@ def read_lines(ocr, pixels):
     ]
 
 
+def line_styles(pixels, lines):
+    """Each line's ink colour, and whether it is bold.
+
+    The ink is the pixels of a line's box that stand well apart from its
+    background (the box's median). Bold is judged by stroke thickness — ink
+    area over ink outline, about half a stroke's width — against lines of a
+    similar size on the page, since thicker strokes are what make type bold.
+    """
+    import numpy as np
+
+    height, width = pixels.shape[:2]
+    measures = []  # (stroke thickness, box height) per line; thickness 0 when unknown
+    for line in lines:
+        xs = [point[0] for point in line["box"]]
+        ys = [point[1] for point in line["box"]]
+        x1, x2 = max(0, int(min(xs))), min(width, int(max(xs)) + 1)
+        y1, y2 = max(0, int(min(ys))), min(height, int(max(ys)) + 1)
+        line["color"], thickness = "#000000", 0.0
+        crop = pixels[y1:y2, x1:x2].astype(np.int16)
+        if crop.shape[0] >= 4 and crop.shape[1] >= 4:
+            background = np.median(crop.reshape(-1, 3), axis=0)
+            distance = np.abs(crop - background).sum(axis=2)
+            ink = distance > 150
+            if ink.sum() >= 8:
+                padded = np.pad(ink, 1)
+                inner = padded[:-2, 1:-1] & padded[2:, 1:-1] & padded[1:-1, :-2] & padded[1:-1, 2:]
+                thickness = 2 * ink.sum() / max(1, (ink & ~inner).sum())
+                # The core of the strokes, not their anti-aliased edges.
+                values = distance[ink]
+                core = crop[ink][values >= np.percentile(values, 60)]
+                blue, green, red = (int(value) for value in np.median(core, axis=0))
+                # Near-black is black: scanning and JPEG tint what was printed black.
+                if max(red, green, blue) < 90 and max(red, green, blue) - min(red, green, blue) < 40:
+                    red = green = blue = 0
+                line["color"] = f"#{red:02x}{green:02x}{blue:02x}"
+        measures.append((thickness, max(1, y2 - y1)))
+
+    known = [(t, h) for t, h in measures if t > 0]
+    usual_ratio = float(np.median([t / h for t, h in known])) if known else 0
+    for index, (line, (thickness, size)) in enumerate(zip(lines, measures)):
+        peers = [t for other, (t, h) in enumerate(measures)
+                 if other != index and t > 0 and abs(h - size) <= size * 0.25]
+        if thickness <= 0:
+            line["bold"] = False
+        elif len(peers) >= 3:
+            line["bold"] = bool(thickness > float(np.median(peers)) * 1.3)
+        else:
+            line["bold"] = bool(usual_ratio and thickness / size > usual_ratio * 1.35)
+    return lines
+
+
+def _edges(values, tolerance):
+    """Positions that are the same line within `tolerance`, as one each."""
+    edges = []
+    for value in sorted(values):
+        if edges and value - edges[-1][-1] <= tolerance:
+            edges[-1].append(value)
+        else:
+            edges.append([value])
+    return [round(sum(group) / len(group), 1) for group in edges]
+
+
 def layout_models(layout_dir, table_dir):
     from paddleocr import LayoutDetection, TableStructureRecognition
 
@@ -270,15 +338,22 @@ def _cell_text(lines):
             rows[-1][1].append(line)
         else:
             rows.append([y, [line]])
+    def styled(line):
+        text = escape(line["text"])
+        if line.get("color", "#000000") != "#000000":
+            text = f'<span style="color:{line["color"]}">{text}</span>'
+        return f"<b>{text}</b>" if line.get("bold") else text
+
     return "<br>".join(
-        " ".join(escape(item["text"]) for item in sorted(row, key=lambda item: _center(item["box"])[0]))
+        " ".join(styled(item) for item in sorted(row, key=lambda item: _center(item["box"])[0]))
         for _, row in rows
     )
 
 
 def table_html(table_model, pixels, rect, lines):
-    """A table region as HTML: the structure from the model, each cell filled
-    with the text lines whose centre falls in it."""
+    """A table region as {"html", "columns", "rows"}: the structure from the
+    model, each cell filled with the text lines whose centre falls in it, and
+    the grid's edges on the page."""
     x1, y1, x2, y2 = rect
     result = table_model.predict(pixels[y1:y2, x1:x2].copy())[0]
     cells = []
@@ -312,7 +387,31 @@ def table_html(table_model, pixels, rect, lines):
             html.append(token)  # colspan="2", rowspan="3"
         else:
             html.append(token)
-    return "".join(html)
+
+    # The grid: cell sides that line up are one column or row edge. Only kept
+    # when it has as many columns as the widest row, so widths never shift.
+    table = {"html": "".join(html)}
+    if cells:
+        # Left and top sides: a cell's right side often runs into the next
+        # column, while cells starting a column line up closely.
+        columns = _edges([cell[0] for cell in cells], max(8, (x2 - x1) * 0.02)) + [max(cell[2] for cell in cells)]
+        rows = _edges([cell[1] for cell in cells], max(6, (y2 - y1) * 0.02)) + [max(cell[3] for cell in cells)]
+        count = 0
+        best = 0
+        for token in result["structure"]:
+            if token == "<tr>":
+                count = 0
+            elif token in ("<td></td>", "<td"):
+                count += 1
+            elif "colspan" in token:
+                count += int("".join(ch for ch in token if ch.isdigit()) or 1) - 1
+            elif token == "</tr>":
+                best = max(best, count)
+        if len(columns) - 1 == best:
+            table["columns"] = columns
+        if len(rows) - 1 == result["structure"].count("<tr>"):
+            table["rows"] = rows
+    return table
 
 
 def crop_image(pixels, rect):
@@ -343,6 +442,8 @@ def analyse_layout(models, pixels, lines):
         found = next((r for r in tables if _inside(center, r["rect"])), None) \
             or next((r for r in figures if _inside(center, r["rect"])), None) \
             or next((r for r in regions if _inside(center, r["rect"])), None)
+        if found:
+            line["region"] = regions.index(found)
         label = found["label"] if found else "text"
         line["role"] = ("table" if label == "table" else "figure" if label in FIGURE_LABELS
                         else "title" if label in TITLE_LABELS else "caption" if label in CAPTION_LABELS
@@ -353,12 +454,12 @@ def analyse_layout(models, pixels, lines):
     for region in tables:
         inside = [line for line in lines if _inside(_center(line["box"]), region["rect"])]
         try:
-            html = table_html(table_model, pixels, region["rect"], inside) if table_model else None
+            table = table_html(table_model, pixels, region["rect"], inside) if table_model else None
         except Exception:  # noqa: BLE001  (a table that cannot be rebuilt stays as lines)
             traceback.print_exc()
-            html = None
-        if html:
-            blocks.append({"type": "table", "box": region["rect"], "html": html})
+            table = None
+        if table and table["html"]:
+            blocks.append({"type": "table", "box": region["rect"], **table})
         else:
             for line in inside:
                 line["role"] = "text"
@@ -480,7 +581,7 @@ def main():
                 check_cancelled()
                 pixels = render_page(document, index) if pdf else image
                 height, width = pixels.shape[:2]
-                lines = read_lines(ocr, pixels)
+                lines = line_styles(pixels, read_lines(ocr, pixels))
                 page = {"page": index + 1, "width": width, "height": height,
                         "dpi": PDF_DPI if pdf else None,
                         "image": preview(pixels) if pdf else None, "lines": lines,
