@@ -9,9 +9,9 @@ export const GENDER_LABEL = { male: 'Male', female: 'Female', other: 'Other' };
  * The personal details of your own account: gender, birthday, phone, address
  * and job.
  *
- * Name, email, role and the face photo are not here on purpose — those are how
- * the rest of the app identifies and authorises you, so they stay with an
- * administrator on the Users page. These five are nobody else's to maintain.
+ * Name, email and role are not here on purpose — those are how the rest of
+ * the app identifies and authorises you, so they stay with an administrator
+ * on the Users page. Your face and voice are in BiometricsCard. These five are nobody else's to maintain.
  */
 export default function ProfileCard({ user, onSubmit }) {
   const [form] = Form.useForm();

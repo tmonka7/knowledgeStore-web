@@ -7,6 +7,7 @@ import {
   listUsers,
   previewUserDeletion,
   setUserStatus,
+  updateBiometrics,
   updatePassword,
   updateProfile,
   updateUser,
@@ -37,5 +38,7 @@ router.get('/permissions/catalog', requireAuth, requireAdmin, asyncRoute(listPer
 router.get('/user/profile', requireAuth, asyncRoute(getProfile));
 router.put('/user/password', requireAuth, asyncRoute(updatePassword));
 router.put('/user/profile', requireAuth, asyncRoute(updateProfile));
+// Your own face and voice; needs the current password (see updateBiometrics).
+router.put('/user/biometrics', requireAuth, asyncRoute(updateBiometrics));
 
 export default router;

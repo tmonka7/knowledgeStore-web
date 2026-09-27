@@ -2170,6 +2170,52 @@
   flex: 1;
 }
 
+/* My Page — face and voice. */
+.account-biometrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  align-items: start;
+  gap: var(--v-space-4);
+}
+
+.account-biometric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--v-space-3);
+  padding: var(--v-space-4);
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius-xl);
+}
+
+.account-biometric-head {
+  display: flex;
+  align-items: center;
+  gap: var(--v-space-4);
+}
+
+.account-biometric-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: var(--v-success, #16a34a);
+}
+
+.account-biometric-state.is-missing {
+  color: var(--v-text-muted, #8a8f98);
+}
+
+.account-biometric-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--v-space-2);
+}
+
+.account-biometrics-save {
+  max-width: 460px;
+  margin-top: var(--v-space-4);
+}
+
 .contact-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));

@@ -9,6 +9,7 @@ import PageHeader from '../components/ui/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
 import PasswordCard from '../components/account/PasswordCard';
 import ProfileCard, { GENDER_LABEL } from '../components/account/ProfileCard';
+import BiometricsCard from '../components/account/BiometricsCard';
 import ContactsPanel from '../components/account/ContactsPanel';
 import WalletPage from './WalletPage';
 import { can } from '../permissions';
@@ -26,7 +27,7 @@ const formatDate = (value) => {
  * page permission: it is always your own account. The tabs inside still
  * respect the wallet and contacts permissions, which the API enforces anyway.
  */
-export default function MyPage({ user, onUpdatePassword, onUpdateProfile }) {
+export default function MyPage({ user, onUpdatePassword, onUpdateProfile, onUpdateBiometrics }) {
   const showWallet = can(user, 'wallet');
   const showContacts = can(user, 'contacts');
 
@@ -61,11 +62,13 @@ export default function MyPage({ user, onUpdatePassword, onUpdateProfile }) {
             </div>
 
             <p className="vision-monitor-note">
-              Name, email and face photo are changed by an administrator on the Users page.
+              Name and email are changed by an administrator on the Users page.
             </p>
           </section>
 
           <ProfileCard user={user} onSubmit={onUpdateProfile} />
+
+          <BiometricsCard user={user} onSubmit={onUpdateBiometrics} />
 
           <PasswordCard onSubmit={onUpdatePassword} />
         </div>

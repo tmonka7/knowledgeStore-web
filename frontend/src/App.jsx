@@ -665,6 +665,19 @@ function App() {
     }
   };
 
+  // Your own face and voice, from My Page; needs the current password.
+  const handleUpdateBiometrics = async (values) => {
+    try {
+      const { data } = await api.put('/user/biometrics', values);
+      setUser(data.user);
+      message.success('Face and voice updated.');
+      return true;
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Unable to update your face and voice.');
+      return false;
+    }
+  };
+
   const userTableColumns = useMemo(
     () => [
       {
@@ -775,6 +788,7 @@ function App() {
       userTableColumns={userTableColumns}
       handleUpdatePassword={handleUpdatePassword}
       handleUpdateProfile={handleUpdateProfile}
+      handleUpdateBiometrics={handleUpdateBiometrics}
       handleUpdateUser={handleUpdateUser}
       handleSetUserStatus={handleSetUserStatus}
       handleDeleteUser={handleDeleteUser}

@@ -92,8 +92,24 @@ Below it, **Personal details** lets you change your gender, birthday, phone
 number, job and address. Fill them in and choose **Save details**. A birthday
 must be a real date and cannot be in the future.
 
-Your name, email address and face photo are changed by an administrator on the
-Users page — ask them if one of those is wrong.
+Your name and email address are changed by an administrator on the Users
+page — ask them if one of those is wrong.
+
+### Your face and voice
+
+The **Face and voice** panel shows whether you can sign in with your face and
+with your voice, and lets you change either:
+
+- **Change face photo** (or **Register face**) opens the camera, as at sign-up.
+  **Remove face** turns face sign-in off.
+- **Record voice** (or **Record again**) asks you to read three sentences aloud.
+  **Remove voice** turns voice sign-in off. The voice part appears only when the
+  server has the speaker model installed.
+
+Nothing changes until you type your **current password** and choose **Save face
+and voice**; **Cancel** or **Undo** discards the draft. The password is asked
+for so that someone using a computer you left signed in cannot put their own
+face or voice on your account. Every change is written to the activity log.
 
 ### Your password
 

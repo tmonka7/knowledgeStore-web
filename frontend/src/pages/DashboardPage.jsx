@@ -136,6 +136,7 @@ export default function DashboardPage({
   handleDeleteCategory,
   handleUpdatePassword,
   handleUpdateProfile,
+  handleUpdateBiometrics,
   handleUpdateUser,
   handleSetUserStatus,
   handleDeleteUser,
@@ -884,6 +885,7 @@ export default function DashboardPage({
               user={user}
               onUpdatePassword={handleUpdatePassword}
               onUpdateProfile={handleUpdateProfile}
+              onUpdateBiometrics={handleUpdateBiometrics}
             />
           )}
 

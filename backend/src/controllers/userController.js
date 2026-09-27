@@ -9,6 +9,7 @@ import { describeUserFootprint, purgeUser } from '../helpers/userPurge.js';
 import { User, getUsers, getUserById } from '../models/store.js';
 import { writeLog } from '../models/activityLogModel.js';
 import { VoiceError, noVoice, voiceprintFromClips } from '../helpers/voiceLogin.js';
+import { isFaceDescriptor, isFaceImage } from '../helpers/faceMatch.js';
 
 export const listPermissionCatalog = (req, res) => res.json({ catalog: PERMISSION_CATALOG });
 
@@ -79,14 +80,6 @@ export const updateUser = async (req, res) => {
   });
 };
 
-const isFaceDescriptor = (descriptor) => Array.isArray(descriptor)
-  && descriptor.length === 128
-  && descriptor.every((value) => Number.isFinite(Number(value)));
-
-const isFaceImage = (image) => typeof image === 'string'
-  && /^data:image\/(jpeg|jpg|png);base64,/.test(image)
-  && image.length <= 2_000_000;
-
 /**
  * GET /users
  *
@@ -138,9 +131,10 @@ export const getProfile = async (req, res) => {
  *
  * Your own personal details — gender, birthday, phone, address and job.
  *
- * Deliberately narrower than PUT /users/:id: name, email, role, permissions
- * and the face photo stay with an administrator, because they are what the
- * rest of the app identifies and authorises you by. This is the part of an
+ * Deliberately narrower than PUT /users/:id: name, email, role and permissions
+ * stay with an administrator, because they are what the rest of the app
+ * identifies and authorises you by (your face and voice are
+ * PUT /user/biometrics). This is the part of an
  * account that is nobody else's business to maintain, which is why it needs
  * no page permission.
  */
@@ -157,6 +151,76 @@ export const updateProfile = async (req, res) => {
 
   Object.assign(me, values);
   await me.save();
+
+  return res.json({ ok: true, user: sanitizeUser(me.toObject ? me.toObject() : me) });
+};
+
+/**
+ * PUT /user/biometrics — your own face and voice.
+ * { currentPassword, faceDescriptor + faceImage | removeFace, voiceClips | removeVoice }
+ *
+ * Both are ways to sign in, so changing them is guarded like changing the
+ * password: the current password must come with the request. Without that, a
+ * session left open (or a stolen token) could enrol somebody else's face and
+ * keep a way into the account after the session ends. Checked the same way as
+ * at sign-up and on the Users page; every change is logged.
+ */
+export const updateBiometrics = async (req, res) => {
+  const {
+    currentPassword, faceDescriptor, faceImage, removeFace, voiceClips, removeVoice,
+  } = req.body || {};
+
+  const offersFace = faceDescriptor !== undefined || faceImage !== undefined;
+  const offersVoice = Array.isArray(voiceClips) && voiceClips.length > 0;
+  if (!offersFace && removeFace !== true && !offersVoice && removeVoice !== true) {
+    return res.status(400).json({ message: 'Nothing to change.' });
+  }
+  if (!currentPassword) {
+    return res.status(400).json({ message: 'Enter your current password to change your face or voice.' });
+  }
+
+  const me = await getUserById(req.user.sub);
+  if (!me) {
+    return res.status(404).json({ message: 'User not found.' });
+  }
+  if (!(await bcrypt.compare(String(currentPassword), me.passwordHash))) {
+    return res.status(401).json({ message: 'Current password is incorrect.' });
+  }
+
+  const changes = [];
+  if (offersFace) {
+    if (!isFaceDescriptor(faceDescriptor) || !isFaceImage(faceImage)) {
+      return res.status(400).json({ message: 'A valid face image is required.' });
+    }
+    me.faceDescriptor = faceDescriptor.map((value) => Number(value));
+    me.faceImage = faceImage;
+    changes.push('face updated');
+  } else if (removeFace === true) {
+    me.faceDescriptor = null;
+    me.faceImage = null;
+    changes.push('face removed');
+  }
+
+  if (offersVoice) {
+    try {
+      Object.assign(me, await voiceprintFromClips(voiceClips));
+    } catch (error) {
+      if (error instanceof VoiceError) return res.status(error.status).json({ message: error.message });
+      throw error;
+    }
+    changes.push('voice updated');
+  } else if (removeVoice === true) {
+    Object.assign(me, noVoice());
+    changes.push('voice removed');
+  }
+
+  await me.save();
+  await writeLog({
+    source: 'users',
+    action: 'user:biometrics',
+    message: `${me.username}: ${changes.join(', ')}`,
+    actor: { id: me.id, username: me.username },
+  });
 
   return res.json({ ok: true, user: sanitizeUser(me.toObject ? me.toObject() : me) });
 };

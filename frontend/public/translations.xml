@@ -1227,4 +1227,15 @@
   <text id="voiceTestHelp" en="Each is scored against the recordings the voice was trained on." es="Cada una se puntua frente a las grabaciones de entrenamiento." zh="每个声音都与训练所用的录音比较打分。" jp="それぞれ学習に使った録音と比べて採点します。" />
   <text id="voiceLikenessToRecordings" en="Likeness to the recordings" es="Parecido con las grabaciones" zh="与录音的相似度" jp="録音との類似度" />
   <text id="voiceConsistency" en="For reference: the recordings score {value} against their own average; a voice rarely gets higher." es="Como referencia: las grabaciones puntuan {value} frente a su propia media; una voz rara vez supera eso." zh="参考：录音与其自身平均值的相似度为 {value}，声音很少超过此值。" jp="参考：録音どうしの平均との類似度は {value} です。これを超えることはまれです。" />
+  <text id="biometricsTitle" en="Face and voice" es="Rostro y voz" zh="人脸和声音" jp="顔と声" />
+  <text id="biometricsHelp" en="Used to sign in without typing your password. Changes need your current password." es="Se usan para iniciar sesion sin escribir la contrasena. Los cambios requieren tu contrasena actual." zh="用于无需输入密码即可登录。更改需要当前密码。" jp="パスワードを入力せずにログインするために使います。変更には現在のパスワードが必要です。" />
+  <text id="biometricsFace" en="Face sign-in" es="Inicio de sesion facial" zh="人脸登录" jp="顔ログイン" />
+  <text id="biometricsFaceRegistered" en="Face registered" es="Rostro registrado" zh="已登记人脸" jp="顔を登録済み" />
+  <text id="biometricsFaceMissing" en="No face registered" es="Sin rostro registrado" zh="未登记人脸" jp="顔が未登録" />
+  <text id="biometricsFaceAdd" en="Register face" es="Registrar rostro" zh="登记人脸" jp="顔を登録" />
+  <text id="biometricsFaceRemove" en="Remove face" es="Quitar rostro" zh="删除人脸" jp="顔を削除" />
+  <text id="biometricsFaceReady" en="New face photo ready. Save to apply it." es="Nueva foto facial lista. Guarda para aplicarla." zh="新人脸照片已就绪，保存后生效。" jp="新しい顔写真の準備ができました。保存すると適用されます。" />
+  <text id="biometricsFaceWillBeRemoved" en="Face sign-in will be removed when you save." es="El inicio de sesion facial se quitara al guardar." zh="保存后将删除人脸登录。" jp="保存すると顔ログインが削除されます。" />
+  <text id="biometricsPasswordHelp" en="Confirms it is you making the change." es="Confirma que eres tu quien hace el cambio." zh="确认是您本人在更改。" jp="ご本人による変更であることを確認します。" />
+  <text id="biometricsSave" en="Save face and voice" es="Guardar rostro y voz" zh="保存人脸和声音" jp="顔と声を保存" />
 </translations>

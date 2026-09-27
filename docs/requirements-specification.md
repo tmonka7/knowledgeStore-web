@@ -61,6 +61,7 @@ polled), mobile applications, and single sign-on.
 | FR-USR-03 | An administrator can edit any account's full name, email, role, page permissions and face photo. |
 | FR-USR-04 | An administrator can edit any account's gender, birthday, phone number, address and job. |
 | FR-USR-05 | A user can edit their own gender, birthday, phone number, address and job from My Page. They cannot change their own name, email, role or permissions. |
+| FR-USR-05a | A user can replace or remove their own face photo (camera only) and their own voice sign-in from My Page. The change is applied only with their current password, is validated as at sign-up, and is written to the activity log. |
 | FR-USR-06 | Gender is one of male, female, other, or not specified. Birthday is a calendar day, must be a real date, and must not be in the future. |
 | FR-USR-07 | An administrator cannot remove their own administrator role. |
 | FR-USR-08 | Permissions are read from the database on every request, so a change takes effect on the user's next request rather than their next sign-in. |
