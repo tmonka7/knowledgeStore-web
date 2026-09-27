@@ -1120,4 +1120,5 @@
   <text id="ocrFailed" en="The text could not be read" es="No se pudo leer el texto" zh="无法识别文字" jp="文字を読み取れませんでした" />
   <text id="ocrNotImage" en="Choose an image file" es="Elige un archivo de imagen" zh="请选择图片文件" jp="画像ファイルを選択してください" />
   <text id="ocrTooLarge" en="The image is larger than {mb} MB" es="La imagen supera los {mb} MB" zh="图片超过 {mb} MB" jp="画像が {mb} MB を超えています" />
+  <text id="ocrFirstSlow" en="The first image after the server starts OCR can take a minute or more while the models load." es="La primera imagen despues de iniciar el OCR en el servidor puede tardar un minuto o mas mientras se cargan los modelos." zh="服务器启动 OCR 后的第一张图片可能需要一分钟以上，用于加载模型。" jp="サーバで OCR を開始した後の最初の画像は、モデルの読み込みのため 1 分以上かかることがあります。" />
 </translations>

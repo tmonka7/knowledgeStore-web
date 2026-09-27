@@ -20,14 +20,20 @@ import { JobError, PYTHON_DIR, pythonEnv } from './translationJobs.js';
 
 const START_TIMEOUT_MS = 90 * 1000;
 
+/** The last lines the worker wrote to stderr, to say why it failed. */
+const lastLines = (text, count = 3) => text.trim().split(/\r?\n/).filter(Boolean).slice(-count).join(' ');
+
 /**
  * @param script    file in backend/python
  * @param label     how errors name it ("whisper.cpp", "speaker recognition")
  * @param env       extra environment variables for the child
  * @param idleMs    stop after this long without requests
  * @param maxWaiting turn requests away (429) past this many queued
+ * @param startMs   how long the worker may take to say it is ready
  */
-export const createPythonWorker = ({ script, label, env = {}, idleMs = 600000, maxWaiting = 8 }) => {
+export const createPythonWorker = ({
+  script, label, env = {}, idleMs = 600000, maxWaiting = 8, startMs = START_TIMEOUT_MS,
+}) => {
   let worker = null; // { child, ready: Promise, pending: Map, stderr }
   let idleTimer = null;
   let queue = Promise.resolve();
@@ -57,7 +63,21 @@ export const createPythonWorker = ({ script, label, env = {}, idleMs = 600000, m
     const state = { child, pending: new Map(), stderr: '' };
 
     state.ready = new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new JobError(`The ${label} worker did not start in time.`, 503)), START_TIMEOUT_MS);
+      // Killed, not left running: a new worker is started on the next
+      // request, and one still loading beside it only slows both down.
+      const timer = setTimeout(() => {
+        const output = lastLines(state.stderr);
+        child.kill();
+        reject(new JobError(`The ${label} worker did not start within ${Math.round(startMs / 1000)} s.${
+          output ? ` Its last output: ${output}` : ''}`, 503));
+      }, startMs);
+      // A worker that dies while starting (a missing DLL, a crash on import)
+      // says why at once, rather than after the time limit. 'close', not
+      // 'exit': it comes after the last of stderr has been read.
+      child.on('close', (code) => {
+        clearTimeout(timer);
+        reject(new JobError(`The ${label} worker stopped while starting (${lastLines(state.stderr) || `exit code ${code}`}).`, 503));
+      });
       readline.createInterface({ input: child.stdout }).on('line', (line) => {
         let message;
         try {

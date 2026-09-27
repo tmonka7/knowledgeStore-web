@@ -22,6 +22,10 @@ const worker = createPythonWorker({
   maxWaiting: Math.max(1, Number(process.env.OCR_MAX_QUEUE) || 16),
 });
 
+// The worker loads PaddlePaddle after saying it is ready, so the first
+// request after a start waits for that too: minutes on a slow server.
+const REQUEST_MS = Math.max(60, Number(process.env.OCR_REQUEST_SECONDS) || 300) * 1000;
+
 const publicModel = (model) => ({
   id: model.id,
   name: model.id,
@@ -94,7 +98,7 @@ export const recognizeText = async (imagePath, {
 
   const result = await worker.request({
     image: imagePath, det: det.folder, rec: rec.folder, textline: textline?.folder || null,
-  }, 180 * 1000, 'OCR is busy; try again in a moment.');
+  }, REQUEST_MS, 'OCR is busy; try again in a moment.');
   return {
     lines: result.lines || [],
     width: result.width,

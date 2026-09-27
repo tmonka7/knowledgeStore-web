@@ -88,7 +88,7 @@ export default function OcrToolPage() {
     if (detectionId) form.append('detectionId', detectionId);
     form.append('rotated', rotated ? 'true' : 'false');
     try {
-      const { data } = await api.post('/tools/ocr/recognize', form, { timeout: 200000 });
+      const { data } = await api.post('/tools/ocr/recognize', form, { timeout: 330000 });
       setResult(data);
     } catch (error) {
       setResult(null);
@@ -276,6 +276,7 @@ export default function OcrToolPage() {
               <Button type="primary" block icon={<ScanOutlined />} loading={busy} disabled={!file || !ready} onClick={() => run()}>
                 {t('ocrRead')}
               </Button>
+              {busy && <Text type="secondary" style={{ fontSize: 12 }}>{t('ocrFirstSlow')}</Text>}
             </Space>
           </Card>
         </Col>

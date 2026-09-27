@@ -87,15 +87,43 @@ def read_image(path):
     return np.ascontiguousarray(np.asarray(image)[:, :, ::-1])
 
 
+def installed_version(*distributions):
+    """The version of the first of these pip packages that is installed, or None."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    for name in distributions:
+        try:
+            return version(name)
+        except PackageNotFoundError:
+            continue
+    return None
+
+
 def main():
-    try:
-        import numpy as np  # noqa: F401
-        import paddle
-        import paddleocr
-    except ImportError as error:
-        reply({"fatal": f"OCR needs PaddleOCR for {sys.executable} ({error}). "
+    # Ready as soon as the packages are known to be there. Loading PaddlePaddle
+    # (about a gigabyte of native libraries) takes seconds on a fast machine
+    # but minutes on a slow disk, or the first time an antivirus scans it; it
+    # happens below, while the first request waits, under that request's time
+    # limit instead of the server's start-up limit.
+    from importlib.util import find_spec
+
+    missing = [name for name in ("numpy", "PIL", "paddle", "paddleocr") if find_spec(name) is None]
+    if missing:
+        reply({"fatal": f"OCR needs PaddleOCR for {sys.executable} ({', '.join(missing)} not installed). "
                         "Run: pip install paddlepaddle paddleocr"})
         return
+    reply({"ready": True, "python": sys.version.split()[0],
+           "paddle": installed_version("paddlepaddle", "paddlepaddle-gpu") or "",
+           "paddleocr": installed_version("paddleocr") or ""})
+
+    started = time.time()
+    try:
+        import paddleocr  # noqa: F401  (loads paddle and paddlex too)
+        load_error = None
+        print(f"PaddleOCR loaded in {time.time() - started:.1f} s", file=sys.stderr, flush=True)
+    except Exception as error:  # noqa: BLE001  (reported on every request instead)
+        traceback.print_exc()
+        load_error = f"PaddleOCR could not be loaded ({error or error.__class__.__name__})"
 
     loaded = {}
 
@@ -107,9 +135,6 @@ def main():
             loaded[key] = build(det, rec, textline)
         return loaded[key]
 
-    reply({"ready": True, "python": sys.version.split()[0], "paddle": paddle.__version__,
-           "paddleocr": getattr(paddleocr, "__version__", "")})
-
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -120,6 +145,8 @@ def main():
             request_id = request.get("id")
             if not request.get("image") or not request.get("det") or not request.get("rec"):
                 raise ValueError("the request needs an image and the detection and recognition models")
+            if load_error:
+                raise RuntimeError(load_error)
             started = time.time()
             pixels = read_image(request["image"])
             height, width = pixels.shape[:2]
