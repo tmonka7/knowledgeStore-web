@@ -94,20 +94,43 @@ def ggml_name(hf_name):
     return TOP_NAMES.get(name, name)
 
 
+def read_vocab(model_dir):
+    """{token: id} of the byte-level BPE vocabulary.
+
+    Downloaded models have vocab.json. Models saved by transformers 5 (every
+    model trained here) have only tokenizer.json, which holds the same table
+    under model.vocab.
+    """
+    vocab_file = os.path.join(model_dir, "vocab.json")
+    if os.path.exists(vocab_file):
+        with open(vocab_file, encoding="utf-8") as handle:
+            return json.load(handle)
+    tokenizer_file = os.path.join(model_dir, "tokenizer.json")
+    if not os.path.exists(tokenizer_file):
+        raise ValueError("the model folder has neither vocab.json nor tokenizer.json")
+    with open(tokenizer_file, encoding="utf-8") as handle:
+        tokenizer = json.load(handle)
+    vocab = (tokenizer.get("model") or {}).get("vocab")
+    if not isinstance(vocab, dict):
+        raise ValueError("tokenizer.json has no BPE vocabulary")
+    return vocab
+
+
 def convert(model_dir, output):
     import numpy as np
     import torch
-    from transformers import WhisperFeatureExtractor, WhisperForConditionalGeneration
+    from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
     with open(os.path.join(model_dir, "config.json"), encoding="utf-8") as handle:
         config = json.load(handle)
-    with open(os.path.join(model_dir, "vocab.json"), encoding="utf-8") as handle:
-        vocab = json.load(handle)
+    vocab = read_vocab(model_dir)
 
     model = WhisperForConditionalGeneration.from_pretrained(model_dir, local_files_only=True, dtype=torch.float32)
+    # Through the processor: transformers 5 saves the feature extractor inside
+    # processor_config.json rather than as preprocessor_config.json.
     # (n_fft / 2 + 1, n_mels) in transformers; whisper.cpp wants (n_mels, n_fft / 2 + 1).
-    filters = np.asarray(WhisperFeatureExtractor.from_pretrained(model_dir, local_files_only=True).mel_filters,
-                         dtype=np.float32).T
+    extractor = WhisperProcessor.from_pretrained(model_dir, local_files_only=True).feature_extractor
+    filters = np.asarray(extractor.mel_filters, dtype=np.float32).T
     n_mels = config["num_mel_bins"]
     if filters.shape[0] != n_mels:
         raise ValueError(f"the feature extractor has {filters.shape[0]} mel bins, the model {n_mels}")

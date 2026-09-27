@@ -30,7 +30,8 @@ Language: {language}   Exported with: {method}
 Files
   encoder_model.onnx   input_features [batch, 80, 3000] -> last_hidden_state
   decoder_model.onnx   input_ids, encoder_hidden_states -> logits
-  preprocessor_config.json, tokenizer files, config.json, generation_config.json
+  processor_config.json (or preprocessor_config.json), tokenizer files, config.json,
+  generation_config.json — WhisperProcessor.from_pretrained() on this folder reads them
 
 Audio must be 16 kHz mono; the feature extractor turns it into the 80x3000
 log-mel input. Decoding starts from these tokens, then greedy or beam search
