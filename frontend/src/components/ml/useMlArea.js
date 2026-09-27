@@ -91,9 +91,9 @@ export default function useMlArea(area, t, { datasets: withDatasets = true } = {
   };
 
   // A one-use link, downloaded natively: the zip can be large.
-  const downloadOnnx = async (model) => {
+  const downloadExport = async (model, format) => {
     try {
-      const { data } = await api.post(`${base}/models/${model.id}/onnx/link`);
+      const { data } = await api.post(`${base}/models/${model.id}/${format}/link`);
       const link = document.createElement('a');
       link.href = `${api.defaults.baseURL.replace(/\/$/, '')}${data.path}`;
       document.body.appendChild(link);
@@ -101,6 +101,18 @@ export default function useMlArea(area, t, { datasets: withDatasets = true } = {
       document.body.removeChild(link);
     } catch (error) {
       message.error(error.response?.data?.message || t('onnxDownloadFailed'));
+    }
+  };
+  const downloadOnnx = (model) => downloadExport(model, 'onnx');
+  const downloadTflite = (model) => downloadExport(model, 'tflite');
+
+  // TFLite (TensorFlow Lite / LiteRT), for phones and small devices.
+  const exportTflite = async (model) => {
+    try {
+      const { data } = await api.post(`${base}/models/${model.id}/tflite`);
+      addJob(data.job);
+    } catch (error) {
+      message.error(error.response?.data?.message || t('tfliteFailedToStart'));
     }
   };
 
@@ -181,7 +193,7 @@ export default function useMlArea(area, t, { datasets: withDatasets = true } = {
 
   return {
     models, jobs, datasets, loading, running, reload, loadDatasets,
-    train, exportOnnx, downloadOnnx, removeModel, removeDataset, cancel, test,
+    train, exportOnnx, downloadOnnx, exportTflite, downloadTflite, removeModel, removeDataset, cancel, test,
     convertGgml, downloadGgml, removeGgml,
   };
 }

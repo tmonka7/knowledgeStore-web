@@ -42,8 +42,10 @@ export default function JobView({ job, onCancel, compact = false, sampleColumns 
     ? 100
     : progress?.totalSteps ? Math.floor((progress.step / progress.totalSteps) * 100) : 0;
   // ONNX and GGML exports both test-run the result against PyTorch on one clip.
-  const onnxCheck = job.kind === 'onnx' || job.kind === 'ggml' ? job.result?.check : null;
-  const kindTag = { train: [t('trainButton'), 'purple'], onnx: ['ONNX', 'cyan'], ggml: ['GGML', 'geekblue'] }[job.kind]
+  const onnxCheck = ['onnx', 'ggml', 'tflite'].includes(job.kind) ? job.result?.check : null;
+  const kindTag = {
+    train: [t('trainButton'), 'purple'], onnx: ['ONNX', 'cyan'], ggml: ['GGML', 'geekblue'], tflite: ['TFLite', 'orange'],
+  }[job.kind]
     || [job.kind, 'default'];
 
   return (
@@ -117,11 +119,19 @@ export default function JobView({ job, onCancel, compact = false, sampleColumns 
           onnxCheck.verified ? (
             <Descriptions size="small" column={1} bordered>
               <Descriptions.Item label={t('onnxCheckInput')}>{onnxCheck.input}</Descriptions.Item>
-              <Descriptions.Item label={job.kind === 'ggml' ? 'whisper.cpp' : 'ONNX'}>{onnxCheck.converted ?? onnxCheck.onnx}</Descriptions.Item>
+              <Descriptions.Item label={{ ggml: 'whisper.cpp', tflite: 'TFLite' }[job.kind] || 'ONNX'}>{onnxCheck.converted ?? onnxCheck.onnx}</Descriptions.Item>
               <Descriptions.Item label="PyTorch">
                 {onnxCheck.pytorch}{' '}
                 <Tag color={onnxCheck.match ? 'green' : 'gold'}>{onnxCheck.match ? t('onnxCheckMatch') : t('onnxCheckDiffers')}</Tag>
               </Descriptions.Item>
+              {(onnxCheck.agreement || onnxCheck.msPerToken) && (
+                <Descriptions.Item label={t('tfliteCheckSteps')}>
+                  {[
+                    onnxCheck.agreement && t('tfliteCheckAgreement', { value: onnxCheck.agreement }),
+                    onnxCheck.msPerToken && t('tfliteCheckSpeed', { ms: onnxCheck.msPerToken }),
+                  ].filter(Boolean).join(' · ')}
+                </Descriptions.Item>
+              )}
             </Descriptions>
           ) : <Alert type="info" showIcon message={onnxCheck.reason} />
         )}

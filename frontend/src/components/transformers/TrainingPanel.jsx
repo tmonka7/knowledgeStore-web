@@ -4,7 +4,7 @@ import {
   Space, Table, Tag, Tooltip, Typography, message,
 } from 'antd';
 import {
-  CloudDownloadOutlined, DeleteOutlined, ExportOutlined, ReloadOutlined, RocketOutlined, TranslationOutlined,
+  CloudDownloadOutlined, DeleteOutlined, ExportOutlined, MobileOutlined, ReloadOutlined, RocketOutlined, TranslationOutlined,
 } from '@ant-design/icons';
 import api from '../../api';
 import DeviceSelect from '../ml/DeviceSelect';
@@ -221,11 +221,20 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
     }
   };
 
+  const exportTflite = async (model) => {
+    try {
+      const { data } = await api.post(`/tools/transformers/models/${model.id}/tflite`);
+      setJobs((current) => [data.job, ...current]);
+    } catch (error) {
+      message.error(error.response?.data?.message || t('tfliteFailedToStart'));
+    }
+  };
+
   // The zip can be over a gigabyte, so the browser downloads it natively from
   // a one-use link rather than through the API client as an in-memory blob.
-  const downloadOnnx = async (model) => {
+  const downloadOnnx = async (model, format = 'onnx') => {
     try {
-      const { data } = await api.post(`/tools/transformers/models/${model.id}/onnx/link`);
+      const { data } = await api.post(`/tools/transformers/models/${model.id}/${format}/link`);
       const link = document.createElement('a');
       link.href = `${api.defaults.baseURL.replace(/\/$/, '')}${data.path}`;
       document.body.appendChild(link);
@@ -293,6 +302,21 @@ const TrainingPanel = forwardRef(function TrainingPanel({ datasets, activeId, re
               onClick={() => exportOnnx(model)}
             >
               {model.onnxBytes ? '' : t('onnxExport')}
+            </Button>
+          </Tooltip>
+          {model.tfliteBytes ? (
+            <Tooltip title={formatBytes(model.tfliteBytes)}>
+              <Button size="small" icon={<CloudDownloadOutlined />} onClick={() => downloadOnnx(model, 'tflite')}>TFLite</Button>
+            </Tooltip>
+          ) : null}
+          <Tooltip title={model.tfliteBytes ? t('tfliteExportAgain') : t('tfliteExportHelp')}>
+            <Button
+              size="small"
+              icon={<MobileOutlined />}
+              disabled={running || busyModelIds.has(model.id)}
+              onClick={() => exportTflite(model)}
+            >
+              {model.tfliteBytes ? '' : 'TFLite'}
             </Button>
           </Tooltip>
           {model.kind === 'finetuned' && (

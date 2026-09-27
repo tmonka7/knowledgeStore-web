@@ -3,7 +3,7 @@
 import fs from 'node:fs/promises';
 import {
   TASK, addSample, createSpeaker, deleteSample, deleteSpeaker, identify, listSpeakers, sampleAudio, speakerModels,
-  speakerStatus, startSpeakerExport, updateSpeaker,
+  speakerStatus, startSpeakerExport, startSpeakerTfliteExport, updateSpeaker,
 } from '../helpers/speakerRecognition.js';
 import {
   JobError, cancelJob, createDownloadTicket, getJob, listJobs,
@@ -62,6 +62,16 @@ export const models = async (req, res) => res.json({ models: await speakerModels
 export const exportOnnx = async (req, res) => res.status(202).json({
   job: await startSpeakerExport({ ownerId: req.user.sub, modelId: req.params.id }),
 });
+
+export const exportTflite = async (req, res) => res.status(202).json({
+  job: await startSpeakerTfliteExport({ ownerId: req.user.sub, modelId: req.params.id }),
+});
+
+/** POST …/models/:id/tflite/link — a one-use, one-minute URL for the zip. */
+export const tfliteLink = async (req, res) => {
+  const ticket = await createDownloadTicket(req.user.sub, req.params.id, TASK, 'tflite');
+  res.json({ path: `/tools/transformers/onnx-download/${ticket}` });
+};
 
 /** POST …/models/:id/onnx/link — a one-use, one-minute URL for the zip. */
 export const onnxLink = async (req, res) => {

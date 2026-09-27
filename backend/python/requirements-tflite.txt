@@ -1,0 +1,20 @@
+# TFLite (TensorFlow Lite / LiteRT) export for the models on Tools > AI:
+# YOLO, Speech to Text, Transformers, Speaker recognition and Speech to Command.
+# Optional: everything else works without it.
+#   pip install -r backend/python/requirements.txt
+#   pip install -r backend/python/requirements-tflite.txt
+#
+# tflite_export.py turns a model into ONNX with PyTorch and then into .tflite
+# with onnx2tf, and test-runs the result with TensorFlow's interpreter.
+# TensorFlow brings its own numpy/protobuf limits, so pip may move those (and
+# onnx, onnxruntime, transformers) to older versions; the other tools work with
+# them. Tested on Windows and Python 3.12 with tensorflow 2.21, onnx2tf 2.6.9,
+# numpy 2.2, onnx 1.20, onnxruntime 1.26 and transformers 4.57.
+tensorflow>=2.16
+tf_keras
+onnx2tf>=2.6
+onnx_graphsurgeon
+sng4onnx
+psutil
+ai-edge-litert
+onnxslim

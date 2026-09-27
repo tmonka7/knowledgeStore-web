@@ -76,10 +76,13 @@ export const startTrainingJob = async ({ ownerId, task, kind, title, script, arg
   });
 };
 
+// The dataset area each model task trains on, for a file to test an export on.
+const DATASET_AREAS = { detection: 'yolo', speech: 'speech', command: 'command' };
+
 /** A file from the model's own dataset to test an export on, or null. */
 const sampleFor = async (ownerId, task, model) => {
-  if (!model.datasetId) return null;
-  const area = task === 'detection' ? 'yolo' : 'speech';
+  const area = DATASET_AREAS[task];
+  if (!model.datasetId || !area) return null;
   try {
     return await sampleFile(await datasetFolder(ownerId, area, model.datasetId), area);
   } catch {
@@ -88,12 +91,15 @@ const sampleFor = async (ownerId, task, model) => {
 };
 
 /**
- * An ONNX export job for any model of `task`; tested on `sample`, else on a
- * file of the model's dataset when one is known.
+ * An export job (ONNX by default, or TFLite) for any model of `task`; tested
+ * on `sample`, else on a file of the model's dataset when one is known. The
+ * result is models/<format>/<id>/ and its zip, replaced only on success.
  */
-export const startExportJob = async ({ ownerId, task, modelId, script, extraArgs = [], sample: given = null }) => {
+export const startExportJob = async ({
+  ownerId, task, modelId, script, extraArgs = [], sample: given = null, format = 'onnx',
+}) => {
   const model = await findModel(ownerId, modelId, task);
-  const onnxRoot = path.join(MODELS_DIR, 'onnx');
+  const onnxRoot = path.join(MODELS_DIR, format);
   const output = path.join(onnxRoot, `${model.id}.partial`);
   await fs.mkdir(onnxRoot, { recursive: true });
   const sample = given || await sampleFor(ownerId, task, model);
@@ -101,8 +107,8 @@ export const startExportJob = async ({ ownerId, task, modelId, script, extraArgs
   return startJob({
     ownerId,
     task,
-    kind: 'onnx',
-    title: `ONNX: ${model.name || model.id}`,
+    kind: format,
+    title: `${format === 'tflite' ? 'TFLite' : 'ONNX'}: ${model.name || model.id}`,
     modelId: model.id,
     details: {},
     args: [script, '--model', model.folder, '--output', output, ...extraArgs, ...(sample ? ['--sample', sample] : [])],
@@ -181,6 +187,14 @@ export const startYoloTraining = async ({ ownerId, datasetId, baseModelId, name,
     },
   });
 };
+
+/**
+ * A TFLite export (tflite_export.py) of a model of `task`. `kind` tells the
+ * script what the model is: yolo, whisper, translation, speaker or moonshine.
+ */
+export const startTfliteExport = ({ ownerId, task, modelId, kind, sample = null }) => startExportJob({
+  ownerId, task, modelId, script: 'tflite_export.py', extraArgs: ['--kind', kind], sample, format: 'tflite',
+});
 
 export const startYoloExport = ({ ownerId, modelId }) => startExportJob({
   ownerId, task: 'detection', modelId, script: 'yolo_export.py',

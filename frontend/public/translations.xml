@@ -1354,4 +1354,10 @@
   <text id="cmdTestSetHelp" en="A base model is given the chosen command set; a trained model uses its own commands." es="A un modelo base se le da el conjunto elegido; un modelo entrenado usa sus propios comandos." zh="基础模型使用所选命令集；训练过的模型使用自带命令。" jp="ベースモデルには選んだセットを使い、学習済みモデルは自身のコマンドを使います。" />
   <text id="cmdEngineStarting" en="Starting the recogniser on the server (a few seconds, the first time)…" es="Iniciando el reconocedor en el servidor (unos segundos la primera vez)…" zh="正在服务器上启动识别器（首次需要几秒钟）…" jp="サーバーで認識エンジンを起動しています（初回は数秒かかります）…" />
   <text id="cmdEngineFailed" en="The recogniser cannot run on the server." es="El reconocedor no puede funcionar en el servidor." zh="识别器无法在服务器上运行。" jp="サーバーで認識エンジンを実行できません。" />
+  <text id="tfliteExportHelp" en="Export to TFLite (TensorFlow Lite / LiteRT), for phones and small devices" es="Exportar a TFLite (TensorFlow Lite / LiteRT), para moviles y dispositivos pequenos" zh="导出为 TFLite（TensorFlow Lite / LiteRT），用于手机和小型设备" jp="TFLite（TensorFlow Lite / LiteRT）に書き出す（スマートフォンや小型機器向け）" />
+  <text id="tfliteExportAgain" en="Export to TFLite again" es="Exportar a TFLite de nuevo" zh="重新导出 TFLite" jp="TFLite に再度書き出す" />
+  <text id="tfliteFailedToStart" en="The TFLite export could not be started." es="No se pudo iniciar la exportacion a TFLite." zh="无法开始 TFLite 导出。" jp="TFLite への書き出しを開始できませんでした。" />
+  <text id="tfliteCheckSteps" en="Step by step" es="Paso a paso" zh="逐步" jp="ステップごと" />
+  <text id="tfliteCheckAgreement" en="{value} agree with PyTorch" es="{value} coinciden con PyTorch" zh="{value} 与 PyTorch 一致" jp="{value} が PyTorch と一致" />
+  <text id="tfliteCheckSpeed" en="{ms} ms per token on the server" es="{ms} ms por token en el servidor" zh="服务器上每个词元 {ms} 毫秒" jp="サーバーで 1 トークンあたり {ms} ms" />
 </translations>

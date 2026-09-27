@@ -891,6 +891,49 @@ the **Train** tab:
   `whisper-tiny` can be converted as well; they have no dataset, so that test
   is skipped. The file is half precision (f16), like whisper.cpp's own models.
 
+### TFLite export (phones and small devices)
+
+Every model table on Tools > AI — YOLO, Speech to Text, Transformers, Speaker
+recognition and Speech to Command — has a **TFLite** button (a phone icon)
+beside **Export ONNX**. It converts the model to TensorFlow Lite (LiteRT), the
+format Android, iOS and devices such as a Raspberry Pi run. It is a job like
+the other exports: the panel shows it, and when it finishes the row gets a
+**TFLite** download button; the phone icon exports again.
+
+The zip holds the `.tflite` files, the tokenizer or processor files the model
+needs, and a README saying exactly how to feed it:
+
+| Model | Files | Fixed sizes |
+|---|---|---|
+| YOLO | `model.tflite`, `classes.txt` | The training image size, e.g. 640×640. Ultralytics' `YOLO("model.tflite")` loads it with its class names. |
+| Whisper (Speech to Text) | `encoder.tflite`, `decoder.tflite` | 30 s of audio; up to 224 tokens of text |
+| Translation (Transformers) | `encoder.tflite`, `decoder.tflite` | Up to 128 tokens in and out |
+| Speaker recognition | `ecapa.tflite` | 3 s windows of filterbank features; average the windows of a longer clip |
+| Speech to Command (Moonshine) | `encoder.tflite`, `decoder.tflite` (+ `commands.json` for a trained model) | Up to 8 s of audio |
+
+TFLite needs fixed shapes, so shorter inputs are padded; the README says how.
+The speech and translation decoders take a padded block of tokens and the
+position to read, so they run in a simple loop.
+
+Each export is checked: the TFLite model and the original run on the same
+input — a file from the model's dataset when there is one — and the job shows
+both results, whether they match, and for text models how many next tokens
+agree step by step and how long a token takes on the server.
+
+The files are 32-bit floating point. Smaller 16-bit or 8-bit versions are not
+offered: the converter's versions of those either do not run on phones'
+standard CPU kernels or give wrong answers, which the check caught on every
+model tried.
+
+TFLite export needs extra software on the server, once:
+
+```
+pip install -r backend/python/requirements-tflite.txt
+```
+
+Without it the button says so. Exporting takes from about 20 seconds (YOLO) to
+two minutes (Whisper, translation) on a server without a GPU.
+
 **Train on** chooses the device, on all three Train panels (Transformers
 too): **Automatic** uses the server's first NVIDIA GPU when there is one and
 the CPU otherwise; **CPU** or a listed **GPU** forces that choice. If no GPU

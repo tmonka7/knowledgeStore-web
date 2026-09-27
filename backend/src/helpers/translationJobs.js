@@ -83,9 +83,11 @@ const listKind = async (kind) => {
     .map(async (name) => {
       const meta = await readMeta(path.join(root, name));
       if (!meta || (kind === 'base' && !meta.complete)) return null;
-      const onnxZip = path.join(MODELS_DIR, 'onnx', `${name}.zip`);
-      const onnx = await exists(onnxZip) ? (await fs.stat(onnxZip)).size : 0;
-      return { ...meta, id: name, kind, onnxBytes: onnx };
+      const zipBytes = async (format) => {
+        const zip = path.join(MODELS_DIR, format, `${name}.zip`);
+        return await exists(zip) ? (await fs.stat(zip)).size : 0;
+      };
+      return { ...meta, id: name, kind, onnxBytes: await zipBytes('onnx'), tfliteBytes: await zipBytes('tflite') };
     }));
   return models.filter(Boolean);
 };
@@ -122,15 +124,22 @@ export const deleteModel = async (ownerId, id, task = 'translation') => {
     throw new JobError('That model is being exported. Wait for it to finish.', 409);
   }
   await fs.rm(model.folder, { recursive: true, force: true });
-  await fs.rm(path.join(MODELS_DIR, 'onnx', id), { recursive: true, force: true });
-  await fs.rm(path.join(MODELS_DIR, 'onnx', `${id}.zip`), { force: true });
+  for (const format of EXPORT_FORMATS) {
+    await fs.rm(path.join(MODELS_DIR, format, id), { recursive: true, force: true });
+    await fs.rm(path.join(MODELS_DIR, format, `${id}.zip`), { force: true });
+  }
 };
 
-export const onnxArchive = async (ownerId, id, task = 'translation') => {
+/** The formats a model can be exported to; each is kept in models/<format>/<id>(.zip). */
+export const EXPORT_FORMATS = ['onnx', 'tflite'];
+const FORMAT_NAMES = { onnx: 'ONNX', tflite: 'TFLite' };
+
+export const onnxArchive = async (ownerId, id, task = 'translation', format = 'onnx') => {
+  if (!EXPORT_FORMATS.includes(format)) throw new JobError('Unknown export format.', 404);
   const model = await findModel(ownerId, id, task);
-  const archive = path.join(MODELS_DIR, 'onnx', `${model.id}.zip`);
-  if (!await exists(archive)) throw new JobError('This model has not been exported to ONNX yet.', 404);
-  return { model, stream: createReadStream(archive), size: (await fs.stat(archive)).size };
+  const archive = path.join(MODELS_DIR, format, `${model.id}.zip`);
+  if (!await exists(archive)) throw new JobError(`This model has not been exported to ${FORMAT_NAMES[format]} yet.`, 404);
+  return { model, format, stream: createReadStream(archive), size: (await fs.stat(archive)).size };
 };
 
 /*
@@ -142,10 +151,10 @@ export const onnxArchive = async (ownerId, id, task = 'translation') => {
 const DOWNLOAD_TICKET_MS = 60 * 1000;
 const downloadTickets = new Map();
 
-export const createDownloadTicket = async (ownerId, id, task = 'translation') => {
-  await onnxArchive(ownerId, id, task).then(({ stream }) => stream.destroy());
+export const createDownloadTicket = async (ownerId, id, task = 'translation', format = 'onnx') => {
+  await onnxArchive(ownerId, id, task, format).then(({ stream }) => stream.destroy());
   const ticket = randomUUID();
-  downloadTickets.set(ticket, { ownerId, id, task, expires: Date.now() + DOWNLOAD_TICKET_MS });
+  downloadTickets.set(ticket, { ownerId, id, task, format, expires: Date.now() + DOWNLOAD_TICKET_MS });
   setTimeout(() => downloadTickets.delete(ticket), DOWNLOAD_TICKET_MS).unref?.();
   return ticket;
 };
@@ -154,7 +163,7 @@ export const redeemDownloadTicket = async (ticket) => {
   const entry = downloadTickets.get(String(ticket || ''));
   downloadTickets.delete(String(ticket || ''));
   if (!entry || entry.expires < Date.now()) throw new JobError('This download link has expired. Start the download again.', 410);
-  return onnxArchive(entry.ownerId, entry.id, entry.task);
+  return onnxArchive(entry.ownerId, entry.id, entry.task, entry.format);
 };
 
 /* -------------------------------------------------------------------- jobs */

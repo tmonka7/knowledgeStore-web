@@ -11,7 +11,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Speaker } from '../models/speakerModel.js';
 import { DATASETS_DIR } from './mlDatasets.js';
-import { startExportJob } from './mlJobs.js';
+import { startExportJob, startTfliteExport } from './mlJobs.js';
 import { createPythonWorker } from './pythonWorker.js';
 import { JobError, findModel, listModels } from './translationJobs.js';
 
@@ -110,6 +110,11 @@ const exportSample = async (ownerId) => {
   }
   return null;
 };
+
+/** Export a speaker model to TFLite (tflite_export.py), tested on the same sample as ONNX. */
+export const startSpeakerTfliteExport = async ({ ownerId, modelId }) => startTfliteExport({
+  ownerId, task: TASK, modelId, kind: 'speaker', sample: await exportSample(ownerId),
+});
 
 /** Export a speaker model to ONNX (speaker_export.py): a job, like the other exports. */
 export const startSpeakerExport = async ({ ownerId, modelId }) => startExportJob({

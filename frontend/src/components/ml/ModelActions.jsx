@@ -1,12 +1,12 @@
 import { Button, Popconfirm, Space, Tooltip } from 'antd';
 import {
-  CloudDownloadOutlined, DeleteOutlined, ExperimentOutlined, ExportOutlined,
+  CloudDownloadOutlined, DeleteOutlined, ExperimentOutlined, ExportOutlined, MobileOutlined,
 } from '@ant-design/icons';
 import { useLanguage } from '../../i18n';
 import { formatBytes } from '../../lib/mlUpload';
 
 /**
- * Test / ONNX export and download / delete, for one row of a models table.
+ * Test / ONNX and TFLite export and download / delete, for one row of a models table.
  * `extra` goes before the delete button (Speech to Text puts GGML there).
  * Without `onTest` there is no Test button; `deletable={false}` hides Delete.
  */
@@ -27,6 +27,16 @@ export default function ModelActions({
       <Tooltip title={model.onnxBytes ? t('onnxExportAgain') : t('onnxExport')}>
         <Button size="small" icon={<ExportOutlined />} disabled={exporting} onClick={() => area.exportOnnx(model)}>
           {model.onnxBytes ? '' : t('onnxExport')}
+        </Button>
+      </Tooltip>
+      {model.tfliteBytes ? (
+        <Tooltip title={formatBytes(model.tfliteBytes)}>
+          <Button size="small" icon={<CloudDownloadOutlined />} onClick={() => area.downloadTflite(model)}>TFLite</Button>
+        </Tooltip>
+      ) : null}
+      <Tooltip title={model.tfliteBytes ? t('tfliteExportAgain') : t('tfliteExportHelp')}>
+        <Button size="small" icon={<MobileOutlined />} disabled={exporting} onClick={() => area.exportTflite(model)}>
+          {model.tfliteBytes ? '' : 'TFLite'}
         </Button>
       </Tooltip>
       {extra}

@@ -573,7 +573,7 @@ export const deleteDataset = async (ownerId, kind, id) => {
 
 /** A file from the dataset to test an ONNX export on, if there is one. */
 export const sampleFile = async (folder, kind) => {
-  if (kind === 'speech') {
+  if (kind === 'speech' || kind === 'command') {
     try {
       const first = (await fs.readFile(path.join(folder, 'metadata.jsonl'), 'utf8')).split('\n').find(Boolean);
       return first ? path.join(folder, JSON.parse(first).audio) : null;

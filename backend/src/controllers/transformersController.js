@@ -5,6 +5,7 @@ import {
   getTranslationDatasetSummaries,
 } from '../models/translationDatasetModel.js';
 import { MAX_CODE_LENGTH, probePython, runPythonScript } from '../helpers/pythonRunner.js';
+import { startTfliteExport } from '../helpers/mlJobs.js';
 import {
   cancelJob,
   createDownloadTicket,
@@ -180,6 +181,18 @@ export const trainTranslationModel = async (req, res) => {
   return res.status(202).json({ job });
 };
 
+/** POST /tools/transformers/models/:id/tflite — a TFLite export job. */
+export const exportTranslationTflite = async (req, res) => {
+  const job = await startTfliteExport({ ownerId: req.user.sub, task: 'translation', modelId: req.params.id, kind: 'translation' });
+  res.status(202).json({ job });
+};
+
+/** POST /tools/transformers/models/:id/tflite/link — a one-use, one-minute URL. */
+export const tfliteDownloadLink = async (req, res) => {
+  const ticket = await createDownloadTicket(req.user.sub, req.params.id, 'translation', 'tflite');
+  res.json({ path: `/tools/transformers/onnx-download/${ticket}` });
+};
+
 export const exportTranslationModel = async (req, res) => {
   const job = await startOnnxExport({ ownerId: req.user.sub, modelId: req.params.id });
   res.status(202).json({ job });
@@ -193,8 +206,8 @@ export const onnxDownloadLink = async (req, res) => {
 
 /** GET /tools/transformers/onnx-download/:ticket — the ticket is the credential. */
 export const downloadOnnx = async (req, res) => {
-  const { model, stream, size } = await redeemDownloadTicket(req.params.ticket);
-  const filename = `${String(model.name || model.id).replace(/[^\w.-]+/g, '_')}-onnx.zip`;
+  const { model, format, stream, size } = await redeemDownloadTicket(req.params.ticket);
+  const filename = `${String(model.name || model.id).replace(/[^\w.-]+/g, '_')}-${format}.zip`;
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Length', size);
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

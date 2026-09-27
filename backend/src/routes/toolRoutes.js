@@ -19,6 +19,8 @@ import {
   listTranslationJobs,
   listTranslationModels,
   onnxDownloadLink,
+  exportTranslationTflite,
+  tfliteDownloadLink,
   pythonCapabilities,
   runTranslationScript,
   trainTranslationModel,
@@ -103,6 +105,8 @@ router.get('/tools/transformers/models', ...transformersTrain, asyncRoute(listTr
 router.delete('/tools/transformers/models/:id', ...transformersTrain, asyncRoute(deleteTranslationModel));
 router.post('/tools/transformers/models/:id/onnx', ...transformersTrain, asyncRoute(exportTranslationModel));
 router.post('/tools/transformers/models/:id/onnx/link', ...transformersTrain, asyncRoute(onnxDownloadLink));
+router.post('/tools/transformers/models/:id/tflite', ...transformersTrain, asyncRoute(exportTranslationTflite));
+router.post('/tools/transformers/models/:id/tflite/link', ...transformersTrain, asyncRoute(tfliteDownloadLink));
 // No auth middleware: this is followed by a plain browser navigation, which
 // cannot send the Authorization header. The single-use ticket in the URL,
 // issued above to an authorised caller, is what grants access.
@@ -188,6 +192,8 @@ router.get('/tools/command/datasets/:id/clips/:clip', ...commandView, asyncRoute
 router.delete('/tools/command/datasets/:id/clips/:clip', ...commandView, asyncRoute(speechCommand.removeClip));
 router.delete('/tools/command/models/:id', ...commandTrain, asyncRoute(speechCommand.removeModel));
 router.post('/tools/command/train', ...commandTrain, asyncRoute(speechCommand.train));
+router.post('/tools/command/models/:id/tflite', ...commandTrain, asyncRoute(speechCommand.exportTflite));
+router.post('/tools/command/models/:id/tflite/link', ...commandTrain, asyncRoute(speechCommand.tfliteLink));
 router.get('/tools/command/devices', ...commandTrain, asyncRoute(speechCommand.devices));
 router.get('/tools/command/jobs', ...commandTrain, asyncRoute(speechCommand.jobs));
 router.get('/tools/command/jobs/:id', ...commandTrain, asyncRoute(speechCommand.job));
@@ -212,6 +218,8 @@ router.post('/tools/speaker/identify', ...speakerView, speakerUpload.single('aud
 router.get('/tools/speaker/models', ...speakerView, asyncRoute(speaker.models));
 router.post('/tools/speaker/models/:id/onnx', ...speakerView, asyncRoute(speaker.exportOnnx));
 router.post('/tools/speaker/models/:id/onnx/link', ...speakerView, asyncRoute(speaker.onnxLink));
+router.post('/tools/speaker/models/:id/tflite', ...speakerView, asyncRoute(speaker.exportTflite));
+router.post('/tools/speaker/models/:id/tflite/link', ...speakerView, asyncRoute(speaker.tfliteLink));
 router.get('/tools/speaker/jobs', ...speakerView, asyncRoute(speaker.jobs));
 router.get('/tools/speaker/jobs/:id', ...speakerView, asyncRoute(speaker.job));
 router.post('/tools/speaker/jobs/:id/cancel', ...speakerView, asyncRoute(speaker.cancel));
@@ -256,6 +264,8 @@ for (const [area, permission] of [['yolo', 'yolo'], ['speech', 'tts']]) {
   router.delete(`${base}/models/:id`, ...train, asyncRoute(handlers.deleteModel));
   router.post(`${base}/models/:id/onnx`, ...train, asyncRoute(handlers.exportOnnx));
   router.post(`${base}/models/:id/onnx/link`, ...train, asyncRoute(handlers.onnxLink));
+  router.post(`${base}/models/:id/tflite`, ...train, asyncRoute(handlers.exportTflite));
+  router.post(`${base}/models/:id/tflite/link`, ...train, asyncRoute(handlers.tfliteLink));
   router.post(`${base}/train`, ...train, asyncRoute(handlers.train));
   router.post(`${base}/test`, ...train, upload.array('files', 8), asyncRoute(handlers.test));
   router.get(`${base}/devices`, ...train, asyncRoute(handlers.devices));

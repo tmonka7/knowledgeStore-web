@@ -4,7 +4,7 @@ import {
   Typography,
 } from 'antd';
 import {
-  DeleteOutlined, ExperimentOutlined, ReloadOutlined, RocketOutlined, UploadOutlined,
+  CloudDownloadOutlined, DeleteOutlined, ExperimentOutlined, MobileOutlined, ReloadOutlined, RocketOutlined, UploadOutlined,
 } from '@ant-design/icons';
 import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
@@ -13,6 +13,7 @@ import useMlArea from '../ml/useMlArea';
 import ClipRecorder from '../speaker/ClipRecorder';
 import { CommandTag, recognizeClip } from './CommandRecognize';
 import { moonshineFor } from '../../lib/commandSets';
+import { formatBytes } from '../../lib/mlUpload';
 import { useLanguage } from '../../i18n';
 
 const { Text, Paragraph } = Typography;
@@ -103,6 +104,16 @@ export default function CommandTrainingPanel({ reloadKey = 0 }) {
       render: (_, model) => (
         <Space>
           <Button size="small" icon={<ExperimentOutlined />} onClick={() => openTest(model)}>{t('trainTest')}</Button>
+          {model.tfliteBytes ? (
+            <Tooltip title={formatBytes(model.tfliteBytes)}>
+              <Button size="small" icon={<CloudDownloadOutlined />} onClick={() => area.downloadTflite(model)}>TFLite</Button>
+            </Tooltip>
+          ) : null}
+          <Tooltip title={model.tfliteBytes ? t('tfliteExportAgain') : t('tfliteExportHelp')}>
+            <Button size="small" icon={<MobileOutlined />} disabled={area.running} onClick={() => area.exportTflite(model)}>
+              {model.tfliteBytes ? '' : 'TFLite'}
+            </Button>
+          </Tooltip>
           {model.kind === 'finetuned' && (
             <Popconfirm title={t('trainDeleteModel')} onConfirm={() => area.removeModel(model)} okButtonProps={{ danger: true }}>
               <Button size="small" danger icon={<DeleteOutlined />} disabled={busyIds.has(model.id)} aria-label={t('delete')} />

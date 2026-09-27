@@ -11,8 +11,9 @@ import {
   TASK, commandEngine, commandModels, deleteCommandModel, recognizeCommand, startCommandTraining,
 } from '../helpers/speechCommand.js';
 import {
-  JobError, cancelJob, getJob, listJobs, probeDevices,
+  JobError, cancelJob, createDownloadTicket, getJob, listJobs, probeDevices,
 } from '../helpers/translationJobs.js';
+import { startTfliteExport } from '../helpers/mlJobs.js';
 
 /** GET /tools/command/status — starts the recogniser if needed: { ready, device } or { ready: false, message }. */
 export const status = async (req, res) => res.json(await commandEngine());
@@ -91,6 +92,17 @@ export const train = async (req, res) => {
     options: req.body?.options || {},
   });
   res.status(202).json({ job });
+};
+
+/** POST /tools/command/models/:id/tflite — a TFLite export job (Moonshine's encoder and decoder). */
+export const exportTflite = async (req, res) => res.status(202).json({
+  job: await startTfliteExport({ ownerId: req.user.sub, task: TASK, modelId: req.params.id, kind: 'moonshine' }),
+});
+
+/** POST /tools/command/models/:id/tflite/link — a one-use, one-minute URL for the zip. */
+export const tfliteLink = async (req, res) => {
+  const ticket = await createDownloadTicket(req.user.sub, req.params.id, TASK, 'tflite');
+  res.json({ path: `/tools/transformers/onnx-download/${ticket}` });
 };
 
 export const devices = async (req, res) => res.json(await probeDevices({ refresh: req.query.refresh === '1' }));

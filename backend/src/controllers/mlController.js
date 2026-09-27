@@ -3,7 +3,7 @@ import {
 } from '../helpers/mlDatasets.js';
 import {
   createGgmlTicket, deleteSpeechGgml, deleteSpeechModel, ggmlCopies, redeemGgmlTicket, startSpeechExport,
-  startSpeechGgml, startSpeechTraining, startYoloExport, startYoloTraining, transcribe, yoloPredict,
+  startSpeechGgml, startSpeechTraining, startTfliteExport, startYoloExport, startYoloTraining, transcribe, yoloPredict,
 } from '../helpers/mlJobs.js';
 import {
   JobError, cancelJob, createDownloadTicket, deleteModel, getJob, listJobs, listModels, probeDevices,
@@ -17,10 +17,10 @@ import {
  */
 const AREAS = {
   yolo: {
-    task: 'detection', startTraining: startYoloTraining, startExport: startYoloExport,
+    task: 'detection', startTraining: startYoloTraining, startExport: startYoloExport, tfliteKind: 'yolo',
   },
   speech: {
-    task: 'speech', startTraining: startSpeechTraining, startExport: startSpeechExport,
+    task: 'speech', startTraining: startSpeechTraining, startExport: startSpeechExport, tfliteKind: 'whisper',
   },
 };
 
@@ -34,7 +34,9 @@ const parsePaths = (value) => {
 };
 
 export const mlHandlers = (area) => {
-  const { task, startTraining, startExport } = AREAS[area];
+  const {
+    task, startTraining, startExport, tfliteKind,
+  } = AREAS[area];
 
   return {
     listDatasets: async (req, res) => res.json({ datasets: await listDatasets(req.user.sub, area) }),
@@ -85,6 +87,13 @@ export const mlHandlers = (area) => {
     exportOnnx: async (req, res) => res.status(202).json({ job: await startExport({ ownerId: req.user.sub, modelId: req.params.id }) }),
     onnxLink: async (req, res) => {
       const ticket = await createDownloadTicket(req.user.sub, req.params.id, task);
+      res.json({ path: `/tools/transformers/onnx-download/${ticket}` });
+    },
+    exportTflite: async (req, res) => res.status(202).json({
+      job: await startTfliteExport({ ownerId: req.user.sub, task, modelId: req.params.id, kind: tfliteKind }),
+    }),
+    tfliteLink: async (req, res) => {
+      const ticket = await createDownloadTicket(req.user.sub, req.params.id, task, 'tflite');
       res.json({ path: `/tools/transformers/onnx-download/${ticket}` });
     },
 

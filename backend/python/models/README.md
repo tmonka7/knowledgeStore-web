@@ -107,6 +107,11 @@ keeps one loaded and matches what it hears to a command set's phrases
 (`command_common.py`), and `command_train.py` fine-tunes one on a set's
 recordings, saving it with `commands.json` in `models/finetuned/<id>/`.
 
+TFLite export (`tflite_export.py`, every tool on Tools > AI) needs
+`pip install -r backend/python/requirements-tflite.txt` (TensorFlow, onnx2tf).
+Exports go in `models/tflite/<id>/` and `models/tflite/<id>.zip`, beside the
+ONNX ones in `models/onnx/`.
+
 For Voice recognition on the Speech to Text page (whisper.cpp, MIT):
 
 ```
