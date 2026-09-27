@@ -1023,4 +1023,60 @@
   <text id="ggmlConvertAgain" en="Convert to ggml again (replaces the copy)" es="Convertir a ggml de nuevo (reemplaza la copia)" zh="重新转换为 ggml（替换原副本）" jp="ggml に再変換（コピーを置き換え）" />
   <text id="ggmlDelete" en="Delete the ggml copy" es="Borrar la copia ggml" zh="删除 ggml 副本" jp="ggml コピーを削除" />
   <text id="ggmlFailedToStart" en="The ggml conversion could not be started." es="No se pudo iniciar la conversion a ggml." zh="无法开始 ggml 转换。" jp="ggml 変換を開始できませんでした。" />
+  <text id="speakerRecognition" en="Speaker recognition" es="Reconocimiento de hablante" zh="说话人识别" jp="話者認識" />
+  <text id="speakerSubtitle" en="Recognise people by their voice (ECAPA-TDNN). Enroll a few samples of each person, then identify, verify or follow a conversation live." es="Reconoce a las personas por su voz (ECAPA-TDNN). Registra algunas muestras de cada persona y luego identifica, verifica o sigue una conversacion en vivo." zh="通过声音识别说话人（ECAPA-TDNN）。为每个人登记几段语音样本，然后进行识别、验证或实时跟踪对话。" jp="声で人を認識します（ECAPA-TDNN）。各人の音声サンプルを登録し、識別・照合・会話のライブ追跡を行います。" />
+  <text id="speakerSpeakers" en="Speakers" es="Hablantes" zh="说话人" jp="話者" />
+  <text id="speakerIdentifyTab" en="Identify / verify" es="Identificar / verificar" zh="识别 / 验证" jp="識別 / 照合" />
+  <text id="speakerLiveTab" en="Live" es="En vivo" zh="实时" jp="ライブ" />
+  <text id="speakerNew" en="New speaker" es="Nuevo hablante" zh="新建说话人" jp="新しい話者" />
+  <text id="speakerEdit" en="Edit speaker" es="Editar hablante" zh="编辑说话人" jp="話者を編集" />
+  <text id="speakerName" en="Name" es="Nombre" zh="姓名" jp="名前" />
+  <text id="speakerNote" en="Note" es="Nota" zh="备注" jp="メモ" />
+  <text id="speakerNameRequired" en="Enter a name." es="Escribe un nombre." zh="请输入姓名。" jp="名前を入力してください。" />
+  <text id="speakerCreateAndRecord" en="Create and record" es="Crear y grabar" zh="创建并录音" jp="作成して録音" />
+  <text id="speakerVoice" en="Voice enrolled" es="Voz registrada" zh="已登记语音" jp="登録済みの声" />
+  <text id="speakerSamplesCount" en="{count} sample(s)" es="{count} muestra(s)" zh="{count} 个样本" jp="サンプル {count} 件" />
+  <text id="speakerNotEnrolled" en="No voice samples yet" es="Aun sin muestras de voz" zh="尚无语音样本" jp="まだ音声サンプルがありません" />
+  <text id="speakerAddMore" en="more makes it more reliable" es="mas muestras lo hacen mas fiable" zh="样本越多越可靠" jp="増やすと精度が上がります" />
+  <text id="speakerAddSample" en="Add voice" es="Anadir voz" zh="添加语音" jp="声を追加" />
+  <text id="speakerDeleteConfirm" en="Delete {name} and all their voice samples?" es="Borrar a {name} y todas sus muestras de voz?" zh="删除 {name} 及其所有语音样本？" jp="{name} と全音声サンプルを削除しますか？" />
+  <text id="speakerDeleteSample" en="Delete this sample?" es="Borrar esta muestra?" zh="删除此样本？" jp="このサンプルを削除しますか？" />
+  <text id="speakerNone" en="No speakers yet. Add one with &quot;New speaker&quot;." es="Aun no hay hablantes. Anade uno con &quot;Nuevo hablante&quot;." zh="还没有说话人。点击“新建说话人”添加。" jp="まだ話者がいません。「新しい話者」で追加してください。" />
+  <text id="speakerEnrollHelp" en="Give each person 3 or more samples of 5 to 15 seconds of normal talking, ideally recorded at different times and with the microphone you will use later. About 20 seconds of speech in total is a good start." es="Da a cada persona 3 o mas muestras de 5 a 15 segundos hablando con normalidad, idealmente en momentos distintos y con el microfono que usaras despues. Unos 20 segundos de voz en total es un buen comienzo." zh="为每个人录制 3 段以上、每段 5–15 秒的正常说话，最好在不同时间、用之后要用的麦克风录制。总共约 20 秒语音即可起步。" jp="1 人につき 5〜15 秒の普通の話し声を 3 件以上、できれば時間を変えて、後で使うマイクで録音してください。合計 20 秒ほどの音声があれば十分です。" />
+  <text id="speakerEnrollTitle" en="Voice samples: {name}" es="Muestras de voz: {name}" zh="语音样本：{name}" jp="音声サンプル: {name}" />
+  <text id="speakerEnrollSteps" en="Record the person talking normally (reading a paragraph works well), or choose a recording of them alone. Each sample is added as soon as it is made." es="Graba a la persona hablando con normalidad (leer un parrafo funciona bien) o elige una grabacion en la que hable sola. Cada muestra se anade al terminar." zh="录制此人正常说话（朗读一段文字即可），或选择只有此人说话的录音。每段样本录完即添加。" jp="普通に話している声を録音するか（段落の朗読で十分です）、本人だけが話している録音を選んでください。サンプルは録音するとすぐに追加されます。" />
+  <text id="speakerEnrollHint" en="Recording stops by itself after 15 seconds. Only one person should be speaking." es="La grabacion se detiene sola a los 15 segundos. Solo debe hablar una persona." zh="录音 15 秒后自动停止。只能有一个人说话。" jp="録音は 15 秒で自動停止します。話すのは 1 人だけにしてください。" />
+  <text id="speakerEnrolledSoFar" en="Enrolled so far: {count} sample(s), {seconds} s of speech." es="Registrado hasta ahora: {count} muestra(s), {seconds} s de voz." zh="目前已登记：{count} 个样本，{seconds} 秒语音。" jp="これまでの登録: サンプル {count} 件、音声 {seconds} 秒。" />
+  <text id="speakerSpeechSeconds" en="{seconds} s of speech" es="{seconds} s de voz" zh="{seconds} 秒语音" jp="音声 {seconds} 秒" />
+  <text id="speakerOldModel" en="from an older model: record again" es="de un modelo anterior: graba de nuevo" zh="来自旧模型：请重新录制" jp="古いモデルのもの: 録り直してください" />
+  <text id="speakerRecord" en="Record" es="Grabar" zh="录音" jp="録音" />
+  <text id="speakerChooseFile" en="Choose a recording" es="Elegir una grabacion" zh="选择录音文件" jp="録音ファイルを選択" />
+  <text id="speakerIdentifyTitle" en="Who is speaking?" es="Quien habla?" zh="谁在说话？" jp="誰が話している？" />
+  <text id="speakerModeIdentify" en="Identify" es="Identificar" zh="识别" jp="識別" />
+  <text id="speakerModeVerify" en="Verify one person" es="Verificar a una persona" zh="验证某人" jp="1 人を照合" />
+  <text id="speakerIdentifyHelp" en="Compares the clip with every enrolled speaker." es="Compara el fragmento con todos los hablantes registrados." zh="将片段与所有已登记的说话人比较。" jp="クリップを登録済みの全話者と比較します。" />
+  <text id="speakerVerifyHelp" en="Checks whether the clip is the chosen person." es="Comprueba si el fragmento es de la persona elegida." zh="检查片段是否为所选之人。" jp="クリップが選んだ人の声かどうかを確認します。" />
+  <text id="speakerPick" en="Choose a speaker" es="Elige un hablante" zh="选择说话人" jp="話者を選択" />
+  <text id="speakerEnrollFirst" en="Enroll at least one speaker with a voice sample first (Speakers tab)." es="Primero registra al menos un hablante con una muestra de voz (pestana Hablantes)." zh="请先在“说话人”标签中至少登记一个带语音样本的说话人。" jp="まず「話者」タブで、音声サンプル付きの話者を 1 人以上登録してください。" />
+  <text id="speakerClipHint" en="A few seconds of one person talking is enough; recording stops by itself after 20 seconds." es="Bastan unos segundos de una persona hablando; la grabacion se detiene sola a los 20 segundos." zh="一个人说几秒钟即可；录音 20 秒后自动停止。" jp="1 人が数秒話せば十分です。録音は 20 秒で自動停止します。" />
+  <text id="speakerThreshold" en="Match threshold: {value}" es="Umbral de coincidencia: {value}" zh="匹配阈值：{value}" jp="一致のしきい値: {value}" />
+  <text id="speakerThresholdHelp" en="Similarity (cosine) a voice must reach to count as a match. Higher means fewer false matches but more &quot;unknown&quot;. Tune it with your microphone." es="Similitud (coseno) que debe alcanzar una voz para contar como coincidencia. Mas alto: menos falsos positivos pero mas &quot;desconocido&quot;. Ajustalo con tu microfono." zh="声音需达到的相似度（余弦）才算匹配。越高误匹配越少，但“未知”越多。请用你的麦克风调节。" jp="一致とみなす類似度（コサイン）。高いほど誤一致は減りますが「不明」が増えます。お使いのマイクで調整してください。" />
+  <text id="speakerNoResult" en="Record or choose a clip to see who it is." es="Graba o elige un fragmento para ver quien es." zh="录制或选择片段以查看是谁。" jp="クリップを録音または選択すると、誰かが表示されます。" />
+  <text id="speakerVerified" en="Yes, this is {name}" es="Si, es {name}" zh="是的，这是 {name}" jp="はい、{name} です" />
+  <text id="speakerNotVerified" en="Not {name}" es="No es {name}" zh="不是 {name}" jp="{name} ではありません" />
+  <text id="speakerScoreLine" en="Similarity {score} (threshold {threshold})" es="Similitud {score} (umbral {threshold})" zh="相似度 {score}（阈值 {threshold}）" jp="類似度 {score}（しきい値 {threshold}）" />
+  <text id="speakerScoreShort" en="similarity {score}" es="similitud {score}" zh="相似度 {score}" jp="類似度 {score}" />
+  <text id="speakerUnknown" en="Unknown speaker" es="Hablante desconocido" zh="未知说话人" jp="不明な話者" />
+  <text id="speakerClosest" en="closest: {name} ({score})" es="mas parecido: {name} ({score})" zh="最接近：{name}（{score}）" jp="最も近い: {name}（{score}）" />
+  <text id="speakerNobodyEnrolled" en="Nobody is enrolled yet." es="Aun no hay nadie registrado." zh="尚未登记任何人。" jp="まだ誰も登録されていません。" />
+  <text id="speakerClipInfo" en="{source} · {seconds} s, {speech} s of speech" es="{source} · {seconds} s, {speech} s de voz" zh="{source} · {seconds} 秒，其中语音 {speech} 秒" jp="{source} · {seconds} 秒、音声 {speech} 秒" />
+  <text id="speakerLiveTitle" en="Who is speaking, live" es="Quien habla, en vivo" zh="实时：谁在说话" jp="ライブ: 誰が話しているか" />
+  <text id="speakerLiveStart" en="Start listening" es="Empezar a escuchar" zh="开始聆听" jp="聞き取りを開始" />
+  <text id="speakerLiveHelp" en="Each stretch of speech is identified as soon as there is a pause. The totals show how long each person talked." es="Cada tramo de voz se identifica en cuanto hay una pausa. Los totales muestran cuanto hablo cada persona." zh="每次停顿后立即识别该段语音。合计显示每个人说话的时长。" jp="間が空くたびにその区間の話者を識別します。合計に各人の発話時間が表示されます。" />
+  <text id="speakerIdentifying" en="Identifying ({count})…" es="Identificando ({count})…" zh="识别中（{count}）…" jp="識別中（{count}）…" />
+  <text id="speakerLastHeard" en="Last heard" es="Ultimo en hablar" zh="最近说话" jp="直近の話者" />
+  <text id="speakerLiveEmpty" en="Nothing heard yet." es="Aun no se ha oido nada." zh="尚未听到任何声音。" jp="まだ何も聞こえていません。" />
+  <text id="speakerNoModel" en="The speaker model is not installed on the server" es="El modelo de hablantes no esta instalado en el servidor" zh="服务器上未安装说话人模型" jp="サーバーに話者モデルがインストールされていません" />
+  <text id="speakerNoModelHelp" en="An administrator installs SpeechBrain and the ECAPA-TDNN model once, on the server:" es="Un administrador instala SpeechBrain y el modelo ECAPA-TDNN una vez, en el servidor:" zh="管理员需在服务器上安装一次 SpeechBrain 和 ECAPA-TDNN 模型：" jp="管理者がサーバーに SpeechBrain と ECAPA-TDNN モデルを一度インストールします：" />
+  <text id="speakerEngineFailed" en="Speaker recognition could not start" es="No se pudo iniciar el reconocimiento de hablante" zh="无法启动说话人识别" jp="話者認識を開始できませんでした" />
 </translations>

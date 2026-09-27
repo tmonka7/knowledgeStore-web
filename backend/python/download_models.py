@@ -26,6 +26,9 @@ Ultralytics weights name, e.g. "yolo11s") fetch detection / segmentation
 weights from Ultralytics' GitHub releases (AGPL-3.0), and "whisper-tiny" (or
 whisper-base, whisper-small) fetches OpenAI's Whisper speech-recognition model.
 
+For Speaker recognition: "ecapa" fetches SpeechBrain's ECAPA-TDNN speaker
+embedding model (speechbrain/spkrec-ecapa-voxceleb, Apache-2.0, about 90 MB).
+
 For Voice recognition (whisper.cpp, run through pywhispercpp): "ggml-tiny",
 "ggml-tiny.en", "ggml-base", "ggml-base.en" (also ggml-small[.en]) fetch the
 whisper.cpp model files from ggerganov/whisper.cpp (MIT). The ".en" ones
@@ -57,11 +60,12 @@ ATTEMPTS = 5
 # Other frameworks' copies of the same weights (TensorFlow, Flax, Rust, ONNX,
 # TFLite, Marian's own .npz), benchmark and test-set outputs, and repository
 # clutter. vocab.spm duplicates source.spm/target.spm, which are what is read.
-SKIP = re.compile(r"(^\.|\.md$|^benchmark_|^flores_|tf_model\.h5$|flax_model\.msgpack$|rust_model\.ot$"
+SKIP = re.compile(r"(^\.|\.md$|^benchmark_|^flores_|^example\d*\.(wav|flac)$|tf_model\.h5$|flax_model\.msgpack$|rust_model\.ot$"
                   r"|\.onnx$|^onnx/|\.tflite$|\.npz$|\.npz\.decoder\.yml$|^vocab\.spm$)")
 
 MULTILINGUAL = {"m2m100": "facebook/m2m100_418M"}
 SPEECH = {name: f"openai/{name}" for name in ("whisper-tiny", "whisper-base", "whisper-small", "whisper-medium")}
+SPEAKER = {"ecapa": "speechbrain/spkrec-ecapa-voxceleb"}
 YOLO_NAME = re.compile(r"yolo[0-9a-z]*[nsmlx](-seg)?")
 GGML_REPO = "ggerganov/whisper.cpp"
 GGML_NAME = re.compile(r"ggml-(tiny|base|small|medium)(\.en)?")
@@ -164,6 +168,8 @@ def download(spec):
         return fetch_ggml(name)
     if name in SPEECH:
         return fetch_repo(SPEECH[name], task="speech")
+    if name in SPEAKER:
+        return fetch_repo(SPEAKER[name], task="speaker")
     if name in MULTILINGUAL or name == "multi":
         return fetch_repo(repo or MULTILINGUAL.get(name, ""), multilingual=True)
     match = re.fullmatch(r"([A-Za-z]{2,3}(?:_[A-Za-z]+)?)-([A-Za-z]{2,3}(?:_[A-Za-z]+)?)", name)
@@ -293,6 +299,8 @@ def fetch_repo(repo, source=None, target=None, multilingual=False, task="transla
     }
     if task == "speech":
         meta.update(multilingual=True)  # Whisper: the language is chosen per dataset.
+    elif task == "speaker":
+        meta.update(engine="speechbrain", architecture="ECAPA-TDNN", licence="Apache-2.0")
     elif multilingual:
         meta.update(multilingual=True, languages=multilingual_languages(folder))
     else:
@@ -318,6 +326,8 @@ def describe(meta):
         return f"speech {meta.get('language', 'any')}"
     if task == "recognition":
         return "whisper.cpp" + (" en" if meta.get("englishOnly") else "")
+    if task == "speaker":
+        return "speaker"
     if meta.get("multilingual") and not meta.get("source"):
         return f"{len(meta.get('languages', []))} languages"
     return f"{meta.get('source')}->{meta.get('target')}"
@@ -374,7 +384,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("pairs", nargs="*",
                         help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, m2m100, yolo26n, yolo26n-seg, whisper-tiny, "
-                             "ggml-tiny, ggml-base")
+                             "ggml-tiny, ggml-base, ecapa")
     parser.add_argument("--list", action="store_true", help="show the models already on disk")
     parser.add_argument("--verify", action="store_true", help="check the models on disk for damaged files")
     parser.add_argument("--repair", action="store_true", help="with --verify: re-download damaged files")

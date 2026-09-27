@@ -26,6 +26,10 @@ export const PERMISSION_CATALOG = [
   // CPU or GPU for hours. Neither is in the defaults below: an administrator
   // grants them per account, and 'execute' should stay that way.
   { key: 'transformers', label: 'Tools / Transformers dataset', actions: ['view', 'execute', 'train'] },
+  // Enrolling a voice stores a voiceprint: biometric data, like the face
+  // records behind attendance. Not in the defaults below; an administrator
+  // grants it per account.
+  { key: 'speaker', label: 'Tools / AI / Speaker recognition', actions: ['view'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'wallet', label: 'My Page / Wallet', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'contacts', label: 'My Page / Contacts', actions: ['view', 'create', 'edit', 'delete'] },

@@ -87,7 +87,8 @@ def write_meta(model_dir, meta):
         json.dump(meta, handle, ensure_ascii=False, indent=2)
 
 
-WEIGHT_FILES = ("model.safetensors", "pytorch_model.bin")
+# embedding_model.ckpt: SpeechBrain's ECAPA-TDNN (Speaker recognition).
+WEIGHT_FILES = ("model.safetensors", "pytorch_model.bin", "embedding_model.ckpt")
 # The first bytes of a whisper.cpp model file (the uint32 0x67676d6c, little-endian).
 GGML_MAGIC = b"lmgg"
 

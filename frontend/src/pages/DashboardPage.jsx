@@ -54,6 +54,7 @@ import SchedulePage from './SchedulePage';
 import useScheduleReminders from '../components/schedule/useScheduleReminders';
 import LvglToolPage from './LvglToolPage';
 import ConvertToolPage from './ConvertToolPage';
+import SpeakerToolPage from './SpeakerToolPage';
 import YoloToolPage from './YoloToolPage';
 import TtsToolPage from './TtsToolPage';
 import TransformersToolPage from './TransformersToolPage';
@@ -417,6 +418,7 @@ export default function DashboardPage({
           children: [
             { key: 'yolo', label: 'YOLO' },
             { key: 'tts', label: t('speechToText') },
+            { key: 'speaker', label: t('speakerRecognition') },
             { key: 'transformers', label: 'Transformers' },
           ],
         },
@@ -779,6 +781,7 @@ export default function DashboardPage({
           {effectiveKey === 'convert-tool' && <ConvertToolPage />}
           {effectiveKey === 'yolo' && <YoloToolPage user={user} />}
           {effectiveKey === 'tts' && <TtsToolPage user={user} />}
+          {effectiveKey === 'speaker' && <SpeakerToolPage />}
           {effectiveKey === 'transformers' && <TransformersToolPage user={user} />}
 
           {effectiveKey === 'categories' && (

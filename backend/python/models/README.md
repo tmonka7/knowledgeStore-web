@@ -20,6 +20,19 @@ python backend/python/download_models.py yolo26n yolo26n-seg whisper-tiny
 python backend/python/download_models.py --list
 ```
 
+For Speaker recognition (SpeechBrain's ECAPA-TDNN, trained on VoxCeleb,
+Apache-2.0, about 90 MB):
+
+```
+pip install speechbrain
+python backend/python/download_models.py ecapa
+```
+
+It makes a 192-number voiceprint of a clip in about 0.25 s on a CPU. The
+server loads it from `hyperparams.yaml` and `embedding_model.ckpt` directly,
+because SpeechBrain's own loader contacts the Hugging Face Hub even for a
+local folder; the voiceprints are identical.
+
 For Voice recognition on the Speech to Text page (whisper.cpp, MIT):
 
 ```

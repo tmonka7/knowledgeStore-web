@@ -28,6 +28,7 @@ import {
 } from '../controllers/transformersController.js';
 import { ggmlHandlers, mlHandlers } from '../controllers/mlController.js';
 import { recognizeSpeech, recognizeStatus } from '../controllers/recognizeController.js';
+import * as speaker from '../controllers/speakerController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 import { asyncRoute } from '../helpers/asyncRoute.js';
 
@@ -119,6 +120,23 @@ const recognizeUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 64 * 102
 const speechView = [requireAuth, requirePermission('tts:view')];
 router.get('/tools/speech/recognize', ...speechView, asyncRoute(recognizeStatus));
 router.post('/tools/speech/recognize', ...speechView, recognizeUpload.single('audio'), asyncRoute(recognizeSpeech));
+
+/*
+ * Speaker recognition (ECAPA-TDNN). Voiceprints are biometric data, so the
+ * page has its own permission, 'speaker:view', which is not in the defaults.
+ * Speakers are private to the account that enrolled them.
+ */
+const speakerView = [requireAuth, requirePermission('speaker:view')];
+const speakerUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 16 * 1024 * 1024, files: 1 } });
+router.get('/tools/speaker/status', ...speakerView, asyncRoute(speaker.status));
+router.get('/tools/speaker/speakers', ...speakerView, asyncRoute(speaker.list));
+router.post('/tools/speaker/speakers', ...speakerView, asyncRoute(speaker.create));
+router.patch('/tools/speaker/speakers/:id', ...speakerView, asyncRoute(speaker.update));
+router.delete('/tools/speaker/speakers/:id', ...speakerView, asyncRoute(speaker.remove));
+router.post('/tools/speaker/speakers/:id/samples', ...speakerView, speakerUpload.single('audio'), asyncRoute(speaker.enroll));
+router.delete('/tools/speaker/speakers/:id/samples/:sampleId', ...speakerView, asyncRoute(speaker.removeSample));
+router.get('/tools/speaker/samples/:sampleId/audio', ...speakerView, asyncRoute(speaker.playSample));
+router.post('/tools/speaker/identify', ...speakerView, speakerUpload.single('audio'), asyncRoute(speaker.recognise));
 
 /*
  * YOLO and Speech to Text: the same shape as the Transformers routes above,

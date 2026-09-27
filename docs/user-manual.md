@@ -477,6 +477,41 @@ pip install pywhispercpp
 python backend/python/download_models.py ggml-tiny ggml-base ggml-tiny.en
 ```
 
+## 8d-3. Speaker recognition
+
+**Tools → AI → Speaker recognition** recognises people by their voice, with
+the ECAPA-TDNN model. It needs the **Speaker recognition** permission, which
+an administrator grants: a voiceprint is biometric data, so no account has it
+by default. The speakers you enroll are yours alone; nobody else sees them.
+
+**Speakers.** Press **New speaker**, give a name, and record the person
+talking normally for 5 to 15 seconds (reading a paragraph works well) — or
+choose a recording in which only they speak. Add three or more samples,
+ideally on different days and with the microphone you will use later; the
+bar shows how much speech is enrolled, and about 20 seconds is a good start.
+Each sample can be played back or deleted.
+
+**Identify / verify.** *Identify* records (or takes a file of) someone
+speaking and says who it is, with a similarity score for every enrolled
+speaker. *Verify one person* checks whether a clip is the person you choose.
+The **match threshold** decides how similar a voice must be to count: raise it
+if strangers are being matched, lower it if enrolled people come out as
+"Unknown speaker". Scores depend on the microphone and the room, so set it
+with your own equipment.
+
+**Live.** Press **Start listening**. Each stretch of speech is identified as
+soon as there is a pause, building a list of who spoke when, and the totals
+show how long each person talked.
+
+Silences are ignored, so pauses in a recording do not matter; a clip with
+less than a second of speech is refused. If the page says the model is not
+installed, an administrator runs, on the server:
+
+```
+pip install speechbrain
+python backend/python/download_models.py ecapa
+```
+
 ## 8e. YOLO and Speech to Text: training on the server
 
 Both pages label data in the browser, as before: YOLO draws boxes or outlines
