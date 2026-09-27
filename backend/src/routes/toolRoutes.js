@@ -194,6 +194,8 @@ router.delete('/tools/command/models/:id', ...commandTrain, asyncRoute(speechCom
 router.post('/tools/command/train', ...commandTrain, asyncRoute(speechCommand.train));
 router.post('/tools/command/models/:id/tflite', ...commandTrain, asyncRoute(speechCommand.exportTflite));
 router.post('/tools/command/models/:id/tflite/link', ...commandTrain, asyncRoute(speechCommand.tfliteLink));
+router.post('/tools/command/models/:id/ort', ...commandTrain, asyncRoute(speechCommand.exportOrt));
+router.post('/tools/command/models/:id/ort/link', ...commandTrain, asyncRoute(speechCommand.ortLink));
 router.get('/tools/command/devices', ...commandTrain, asyncRoute(speechCommand.devices));
 router.get('/tools/command/jobs', ...commandTrain, asyncRoute(speechCommand.jobs));
 router.get('/tools/command/jobs/:id', ...commandTrain, asyncRoute(speechCommand.job));

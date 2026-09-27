@@ -87,7 +87,9 @@ const listKind = async (kind) => {
         const zip = path.join(MODELS_DIR, format, `${name}.zip`);
         return await exists(zip) ? (await fs.stat(zip)).size : 0;
       };
-      return { ...meta, id: name, kind, onnxBytes: await zipBytes('onnx'), tfliteBytes: await zipBytes('tflite') };
+      return {
+        ...meta, id: name, kind, onnxBytes: await zipBytes('onnx'), tfliteBytes: await zipBytes('tflite'), ortBytes: await zipBytes('ort'),
+      };
     }));
   return models.filter(Boolean);
 };
@@ -131,8 +133,8 @@ export const deleteModel = async (ownerId, id, task = 'translation') => {
 };
 
 /** The formats a model can be exported to; each is kept in models/<format>/<id>(.zip). */
-export const EXPORT_FORMATS = ['onnx', 'tflite'];
-const FORMAT_NAMES = { onnx: 'ONNX', tflite: 'TFLite' };
+export const EXPORT_FORMATS = ['onnx', 'tflite', 'ort'];
+export const FORMAT_NAMES = { onnx: 'ONNX', tflite: 'TFLite', ort: 'ORT' };
 
 export const onnxArchive = async (ownerId, id, task = 'translation', format = 'onnx') => {
   if (!EXPORT_FORMATS.includes(format)) throw new JobError('Unknown export format.', 404);

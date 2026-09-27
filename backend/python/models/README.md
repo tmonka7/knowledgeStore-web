@@ -107,6 +107,11 @@ keeps one loaded and matches what it hears to a command set's phrases
 (`command_common.py`), and `command_train.py` fine-tunes one on a set's
 recordings, saving it with `commands.json` in `models/finetuned/<id>/`.
 
+ORT export of Moonshine models (`ort_export.py`, Speech to Command) needs only
+`requirements.txt` (optimum, onnxruntime) and goes in `models/ort/<id>/` and
+`models/ort/<id>.zip`: `encoder_model.ort`, `decoder_model_merged.ort` and
+`tokenizer.bin`, as Moonshine Voice loads them.
+
 TFLite export (`tflite_export.py`, every tool on Tools > AI) needs
 `pip install -r backend/python/requirements-tflite.txt` (TensorFlow, onnx2tf).
 Exports go in `models/tflite/<id>/` and `models/tflite/<id>.zip`, beside the

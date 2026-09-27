@@ -12,7 +12,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { runProcess } from './pythonRunner.js';
 import {
-  JobError, MODELS_DIR, PYTHON_DIR, clampNumber, deleteModel, deviceArgs, findModel, listModels, pythonEnv, startJob,
+  FORMAT_NAMES, JobError, MODELS_DIR, PYTHON_DIR, clampNumber, deleteModel, deviceArgs, findModel, listModels, pythonEnv, startJob,
 } from './translationJobs.js';
 import { datasetFolder, getDataset, sampleFile } from './mlDatasets.js';
 
@@ -91,7 +91,7 @@ const sampleFor = async (ownerId, task, model) => {
 };
 
 /**
- * An export job (ONNX by default, or TFLite) for any model of `task`; tested
+ * An export job (ONNX by default, TFLite or ORT) for any model of `task`; tested
  * on `sample`, else on a file of the model's dataset when one is known. The
  * result is models/<format>/<id>/ and its zip, replaced only on success.
  */
@@ -108,7 +108,7 @@ export const startExportJob = async ({
     ownerId,
     task,
     kind: format,
-    title: `${format === 'tflite' ? 'TFLite' : 'ONNX'}: ${model.name || model.id}`,
+    title: `${FORMAT_NAMES[format]}: ${model.name || model.id}`,
     modelId: model.id,
     details: {},
     args: [script, '--model', model.folder, '--output', output, ...extraArgs, ...(sample ? ['--sample', sample] : [])],
@@ -194,6 +194,16 @@ export const startYoloTraining = async ({ ownerId, datasetId, baseModelId, name,
  */
 export const startTfliteExport = ({ ownerId, task, modelId, kind, sample = null }) => startExportJob({
   ownerId, task, modelId, script: 'tflite_export.py', extraArgs: ['--kind', kind], sample, format: 'tflite',
+});
+
+/**
+ * A Moonshine model in ONNX Runtime's ORT format (ort_export.py): the
+ * encoder_model.ort, decoder_model_merged.ort and tokenizer.bin that Moonshine
+ * Voice's apps load. `precision` is int8 (as Moonshine's own downloads) or float32.
+ */
+export const startOrtExport = ({ ownerId, task, modelId, precision = 'int8' }) => startExportJob({
+  ownerId, task, modelId, script: 'ort_export.py', format: 'ort',
+  extraArgs: ['--precision', precision === 'float32' ? 'float32' : 'int8'],
 });
 
 export const startYoloExport = ({ ownerId, modelId }) => startExportJob({

@@ -105,6 +105,7 @@ export default function useMlArea(area, t, { datasets: withDatasets = true } = {
   };
   const downloadOnnx = (model) => downloadExport(model, 'onnx');
   const downloadTflite = (model) => downloadExport(model, 'tflite');
+  const downloadOrt = (model) => downloadExport(model, 'ort');
 
   // TFLite (TensorFlow Lite / LiteRT), for phones and small devices.
   const exportTflite = async (model) => {
@@ -113,6 +114,16 @@ export default function useMlArea(area, t, { datasets: withDatasets = true } = {
       addJob(data.job);
     } catch (error) {
       message.error(error.response?.data?.message || t('tfliteFailedToStart'));
+    }
+  };
+
+  // Speech to Command only: ORT files for Moonshine Voice's apps, int8 or float32.
+  const exportOrt = async (model, precision) => {
+    try {
+      const { data } = await api.post(`${base}/models/${model.id}/ort`, { precision });
+      addJob(data.job);
+    } catch (error) {
+      message.error(error.response?.data?.message || t('ortFailedToStart'));
     }
   };
 
@@ -193,7 +204,7 @@ export default function useMlArea(area, t, { datasets: withDatasets = true } = {
 
   return {
     models, jobs, datasets, loading, running, reload, loadDatasets,
-    train, exportOnnx, downloadOnnx, exportTflite, downloadTflite, removeModel, removeDataset, cancel, test,
+    train, exportOnnx, downloadOnnx, exportTflite, downloadTflite, exportOrt, downloadOrt, removeModel, removeDataset, cancel, test,
     convertGgml, downloadGgml, removeGgml,
   };
 }

@@ -72,6 +72,7 @@ export const commandModels = async (ownerId) => {
       result: model.result,
       history: model.history || [],
       tfliteBytes: model.tfliteBytes || 0,
+      ortBytes: model.ortBytes || 0,
       createdAt: model.createdAt,
     }))
     .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'finetuned' ? -1 : 1));

@@ -13,7 +13,7 @@ import {
 import {
   JobError, cancelJob, createDownloadTicket, getJob, listJobs, probeDevices,
 } from '../helpers/translationJobs.js';
-import { startTfliteExport } from '../helpers/mlJobs.js';
+import { startOrtExport, startTfliteExport } from '../helpers/mlJobs.js';
 
 /** GET /tools/command/status — starts the recogniser if needed: { ready, device } or { ready: false, message }. */
 export const status = async (req, res) => res.json(await commandEngine());
@@ -102,6 +102,22 @@ export const exportTflite = async (req, res) => res.status(202).json({
 /** POST /tools/command/models/:id/tflite/link — a one-use, one-minute URL for the zip. */
 export const tfliteLink = async (req, res) => {
   const ticket = await createDownloadTicket(req.user.sub, req.params.id, TASK, 'tflite');
+  res.json({ path: `/tools/transformers/onnx-download/${ticket}` });
+};
+
+/**
+ * POST /tools/command/models/:id/ort — { precision: 'int8' | 'float32' }: an ORT
+ * export job (encoder_model.ort, decoder_model_merged.ort, tokenizer.bin).
+ */
+export const exportOrt = async (req, res) => res.status(202).json({
+  job: await startOrtExport({
+    ownerId: req.user.sub, task: TASK, modelId: req.params.id, precision: String(req.body?.precision || 'int8'),
+  }),
+});
+
+/** POST /tools/command/models/:id/ort/link — a one-use, one-minute URL for the zip. */
+export const ortLink = async (req, res) => {
+  const ticket = await createDownloadTicket(req.user.sub, req.params.id, TASK, 'ort');
   res.json({ path: `/tools/transformers/onnx-download/${ticket}` });
 };
 

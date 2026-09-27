@@ -1360,4 +1360,10 @@
   <text id="tfliteCheckSteps" en="Step by step" es="Paso a paso" zh="逐步" jp="ステップごと" />
   <text id="tfliteCheckAgreement" en="{value} agree with PyTorch" es="{value} coinciden con PyTorch" zh="{value} 与 PyTorch 一致" jp="{value} が PyTorch と一致" />
   <text id="tfliteCheckSpeed" en="{ms} ms per token on the server" es="{ms} ms por token en el servidor" zh="服务器上每个词元 {ms} 毫秒" jp="サーバーで 1 トークンあたり {ms} ms" />
+  <text id="ortExportHelp" en="Convert to ORT (ONNX Runtime) for Moonshine Voice apps: encoder_model.ort, decoder_model_merged.ort and tokenizer.bin" es="Convertir a ORT (ONNX Runtime) para las apps de Moonshine Voice: encoder_model.ort, decoder_model_merged.ort y tokenizer.bin" zh="转换为 ORT（ONNX Runtime），供 Moonshine Voice 应用使用：encoder_model.ort、decoder_model_merged.ort 和 tokenizer.bin" jp="Moonshine Voice アプリ用に ORT（ONNX Runtime）へ変換：encoder_model.ort、decoder_model_merged.ort、tokenizer.bin" />
+  <text id="ortExportAgain" en="Convert to ORT again" es="Convertir a ORT de nuevo" zh="重新转换为 ORT" jp="ORT に再度変換" />
+  <text id="ortInt8" en="int8 — about 4× smaller, like Moonshine's own downloads" es="int8: unas 4 veces más pequeño, como las descargas de Moonshine" zh="int8——约小 4 倍，与 Moonshine 官方下载相同" jp="int8 — 約 4 分の 1 のサイズ（Moonshine 公式の配布と同じ）" />
+  <text id="ortFloat32" en="float32 — exact, larger" es="float32: exacto, más grande" zh="float32——精确，体积更大" jp="float32 — 正確、サイズ大" />
+  <text id="ortFailedToStart" en="The ORT conversion could not be started." es="No se pudo iniciar la conversión a ORT." zh="无法开始 ORT 转换。" jp="ORT への変換を開始できませんでした。" />
+  <text id="ortCheckNote" en="Note" es="Nota" zh="注意" jp="注意" />
 </translations>

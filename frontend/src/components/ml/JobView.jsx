@@ -42,9 +42,9 @@ export default function JobView({ job, onCancel, compact = false, sampleColumns 
     ? 100
     : progress?.totalSteps ? Math.floor((progress.step / progress.totalSteps) * 100) : 0;
   // ONNX and GGML exports both test-run the result against PyTorch on one clip.
-  const onnxCheck = ['onnx', 'ggml', 'tflite'].includes(job.kind) ? job.result?.check : null;
+  const onnxCheck = ['onnx', 'ggml', 'tflite', 'ort'].includes(job.kind) ? job.result?.check : null;
   const kindTag = {
-    train: [t('trainButton'), 'purple'], onnx: ['ONNX', 'cyan'], ggml: ['GGML', 'geekblue'], tflite: ['TFLite', 'orange'],
+    train: [t('trainButton'), 'purple'], onnx: ['ONNX', 'cyan'], ggml: ['GGML', 'geekblue'], tflite: ['TFLite', 'orange'], ort: ['ORT', 'magenta'],
   }[job.kind]
     || [job.kind, 'default'];
 
@@ -119,7 +119,7 @@ export default function JobView({ job, onCancel, compact = false, sampleColumns 
           onnxCheck.verified ? (
             <Descriptions size="small" column={1} bordered>
               <Descriptions.Item label={t('onnxCheckInput')}>{onnxCheck.input}</Descriptions.Item>
-              <Descriptions.Item label={{ ggml: 'whisper.cpp', tflite: 'TFLite' }[job.kind] || 'ONNX'}>{onnxCheck.converted ?? onnxCheck.onnx}</Descriptions.Item>
+              <Descriptions.Item label={{ ggml: 'whisper.cpp', tflite: 'TFLite', ort: 'ORT' }[job.kind] || 'ONNX'}>{onnxCheck.converted ?? onnxCheck.onnx}</Descriptions.Item>
               <Descriptions.Item label="PyTorch">
                 {onnxCheck.pytorch}{' '}
                 <Tag color={onnxCheck.match ? 'green' : 'gold'}>{onnxCheck.match ? t('onnxCheckMatch') : t('onnxCheckDiffers')}</Tag>
@@ -132,6 +132,7 @@ export default function JobView({ job, onCancel, compact = false, sampleColumns 
                   ].filter(Boolean).join(' · ')}
                 </Descriptions.Item>
               )}
+              {onnxCheck.note && <Descriptions.Item label={t('ortCheckNote')}>{onnxCheck.note}</Descriptions.Item>}
             </Descriptions>
           ) : <Alert type="info" showIcon message={onnxCheck.reason} />
         )}

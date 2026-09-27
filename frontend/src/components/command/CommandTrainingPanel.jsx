@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  Alert, Button, Card, Col, Collapse, Empty, Input, InputNumber, List, Popconfirm, Row, Select, Space, Table, Tag, Tooltip,
+  Alert, Button, Card, Col, Collapse, Dropdown, Empty, Input, InputNumber, List, Popconfirm, Row, Select, Space, Table, Tag, Tooltip,
   Typography,
 } from 'antd';
 import {
-  CloudDownloadOutlined, DeleteOutlined, ExperimentOutlined, MobileOutlined, ReloadOutlined, RocketOutlined, UploadOutlined,
+  CloudDownloadOutlined, DeleteOutlined, ExperimentOutlined, MobileOutlined, ReloadOutlined, RocketOutlined, ThunderboltOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
@@ -113,6 +114,30 @@ export default function CommandTrainingPanel({ reloadKey = 0 }) {
             <Button size="small" icon={<MobileOutlined />} disabled={area.running} onClick={() => area.exportTflite(model)}>
               {model.tfliteBytes ? '' : 'TFLite'}
             </Button>
+          </Tooltip>
+          {model.ortBytes ? (
+            <Tooltip title={formatBytes(model.ortBytes)}>
+              <Button size="small" icon={<CloudDownloadOutlined />} onClick={() => area.downloadOrt(model)}>ORT</Button>
+            </Tooltip>
+          ) : null}
+          <Tooltip title={model.ortBytes ? t('ortExportAgain') : t('ortExportHelp')}>
+            <span>
+              <Dropdown
+                trigger={['click']}
+                disabled={area.running}
+                menu={{
+                  items: [
+                    { key: 'int8', label: t('ortInt8') },
+                    { key: 'float32', label: t('ortFloat32') },
+                  ],
+                  onClick: ({ key }) => area.exportOrt(model, key),
+                }}
+              >
+                <Button size="small" icon={<ThunderboltOutlined />} disabled={area.running}>
+                  {model.ortBytes ? '' : 'ORT'}
+                </Button>
+              </Dropdown>
+            </span>
           </Tooltip>
           {model.kind === 'finetuned' && (
             <Popconfirm title={t('trainDeleteModel')} onConfirm={() => area.removeModel(model)} okButtonProps={{ danger: true }}>

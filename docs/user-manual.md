@@ -824,6 +824,32 @@ command and shows the trained model's answer beside the model it came from.
 
 Trained models are private. Delete one with its bin button.
 
+### ORT files for Moonshine Voice apps
+
+The **ORT** button (a lightning icon) on each model converts it to the files
+Moonshine's own apps and libraries load — Moonshine Voice for Android, iOS,
+macOS and Python (github.com/moonshine-ai/moonshine-v2):
+
+- `encoder_model.ort` and `decoder_model_merged.ort`: the model in ONNX
+  Runtime's ORT format
+- `tokenizer.bin`: its tokens, in Moonshine's own format
+- `commands.json` for a trained model, and a README saying how to load them
+  and whether the model is *tiny* or *base* (the app must be told)
+
+Pressing it asks for the precision. **int8** is about a quarter of the size
+(about 45 MB for tiny) and is what Moonshine's own downloads use; **float32**
+is an exact copy (about 150 MB for tiny). The job checks the result by
+running the files the way Moonshine's runtime does, next to the original
+model, on one of the model's recordings (a built-in clip for a base model),
+and shows both transcripts and how many next tokens agree. float32 matched on
+every clip tried; int8 can differ by a word on hard clips — the check shows it when it
+does. When it finishes the row gets an **ORT** download button; the lightning
+icon converts again. Converting takes about a minute on a server without a GPU
+and needs nothing beyond `requirements.txt`.
+
+The files are made with the server's ONNX Runtime version (the README says
+which); ORT files load in that version or a newer one.
+
 Installing Moonshine (an administrator, once):
 
 ```
