@@ -29,7 +29,9 @@ export const PERMISSION_CATALOG = [
   // Not in the defaults below; an administrator grants it per account.
   { key: 'speaker', label: 'Tools / AI / Speaker recognition', actions: ['view'] },
   { key: 'ocr', label: 'Tools / AI / OCR', actions: ['view'] },
-  { key: 'text-to-speech', label: 'Tools / AI / Text to Speech', actions: ['view'] },
+  // 'train' learns a voice from someone's recordings: it copies a person's
+  // voice and ties up the server, so it is granted per account, not by default.
+  { key: 'text-to-speech', label: 'Tools / AI / Text to Speech', actions: ['view', 'train'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'wallet', label: 'My Page / Wallet', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'contacts', label: 'My Page / Contacts', actions: ['view', 'create', 'edit', 'delete'] },

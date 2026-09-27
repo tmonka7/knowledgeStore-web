@@ -1193,4 +1193,38 @@
   <text id="blockReasonPlaceholder" en="Reason, shown to the person (optional)" es="Motivo, que vera la persona (opcional)" zh="原因，将显示给对方（可选）" jp="理由（本人に表示されます・任意）" />
   <text id="blockedBy" en="Blocked by {name} on {date}" es="Bloqueado por {name} el {date}" zh="由 {name} 于 {date} 封禁" jp="{date} に {name} がブロック" />
   <text id="blockReasonShown" en="Reason: {reason}" es="Motivo: {reason}" zh="原因：{reason}" jp="理由：{reason}" />
+  <text id="ttsReadTab" en="Read aloud" es="Leer en voz alta" zh="朗读" jp="読み上げ" />
+  <text id="voiceTrainTab" en="Train voice" es="Entrenar voz" zh="训练声音" jp="声の学習" />
+  <text id="voiceTrainNeedsPermission" en="Training a voice needs the Text to Speech train permission. Ask an administrator." es="Entrenar una voz requiere el permiso de entrenamiento de Texto a voz. Pidalo a un administrador." zh="训练声音需要“文字转语音”的训练权限，请联系管理员。" jp="声の学習には「テキスト読み上げ」の学習権限が必要です。管理者に依頼してください。" />
+  <text id="voiceTrainTitle" en="Train a voice from recordings" es="Entrenar una voz a partir de grabaciones" zh="用录音训练声音" jp="録音から声を学習" />
+  <text id="voiceTrainHelp" en="Supertonic itself cannot be retrained, but a voice can: training learns a voice that sounds like the person in a Speech to Text dataset, starting from the model's voice most like them. The voice then appears in Read aloud. About 15 minutes on a CPU for 300 steps, a minute or two on a GPU. 30 seconds or more of clear speech gives a better likeness." es="Supertonic en si no se puede reentrenar, pero una voz si: el entrenamiento aprende una voz que suena como la persona de un conjunto de datos de Voz a texto, partiendo de la voz del modelo mas parecida. Despues aparece en Leer en voz alta. Unos 15 minutos en CPU para 300 pasos, uno o dos en GPU. Con 30 segundos o mas de habla clara el parecido es mejor." zh="Supertonic 模型本身无法重新训练，但可以训练声音：从最相似的内置声音出发，学习一个听起来像“语音转文字”数据集中说话人的声音。训练后的声音会出现在“朗读”中。CPU 上 300 步约 15 分钟，GPU 上一两分钟。30 秒以上的清晰语音效果更好。" jp="Supertonic 本体は再学習できませんが、声は学習できます。最も近い内蔵の声から始めて、「音声テキスト変換」データセットの話者に似た声を学習します。学習した声は「読み上げ」に表示されます。CPU で 300 ステップ約 15 分、GPU なら 1〜2 分。30 秒以上のはっきりした音声で似せやすくなります。" />
+  <text id="voiceNoDatasets" en="No dataset to train on. Record and transcribe clips of one person in Speech to Text &gt; Transcribe, in a language Supertonic reads, and save it to the server." es="No hay conjunto de datos. Grabe y transcriba clips de una persona en Voz a texto &gt; Transcribir, en un idioma que Supertonic lea, y guardelo en el servidor." zh="没有可用于训练的数据集。请在“语音转文字 &gt; 转写”中录制并转写同一个人的片段（使用 Supertonic 支持的语言），并保存到服务器。" jp="学習に使えるデータセットがありません。「音声テキスト変換 &gt; 文字起こし」で一人の話者のクリップを録音・文字起こしし（Supertonic が読める言語で）、サーバに保存してください。" />
+  <text id="voiceRecordings" en="Recordings (Speech to Text dataset)" es="Grabaciones (conjunto de Voz a texto)" zh="录音（语音转文字数据集）" jp="録音（音声テキスト変換のデータセット）" />
+  <text id="voiceStartAuto" en="Most similar (automatic)" es="La mas parecida (automatico)" zh="最相似（自动）" jp="最も近い声（自動）" />
+  <text id="voiceName" en="Voice name" es="Nombre de la voz" zh="声音名称" jp="声の名前" />
+  <text id="voiceSteps" en="Steps" es="Pasos" zh="步数" jp="ステップ数" />
+  <text id="voiceStepsHelp" en="More steps, closer likeness and longer training. 300 is a good start." es="Mas pasos: mas parecido y entrenamiento mas largo. 300 es un buen comienzo." zh="步数越多越相似，训练越久。建议从 300 开始。" jp="ステップが多いほど似ますが、時間がかかります。300 から始めるのがおすすめです。" />
+  <text id="voiceTrainButton" en="Train voice" es="Entrenar voz" zh="训练声音" jp="声を学習" />
+  <text id="voiceConsent" en="The person in these recordings has agreed to their voice being copied." es="La persona de estas grabaciones ha aceptado que se copie su voz." zh="录音中的本人已同意复制其声音。" jp="この録音の本人が、声の複製に同意しています。" />
+  <text id="voiceHeldOutSentence" en="Sentence not trained on" es="Frase no usada en el entrenamiento" zh="未参与训练的句子" jp="学習に使っていない文" />
+  <text id="voiceLikenessBefore" en="Likeness before" es="Parecido antes" zh="训练前相似度" jp="学習前の類似度" />
+  <text id="voiceLikenessAfter" en="Likeness after" es="Parecido despues" zh="训练后相似度" jp="学習後の類似度" />
+  <text id="voiceTrained" en="Trained voice" es="Voz entrenada" zh="训练的声音" jp="学習した声" />
+  <text id="voiceTrainedVoices" en="Trained voices" es="Voces entrenadas" zh="训练的声音" jp="学習した声" />
+  <text id="voicePresets" en="Supertonic voices" es="Voces de Supertonic" zh="Supertonic 声音" jp="Supertonic の声" />
+  <text id="voiceFrom" en="from {voice}" es="desde {voice}" zh="基于 {voice}" jp="{voice} から" />
+  <text id="voiceOnDataset" en="{dataset}, {seconds} s of speech" es="{dataset}, {seconds} s de habla" zh="{dataset}，{seconds} 秒语音" jp="{dataset}、音声 {seconds} 秒" />
+  <text id="voiceLikeness" en="Likeness to the recordings" es="Parecido con las grabaciones" zh="与录音的相似度" jp="録音との類似度" />
+  <text id="voiceLikenessHelp" en="How much the voice sounds like the recordings, by the speaker model: the starting voice, then the trained one, on sentences not trained on." es="Cuanto se parece la voz a las grabaciones, segun el modelo de hablante: la voz inicial y la entrenada, en frases no usadas para entrenar." zh="按说话人模型衡量声音与录音的相似程度：起始声音与训练后的声音，在未参与训练的句子上。" jp="話者モデルで測った録音との類似度：開始時の声と学習後の声（学習に使っていない文で）。" />
+  <text id="voiceDelete" en="Delete this voice?" es="¿Eliminar esta voz?" zh="删除此声音？" jp="この声を削除しますか？" />
+  <text id="voiceDeleted" en="(deleted voice)" es="(voz eliminada)" zh="（已删除的声音）" jp="（削除された声）" />
+  <text id="voiceNone" en="No trained voices yet." es="Todavia no hay voces entrenadas." zh="还没有训练的声音。" jp="学習した声はまだありません。" />
+  <text id="voiceLanguageUnsupported" en="Supertonic cannot read this language." es="Supertonic no puede leer este idioma." zh="Supertonic 不支持此语言。" jp="Supertonic はこの言語を読めません。" />
+  <text id="voiceDatasetsTitle" en="Speech to Text datasets" es="Conjuntos de Voz a texto" zh="语音转文字数据集" jp="音声テキスト変換のデータセット" />
+  <text id="voiceDatasetsHelp" en="Made and managed on the Speech to Text page (Transcribe tab). A dataset for a voice holds one person's speech; the transcripts give the sentences it is trained on." es="Se crean y gestionan en la pagina Voz a texto (pestana Transcribir). Un conjunto para una voz contiene el habla de una persona; las transcripciones dan las frases de entrenamiento." zh="在“语音转文字”页面（转写标签）中创建和管理。用于训练声音的数据集应只包含一个人的语音；转写文本即训练用的句子。" jp="「音声テキスト変換」ページ（文字起こしタブ）で作成・管理します。声の学習用データセットには一人の話者の音声を入れます。文字起こしが学習用の文になります。" />
+  <text id="voiceTestPlaceholder" en="A sentence to speak in the voice's language" es="Una frase en el idioma de la voz" zh="用该声音的语言输入一句话" jp="声の言語で話させる文" />
+  <text id="voiceTestButton" en="Speak and compare" es="Hablar y comparar" zh="朗读并比较" jp="話して比較" />
+  <text id="voiceTestHelp" en="Each is scored against the recordings the voice was trained on." es="Cada una se puntua frente a las grabaciones de entrenamiento." zh="每个声音都与训练所用的录音比较打分。" jp="それぞれ学習に使った録音と比べて採点します。" />
+  <text id="voiceLikenessToRecordings" en="Likeness to the recordings" es="Parecido con las grabaciones" zh="与录音的相似度" jp="録音との類似度" />
+  <text id="voiceConsistency" en="For reference: the recordings score {value} against their own average; a voice rarely gets higher." es="Como referencia: las grabaciones puntuan {value} frente a su propia media; una voz rara vez supera eso." zh="参考：录音与其自身平均值的相似度为 {value}，声音很少超过此值。" jp="参考：録音どうしの平均との類似度は {value} です。これを超えることはまれです。" />
 </translations>

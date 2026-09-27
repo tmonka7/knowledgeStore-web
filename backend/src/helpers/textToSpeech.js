@@ -58,6 +58,14 @@ export const synthesisModels = async (ownerId) => Promise.all((await listModels(
   };
 }));
 
+// Voices trained on the Train voice tab (helpers/voiceTraining.js): models of task "voice".
+const VOICE_TASK = 'voice';
+
+/** The caller's trained voices, for the voice picker: { id, name, language, synthesisModel }. */
+const trainedVoicesFor = async (ownerId) => (await listModels(ownerId, VOICE_TASK)).map((voice) => ({
+  id: voice.id, name: voice.name, language: voice.language, synthesisModel: voice.synthesisModel,
+}));
+
 /** Whether speech can be made: models present, and the worker starts. */
 export const synthesisStatus = async (ownerId) => {
   const models = await synthesisModels(ownerId);
@@ -69,22 +77,32 @@ export const synthesisStatus = async (ownerId) => {
       engine = { ok: false, message: error.message };
     }
   }
-  return { models, engine, languages: TTS_LANGUAGES, steps: STEPS, maxChars: MAX_CHARS };
+  return {
+    models, engine, languages: TTS_LANGUAGES, steps: STEPS, maxChars: MAX_CHARS, trainedVoices: await trainedVoicesFor(ownerId),
+  };
 };
 
 /**
  * Speak `text` into a WAV file (44.1 kHz, 16-bit mono). Resolves to
  * { file, seconds, took, dropped }; the caller sends the file and deletes it.
+ * `voiceId` picks one of the caller's trained voices instead of `voice`.
  */
-export const synthesize = async ({ ownerId, modelId, text, language, voice, speed, steps }) => {
+export const synthesize = async ({ ownerId, modelId, text, language, voice, voiceId, speed, steps }) => {
   const model = await findModel(ownerId, modelId, TASK);
   const words = String(text || '').trim();
   if (!words) throw new JobError('There is no text to read.');
   if (words.length > MAX_CHARS) throw new JobError(`Send at most ${MAX_CHARS} characters at a time.`);
   const lang = String(language || 'en').toLowerCase();
   if (!TTS_LANGUAGES.includes(lang)) throw new JobError(`Supertonic does not read "${lang}".`);
+  let trained = null;
+  if (voiceId) {
+    trained = await findModel(ownerId, String(voiceId), VOICE_TASK);
+    if (trained.synthesisModel && trained.synthesisModel !== model.id) {
+      throw new JobError(`The voice "${trained.name}" was trained for ${trained.synthesisModel}, not ${model.id}.`);
+    }
+  }
   const voices = await voicesOf(model.folder);
-  const chosenVoice = voices.includes(voice) ? voice : voices[0];
+  const chosenVoice = trained ? trained.name : voices.includes(voice) ? voice : voices[0];
   if (!chosenVoice) throw new JobError(`${model.name} has no voices (voice_styles is empty); download it again.`);
   const chosenSteps = STEPS.includes(Number(steps)) ? Number(steps) : 8;
   const chosenSpeed = Math.min(2, Math.max(0.5, Number(speed) || 1.05));
@@ -98,7 +116,8 @@ export const synthesize = async ({ ownerId, modelId, text, language, voice, spee
       model: model.folder,
       text: words,
       language: lang,
-      voice: chosenVoice,
+      voice: trained ? null : chosenVoice,
+      voiceFile: trained ? path.join(trained.folder, 'voice.json') : null,
       speed: chosenSpeed,
       steps: chosenSteps,
       out: file,

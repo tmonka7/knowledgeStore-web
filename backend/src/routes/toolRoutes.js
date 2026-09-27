@@ -29,6 +29,7 @@ import {
 import { ggmlHandlers, mlHandlers } from '../controllers/mlController.js';
 import { recognizeSpeech, recognizeStatus } from '../controllers/recognizeController.js';
 import { synthesizeSpeech, synthesizeStatus } from '../controllers/synthesizeController.js';
+import * as voiceTraining from '../controllers/voiceTrainingController.js';
 import * as speaker from '../controllers/speakerController.js';
 import * as ocr from '../controllers/ocrController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
@@ -131,6 +132,25 @@ router.post('/tools/speech/recognize', ...speechView, recognizeUpload.single('au
 const synthesisView = [requireAuth, requirePermission('text-to-speech:view')];
 router.get('/tools/speech/synthesize', ...synthesisView, asyncRoute(synthesizeStatus));
 router.post('/tools/speech/synthesize', ...synthesisView, asyncRoute(synthesizeSpeech));
+
+/*
+ * Train voice: a Supertonic voice learned from a Speech to Text dataset of
+ * someone's recordings. It copies a person's voice and ties up the server
+ * for a while, so it needs 'text-to-speech:train', which is not in the
+ * defaults. Datasets are read here, never changed: they are made and managed
+ * on the Speech to Text page. Trained voices are private to their owner.
+ */
+const voiceTrain = [...synthesisView, requirePermission('text-to-speech:train')];
+const scoreUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 32 * 1024 * 1024, files: 1 } });
+router.get('/tools/voice/models', ...voiceTrain, asyncRoute(voiceTraining.listVoices));
+router.delete('/tools/voice/models/:id', ...voiceTrain, asyncRoute(voiceTraining.removeVoice));
+router.post('/tools/voice/models/:id/score', ...voiceTrain, scoreUpload.single('audio'), asyncRoute(voiceTraining.scoreVoice));
+router.get('/tools/voice/datasets', ...voiceTrain, asyncRoute(voiceTraining.listVoiceDatasets));
+router.post('/tools/voice/train', ...voiceTrain, asyncRoute(voiceTraining.trainVoice));
+router.get('/tools/voice/devices', ...voiceTrain, asyncRoute(voiceTraining.voiceDevices));
+router.get('/tools/voice/jobs', ...voiceTrain, asyncRoute(voiceTraining.listVoiceJobs));
+router.get('/tools/voice/jobs/:id', ...voiceTrain, asyncRoute(voiceTraining.getVoiceJob));
+router.post('/tools/voice/jobs/:id/cancel', ...voiceTrain, asyncRoute(voiceTraining.cancelVoiceJob));
 
 /*
  * Speaker recognition (ECAPA-TDNN). Voiceprints are biometric data, so the

@@ -687,6 +687,40 @@ pip install onnxruntime
 python backend/python/download_models.py supertonic-3
 ```
 
+### Training a voice
+
+The **Train voice** tab (it needs the *Text to Speech: train* permission,
+which an administrator grants) makes a new voice that sounds like a real
+person, from recordings of them. The Supertonic model itself cannot be
+retrained, but a voice can: training starts from the built-in voice most like
+the person and adjusts it until it sounds like the recordings. The new voice
+then appears in the **Voice** list on Read aloud, under *Trained voices*, and
+speaks every language Supertonic reads, best in the one it was trained in.
+
+1. On **Speech to Text > Transcribe**, record or open clips of **one person**
+   speaking, transcribe them, and save the dataset to the server. Half a
+   minute of clear speech is enough to start; a few minutes is better. The
+   language must be one Supertonic reads.
+2. On **Train voice**, choose the dataset under **Recordings**. **Start from**
+   is best left on *Most similar*. **Steps**: 300 is a good start (about 15
+   minutes on a server without a GPU, a minute or two with one); more steps
+   give a closer likeness.
+3. Tick the box confirming the person has agreed to their voice being copied,
+   and press **Train voice**. You can leave the page; the job carries on.
+
+When it finishes, the job shows, for sentences the training never used, how
+much the starting voice and the trained voice sound like the recordings
+(**Likeness**, measured by the speaker model: the same person usually scores
+60–90%, different people near 0%).
+
+**Test** (the button on a trained voice, or the card below) speaks a sentence
+in the trained voice and, beside it, in another voice — the one it started
+from, unless you choose another — and scores each against the recordings, so
+you can both hear and read the difference. Each result can be saved as WAV.
+
+Trained voices are private to the account that trained them. Delete one with
+its bin button.
+
 ## 8e. YOLO and Speech to Text: training on the server
 
 Both pages label data in the browser, as before: YOLO draws boxes or outlines

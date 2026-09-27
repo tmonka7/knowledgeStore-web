@@ -9,6 +9,7 @@ voice_styles/<voice>.json.
 
 Protocol, one JSON object per line:
   in  {"id": "...", "model": "<folder>", "text": "...", "language": "en", "voice": "F1",
+       "voiceFile": "<path of a trained voice.json>" | null,
        "speed": 1.05, "steps": 8, "out": "<path of the WAV to write>"}
   out {"id": "...", "progress": true, "done": 2, "total": 5}   after each piece of the text
       {"id": "...", "ok": true, "seconds": 12.4, "took": 1.3, "sampleRate": 44100, "pieces": 5,
@@ -35,14 +36,18 @@ import time
 import unicodedata
 import wave
 
-REPLY = os.fdopen(os.dup(1), "w", encoding="utf-8", buffering=1)
-os.dup2(2, 1)
-sys.stdout = sys.stderr
+# Replies go to a private copy of standard output, set up by main(); anything
+# else printed goes to standard error. Not done on import: tts_train_voice.py
+# imports this module and reports its progress on standard output.
+REPLY = None
 
 MAX_LOADED = 1
 PIECE_PAUSE = 0.3
 PARAGRAPH_PAUSE = 0.6
 SHORT_PIECES = {"ko", "ja", "zh"}
+# The languages Supertonic 3 reads: its reference code's list (not Chinese).
+LANGUAGES = ["en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hi", "hr", "hu",
+             "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi"]
 CJK_END = re.compile("[\u3000-\u30ff\u4e00-\u9fff\uff00-\uffef]$")
 
 EMOJI = re.compile(
@@ -158,6 +163,15 @@ class Supertonic:
             self.voices[name] = Voice(path, self.np)
         return self.voices[name]
 
+    def voice_file(self, path):
+        """A trained voice (tts_train_voice.py writes voice.json), by path."""
+        if not os.path.isfile(path):
+            raise ValueError("the trained voice file is missing")
+        key = os.path.abspath(path)
+        if key not in self.voices:
+            self.voices[key] = Voice(path, self.np)
+        return self.voices[key]
+
     def prepare(self, text, language, dropped):
         """Supertone's normalisation, then the model's character ids; characters it lacks are dropped."""
         text = unicodedata.normalize("NFKD", text)
@@ -214,6 +228,10 @@ def write_wav(path, audio, rate, np):
 
 
 def main():
+    global REPLY
+    REPLY = os.fdopen(os.dup(1), "w", encoding="utf-8", buffering=1)
+    os.dup2(2, 1)
+    sys.stdout = sys.stderr
     try:
         import numpy as np
         import onnxruntime as ort
@@ -247,7 +265,7 @@ def main():
             steps = max(1, min(int(request.get("steps") or 8), 32))
             speed = max(0.5, min(float(request.get("speed") or 1.05), 2.0))
             model = model_for(request["model"])
-            voice = model.voice(str(request.get("voice") or "F1"))
+            voice = model.voice_file(request["voiceFile"]) if request.get("voiceFile")                 else model.voice(str(request.get("voice") or "F1"))
             dropped = set()
             parts = pieces(str(request.get("text") or ""), 120 if language in SHORT_PIECES else 300)
             if not parts:

@@ -26,6 +26,8 @@ onnx
 onnxruntime
 onnxscript
 onnxslim
+# Train voice (Text to Speech): Supertonic's ONNX models as PyTorch, for gradients.
+onnx2torch
 optimum[onnxruntime]
 
 # YOLO training, testing and export. Licensed AGPL-3.0: distributing this app,

@@ -2,15 +2,18 @@ import {
   useCallback, useEffect, useRef, useState,
 } from 'react';
 import {
-  Alert, Button, Card, Col, Empty, Input, List, Progress, Row, Segmented, Select, Slider, Space, Tag, Tooltip, Typography,
-  message,
+  Alert, Button, Card, Col, Empty, Input, List, Progress, Row, Segmented, Select, Slider, Space, Tabs, Tag, Tooltip,
+  Typography, message,
 } from 'antd';
 import {
-  ClearOutlined, DeleteOutlined, DownloadOutlined, FileTextOutlined, ReloadOutlined, SoundOutlined, StopOutlined,
+  ClearOutlined, DeleteOutlined, DownloadOutlined, FileTextOutlined, ReloadOutlined, RocketOutlined, SoundOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import api from '../api';
 import { MONO } from '../components/ml/JobView';
+import VoiceTrainingPanel from '../components/voice/VoiceTrainingPanel';
 import { useLanguage } from '../i18n';
+import { can } from '../permissions';
 import { joinWavs, splitForSpeech, wavSeconds } from '../lib/speechSynthesis';
 
 const { Paragraph, Text } = Typography;
@@ -61,12 +64,61 @@ const errorText = (error) => {
 
 const fileName = (text) => `${(text.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'speech')}.wav`;
 
+const TRAINED = 'trained:';
+
 /**
- * Text to Speech with Supertonic 3 on the server: type or open a text, choose
- * the language and a voice, and it is read aloud — the first part plays while
- * the rest is being made — then kept below, to play again or save as WAV.
+ * Tools > AI > Text to Speech: Read aloud, and — with 'text-to-speech:train' —
+ * Train voice, which learns a voice from someone's recordings and tests it.
  */
-export default function TextToSpeechPage() {
+export default function TextToSpeechPage({ user }) {
+  const { t } = useLanguage();
+  // Training copies a person's voice and ties up the server: a separate
+  // grant, and the API enforces the same rule.
+  const canTrain = can(user, 'text-to-speech', 'train');
+  // Read aloud re-reads its voices when shown, so a voice just trained is there.
+  const [tab, setTab] = useState('read');
+  const [voicesVersion, setVoicesVersion] = useState(0);
+
+  return (
+    <div className="vision-page vision-stack">
+      <div className="vision-page-header">
+        <div>
+          <h1 className="vision-page-title">{t('textToSpeech')}</h1>
+          <p className="vision-page-subtitle">{t('ttsSynthSubtitle')}</p>
+        </div>
+      </div>
+      <Tabs
+        activeKey={tab}
+        onChange={(key) => {
+          setTab(key);
+          if (key === 'read') setVoicesVersion((value) => value + 1);
+        }}
+        items={[
+          {
+            key: 'read',
+            label: <span><SoundOutlined /> {t('ttsReadTab')}</span>,
+            children: <ReadAloud reloadKey={voicesVersion} />,
+          },
+          {
+            key: 'train',
+            label: <span><RocketOutlined /> {t('voiceTrainTab')}</span>,
+            children: canTrain
+              ? <VoiceTrainingPanel />
+              : <Alert type="info" showIcon message={t('voiceTrainNeedsPermission')} />,
+          },
+        ]}
+      />
+    </div>
+  );
+}
+
+/**
+ * Read aloud with Supertonic 3 on the server: type or open a text, choose the
+ * language and a voice — one of the model's or one trained on Train voice —
+ * and it is read aloud, the first part playing while the rest is being made,
+ * then kept below, to play again or save as WAV.
+ */
+function ReadAloud({ reloadKey }) {
   const { t, language: uiLanguage } = useLanguage();
   const [status, setStatus] = useState(null); // { models, engine, languages, steps, maxChars }
   const [loading, setLoading] = useState(false);
@@ -109,23 +161,30 @@ export default function TextToSpeechPage() {
       setLoading(false);
     }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, reloadKey]);
 
   const models = status?.models || NONE;
   const model = models.find((item) => item.id === prefs.modelId) || null;
   const voices = model?.voices || NONE;
+  const allTrained = status?.trainedVoices || NONE;
+  // Voices trained on Train voice for this model, picked as "trained:<id>".
+  const trained = allTrained.filter((voice) => !voice.synthesisModel || voice.synthesisModel === model?.id);
+  const voiceValues = [...voices, ...trained.map((voice) => `${TRAINED}${voice.id}`)];
   useEffect(() => {
     if (models.length && !model) setPref({ modelId: models[0].id });
   }, [models, model]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (voices.length && !voices.includes(prefs.voice)) setPref({ voice: voices[0] });
-  }, [voices, prefs.voice]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (voices.length && !voiceValues.includes(prefs.voice)) setPref({ voice: voices[0] });
+  }, [voices, trained.length, prefs.voice]); // eslint-disable-line react-hooks/exhaustive-deps
   const languages = status?.languages || NONE;
   useEffect(() => {
     if (languages.length && !languages.includes(prefs.language)) setPref({ language: 'en' });
   }, [languages, prefs.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const voiceLabel = (voice) => {
+    if (String(voice).startsWith(TRAINED)) {
+      return allTrained.find((item) => `${TRAINED}${item.id}` === voice)?.name || t('voiceDeleted');
+    }
     const match = /^([FM])(\d+)$/.exec(voice);
     if (!match) return voice;
     return `${t(match[1] === 'F' ? 'ttsVoiceFemale' : 'ttsVoiceMale')} ${match[2]}`;
@@ -170,7 +229,9 @@ export default function TextToSpeechPage() {
           modelId: settings.modelId,
           text: parts[i].text,
           language: settings.language,
-          voice: settings.voice,
+          ...(settings.voice.startsWith(TRAINED)
+            ? { voiceId: settings.voice.slice(TRAINED.length) }
+            : { voice: settings.voice }),
           speed: settings.speed,
           steps: settings.steps,
         }, { responseType: 'arraybuffer', timeout: 0 });
@@ -245,14 +306,7 @@ export default function TextToSpeechPage() {
   const percent = run ? Math.round((run.done / run.total) * 100) : 0;
 
   return (
-    <div className="vision-page vision-stack">
-      <div className="vision-page-header">
-        <div>
-          <h1 className="vision-page-title">{t('textToSpeech')}</h1>
-          <p className="vision-page-subtitle">{t('ttsSynthSubtitle')}</p>
-        </div>
-        <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>{t('refresh')}</Button>
-      </div>
+    <div className="vision-stack">
 
       {noModel && (
         <Alert
@@ -314,7 +368,14 @@ export default function TextToSpeechPage() {
         </Col>
 
         <Col xs={24} lg={8}>
-          <Card title={t('ttsSettings')}>
+          <Card
+            title={t('ttsSettings')}
+            extra={(
+              <Tooltip title={t('refresh')}>
+                <Button icon={<ReloadOutlined />} onClick={load} loading={loading} />
+              </Tooltip>
+            )}
+          >
             <Space direction="vertical" size={14} style={{ width: '100%' }}>
               <div>
                 <Text strong>{t('ttsLanguage')}</Text>
@@ -332,10 +393,20 @@ export default function TextToSpeechPage() {
                 <Text strong>{t('ttsVoice')}</Text>
                 <Select
                   style={{ width: '100%', marginTop: 6 }}
-                  value={voices.includes(prefs.voice) ? prefs.voice : undefined}
-                  onChange={(voice) => setPref({ voice })}
+                  value={voiceValues.includes(prefs.voice) ? prefs.voice : undefined}
+                  onChange={(voice) => {
+                    // A trained voice speaks the language it was trained in.
+                    const own = trained.find((item) => `${TRAINED}${item.id}` === voice);
+                    setPref(own && languages.includes(own.language) ? { voice, language: own.language } : { voice });
+                  }}
                   disabled={busy || !voices.length}
-                  options={voices.map((voice) => ({ value: voice, label: voiceLabel(voice) }))}
+                  options={trained.length ? [
+                    {
+                      label: t('voiceTrainedVoices'),
+                      options: trained.map((item) => ({ value: `${TRAINED}${item.id}`, label: `${item.name} (${item.language})` })),
+                    },
+                    { label: t('voicePresets'), options: voices.map((voice) => ({ value: voice, label: voiceLabel(voice) })) },
+                  ] : voices.map((voice) => ({ value: voice, label: voiceLabel(voice) }))}
                 />
               </div>
               <div>

@@ -85,6 +85,13 @@ preset voices (`voice_styles/F1.json` … `M5.json`); `tts_worker.py` runs them
 with onnxruntime, following Supertone's reference code. It reads 31 languages,
 not Chinese, at about 0.4 s of work per second of speech on a 16-core CPU.
 
+**Train voice** (`tts_train_voice.py`) also needs the speaker model
+(`download_models.py ecapa`), PyTorch and `onnx2torch` (all in
+requirements.txt). It converts the four ONNX models to PyTorch in memory at
+the start of each job; nothing is written to the model folder. A trained
+voice is saved in `models/finetuned/<id>/` as `voice.json` (a voice style,
+like `voice_styles/F1.json`) and `target.json` (the recordings' voiceprint).
+
 For Voice recognition on the Speech to Text page (whisper.cpp, MIT):
 
 ```

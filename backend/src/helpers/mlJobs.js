@@ -43,7 +43,7 @@ const runScript = async (args, input) => {
  * A training job whose output folder is renamed into place, with `meta`
  * written beside the weights, only once the script succeeds.
  */
-const startTrainingJob = async ({ ownerId, task, kind, title, script, args, details, meta }) => {
+export const startTrainingJob = async ({ ownerId, task, kind, title, script, args, details, meta }) => {
   const id = randomUUID();
   const root = path.join(MODELS_DIR, 'finetuned');
   const output = path.join(root, `${id}.partial`);

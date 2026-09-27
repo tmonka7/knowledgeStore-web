@@ -22,6 +22,7 @@ export const synthesizeSpeech = async (req, res) => {
     text: typeof body.text === 'string' ? body.text : '',
     language: body.language,
     voice: String(body.voice || ''),
+    voiceId: body.voiceId ? String(body.voiceId) : '',
     speed: body.speed,
     steps: body.steps,
   });
@@ -33,7 +34,7 @@ export const synthesizeSpeech = async (req, res) => {
       'Content-Length': String(size),
       'Cache-Control': 'no-store',
       'X-Speech-Took': String(result.took ?? ''),
-      'X-Speech-Voice': result.voice,
+      'X-Speech-Voice': encodeURIComponent(result.voice),
       'X-Speech-Dropped': encodeURIComponent(result.dropped),
     });
   } catch (error) {

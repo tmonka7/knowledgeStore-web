@@ -823,7 +823,7 @@ export default function DashboardPage({
           {effectiveKey === 'speaker' && <SpeakerToolPage />}
           {effectiveKey === 'transformers' && <TransformersToolPage user={user} />}
           {effectiveKey === 'ocr' && <OcrToolPage />}
-          {effectiveKey === 'text-to-speech' && <TextToSpeechPage />}
+          {effectiveKey === 'text-to-speech' && <TextToSpeechPage user={user} />}
 
           {effectiveKey === 'categories' && (
             <CategoriesPage
