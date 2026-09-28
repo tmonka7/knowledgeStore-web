@@ -52,8 +52,8 @@ export const findVoice = async (ownerId, voiceId) => {
 const supported = (dataset) => TTS_LANGUAGES.includes(String(dataset.language || '').toLowerCase().split(/[-_]/)[0]);
 
 /**
- * Every dataset a voice can be trained on: the caller's voice datasets
- * (source "voice"), then their Speech to Text datasets (source "speech").
+ * Every dataset a voice can be trained on (all are shared): voice datasets
+ * (source "voice"), then Speech to Text datasets (source "speech").
  */
 export const trainingDatasets = async (ownerId) => [
   ...(await listDatasets(ownerId, 'voice')).map((dataset) => ({ ...voiceSummary(dataset), source: 'voice', supported: supported(dataset) })),

@@ -424,6 +424,38 @@ the record of who attended are all kept.
 Clicking the attendance count on a card shows everyone who joined, when they
 arrived and when they left. Leaving and coming back shows as two visits.
 
+## 8c-2. Shared datasets (Tools > AI)
+
+Every dataset on the Tools > AI pages is shared with everyone who can open
+that page: translation datasets, YOLO and Speech to Text datasets, voice
+datasets, command sets, and Speaker recognition's speakers. Someone else's
+shows **by** and their name beside it.
+
+With someone else's dataset you can:
+
+- open it, listen to it, and train and test models on it (with the Train
+  permission for that tool, as for your own);
+- add to it: recordings to a command set, speakers' voice samples, lines
+  nobody has recorded yet in a voice dataset, rows to a translation dataset,
+  or your own images or clips to a YOLO or Speech to Text dataset (through
+  **Save to server**, choosing it under *Update*);
+- change or remove what **you** added — record it again, delete it, edit your
+  rows.
+
+Only the person who made a dataset, and administrators, can change what it
+is — its name, commands and phrases, script, classes, languages — remove
+what other people added, or delete it. Those controls are not shown on
+someone else's dataset, and the server refuses them.
+
+Adding to someone else's YOLO or Speech to Text dataset has two rules. Your
+labels must use the dataset's classes, in the same order, and your clips its
+language. And a file name already in the dataset belongs to whoever put it
+there: rename your file if it clashes. Saving again only mirrors your own
+files: files you no longer have are removed, other people's are not touched.
+
+The models you train are still yours: trained models are listed only to the
+account that trained them.
+
 ## 8d. Transformers: translation datasets
 
 **Tools → AI → Transformers** builds parallel-text datasets for training or
@@ -451,7 +483,10 @@ evaluating translation models.
     two are shown, and ⇄ swaps them.
 - **Import** takes CSV, TSV or JSONL, pasted or from a file. A header row of
   language codes says which column is which.
-- **Save** stores the dataset under your account; nobody else sees it.
+- **Save** stores the dataset on the server, shared with everyone who can
+  open the page (see *8c-2. Shared datasets*). On someone else's dataset, the
+  rows you add are saved as yours; your changes to other people's rows are
+  not saved, and the name and languages stay as they are.
   **Export** downloads it as JSONL in the Hugging Face translation layout
   (`{"translation": {"en": ..., "es": ...}}`), or as CSV or TSV.
 
@@ -538,7 +573,10 @@ python backend/python/download_models.py ggml-tiny ggml-base ggml-tiny.en
 **Tools → AI → Speaker recognition** recognises people by their voice, with
 the ECAPA-TDNN model. It needs the **Speaker recognition** permission, which
 an administrator grants: a voiceprint is biometric data, so no account has it
-by default. The speakers you enroll are yours alone; nobody else sees them.
+by default. Speakers are shared by everyone who has the permission: all of
+them are listed and identified against, and anyone can add a voice sample to
+any speaker. Renaming or deleting a speaker is for whoever enrolled it (and
+administrators); a sample can also be deleted by whoever added it.
 
 **Speakers.** Press **New speaker**, give a name, and record the person
 talking normally for 5 to 15 seconds (reading a paragraph works well), with
@@ -707,7 +745,9 @@ python backend/python/download_models.py supertonic-3
 
 A voice is trained from recordings of one person reading sentences aloud. The
 **Datasets** tab records them. Anyone who can open Text to Speech can use it,
-and datasets are private to whoever made them.
+and datasets are shared (see *8c-2. Shared datasets*): on someone else's you
+can record the lines nobody has recorded yet, and record again or delete your
+own; the script is theirs to change.
 
 1. Choose **New dataset**. Give it a name and the speaker's name, and choose
    the language. The **Script** is filled with built-in sentences for English,
@@ -879,7 +919,7 @@ speech pick the language spoken in the clips. The files are uploaded with a
 progress bar. Saving the same folder again later sends only what changed —
 new or edited files, and the labels or transcripts — and removes files the
 folder no longer has, so the server copy mirrors your folder. Datasets are
-private to your account.
+shared with everyone who can open the page (see *8c-2. Shared datasets*).
 
 For YOLO, an image counts as labelled once you have looked at it; an image
 with no boxes is kept as a background example. For speech, clips without a

@@ -204,7 +204,8 @@ router.post('/tools/command/jobs/:id/cancel', ...commandTrain, asyncRoute(speech
 /*
  * Speaker recognition (ECAPA-TDNN). Voiceprints are biometric data, so the
  * page has its own permission, 'speaker:view', which is not in the defaults.
- * Speakers are private to the account that enrolled them.
+ * Speakers are shared by everyone who has it; renaming or deleting one is for
+ * whoever enrolled it and administrators (helpers/datasetAccess.js).
  */
 const speakerView = [requireAuth, requirePermission('speaker:view')];
 const speakerUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 16 * 1024 * 1024, files: 1 } });

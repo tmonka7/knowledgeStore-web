@@ -34,8 +34,10 @@ export default function SaveToServerModal({
     setName(defaultName || '');
     api.get(`/tools/${area}/datasets`).then(({ data }) => {
       setDatasets(data.datasets || []);
-      // Saving the same folder again is the common case: offer to update it.
-      const same = (data.datasets || []).find((dataset) => dataset.name === defaultName);
+      // Saving the same folder again is the common case: offer to update it
+      // (one's own, when someone else's shared dataset has the same name).
+      const named = (data.datasets || []).filter((dataset) => dataset.name === defaultName);
+      const same = named.find((dataset) => dataset.mine) || named[0];
       setMode(same ? 'update' : 'new');
       setTargetId(same?.id || data.datasets?.[0]?.id || null);
     }).catch(() => setDatasets([]));
@@ -115,9 +117,13 @@ export default function SaveToServerModal({
             disabled={busy}
             options={datasets.map((dataset) => ({
               value: dataset.id,
-              label: `${dataset.name} (${dataset.fileCount} · ${formatBytes(dataset.bytes || 0)})`,
+              label: `${dataset.name} (${dataset.fileCount} · ${formatBytes(dataset.bytes || 0)})`
+                + (dataset.mine ? '' : ` — ${t('datasetBy', { name: dataset.ownerName || t('unknownPerson') })}`),
             }))}
           />
+        )}
+        {mode === 'update' && datasets.find((dataset) => dataset.id === targetId && !dataset.canManage) && (
+          <Alert type="info" showIcon message={t('datasetAddingToShared')} />
         )}
         {extra}
         {progress && (

@@ -8,6 +8,7 @@ import {
 import {
   JobError, cancelJob, createDownloadTicket, getJob, listJobs,
 } from '../helpers/translationJobs.js';
+import { callerOf } from '../helpers/datasetAccess.js';
 
 /** Run `work` on the uploaded clip, then remove it unless `work` moved it. */
 const withClip = async (req, work) => {
@@ -20,25 +21,26 @@ const withClip = async (req, work) => {
 };
 
 export const status = async (req, res) => res.json(await speakerStatus(req.user.sub));
-export const list = async (req, res) => res.json({ speakers: await listSpeakers(req.user.sub) });
-export const create = async (req, res) => res.status(201).json({ speaker: await createSpeaker(req.user.sub, req.body || {}) });
-export const update = async (req, res) => res.json({ speaker: await updateSpeaker(req.user.sub, req.params.id, req.body || {}) });
+// Speakers are shared by everyone who can open the page (helpers/datasetAccess.js).
+export const list = async (req, res) => res.json({ speakers: await listSpeakers(callerOf(req)) });
+export const create = async (req, res) => res.status(201).json({ speaker: await createSpeaker(callerOf(req), req.body || {}) });
+export const update = async (req, res) => res.json({ speaker: await updateSpeaker(callerOf(req), req.params.id, req.body || {}) });
 export const remove = async (req, res) => {
-  await deleteSpeaker(req.user.sub, req.params.id);
+  await deleteSpeaker(callerOf(req), req.params.id);
   res.json({ ok: true });
 };
 
 /** POST …/speakers/:id/samples — multipart "audio" (16 kHz mono WAV) and "source". */
 export const enroll = async (req, res) => res.status(201).json({
-  speaker: await withClip(req, (file) => addSample(req.user.sub, req.params.id, file, req.body?.source)),
+  speaker: await withClip(req, (file) => addSample(callerOf(req), req.params.id, file, req.body?.source)),
 });
 
 export const removeSample = async (req, res) => res.json({
-  speaker: await deleteSample(req.user.sub, req.params.id, req.params.sampleId),
+  speaker: await deleteSample(callerOf(req), req.params.id, req.params.sampleId),
 });
 
 export const playSample = async (req, res, next) => {
-  const file = await sampleAudio(req.user.sub, req.params.sampleId);
+  const file = await sampleAudio(callerOf(req), req.params.sampleId);
   res.type('audio/wav');
   res.sendFile(file, { headers: { 'Cache-Control': 'private, no-store' } }, (error) => {
     if (error && !res.headersSent) next(new JobError('That sample\'s audio is missing.', 404));
@@ -49,7 +51,7 @@ export const playSample = async (req, res, next) => {
  * POST …/identify — multipart "audio", optional "threshold", "speakerId" (to
  * verify one speaker) and "modelId" (to test a model other than the current one).
  */
-export const recognise = async (req, res) => res.json(await withClip(req, (file) => identify(req.user.sub, file, {
+export const recognise = async (req, res) => res.json(await withClip(req, (file) => identify(callerOf(req), file, {
   threshold: req.body?.threshold,
   speakerId: req.body?.speakerId || undefined,
   modelId: req.body?.modelId || undefined,

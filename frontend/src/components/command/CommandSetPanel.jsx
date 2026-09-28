@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import api from '../../api';
 import ClipRecorder from '../speaker/ClipRecorder';
+import OwnerTag from '../ml/OwnerTag';
 import { useLanguage } from '../../i18n';
 import {
   COMMAND_LANGUAGES, STARTER_SETS, commandLanguageLabel, newCommandId, splitPhrases,
@@ -71,7 +72,11 @@ export default function CommandSetPanel({ onChanged }) {
   };
 
   const columns = [
-    { title: t('cmdSet'), dataIndex: 'name', render: (name, item) => <a onClick={() => setOpenId(item.id)}>{name}</a> },
+    {
+      title: t('cmdSet'),
+      dataIndex: 'name',
+      render: (name, item) => <Space size={6} wrap><a onClick={() => setOpenId(item.id)}>{name}</a><OwnerTag item={item} /></Space>,
+    },
     { title: t('mlSpokenLanguage'), dataIndex: 'language', render: (language) => <Tag>{language}</Tag> },
     { title: t('cmdCommands'), dataIndex: 'commandCount' },
     { title: t('cmdRecordings'), key: 'recorded', render: (_, item) => `${item.recorded || 0} · ${clock(item.seconds)}` },
@@ -81,9 +86,11 @@ export default function CommandSetPanel({ onChanged }) {
       render: (_, item) => (
         <Space>
           <Button size="small" icon={<FolderOpenOutlined />} onClick={() => setOpenId(item.id)}>{t('voiceDsOpen')}</Button>
-          <Popconfirm title={t('cmdDeleteSetConfirm', { name: item.name })} onConfirm={() => remove(item)} okButtonProps={{ danger: true }}>
-            <Button size="small" danger icon={<DeleteOutlined />} aria-label={t('delete')} />
-          </Popconfirm>
+          {item.canManage && (
+            <Popconfirm title={t('cmdDeleteSetConfirm', { name: item.name })} onConfirm={() => remove(item)} okButtonProps={{ danger: true }}>
+              <Button size="small" danger icon={<DeleteOutlined />} aria-label={t('delete')} />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -327,6 +334,9 @@ function SetEditor({ id, onClose, onChanged }) {
   if (!set) return <Card bordered={false} loading />;
 
   const thin = commands.filter((item) => countOf(item.id) < GOOD_PER_COMMAND).length;
+  // Shared sets: the commands are the creator's (or an administrator's) to
+  // change; anyone adds recordings, and deletes their own.
+  const manage = Boolean(set.canManage);
 
   return (
     <Card
@@ -335,6 +345,7 @@ function SetEditor({ id, onClose, onChanged }) {
         <Space wrap>
           <span>{set.name}</span>
           <Tag color="blue">{commandLanguageLabel(set.language)}</Tag>
+          <OwnerTag item={set} />
         </Space>
       )}
       extra={<Button onClick={onClose}>{t('close')}</Button>}
@@ -352,6 +363,8 @@ function SetEditor({ id, onClose, onChanged }) {
               : <Alert type="success" showIcon message={t('cmdEnough')} />)}
           </Col>
         </Row>
+
+        {!manage && <Alert type="info" showIcon message={t('cmdSharedNote', { name: set.ownerName || t('unknownPerson') })} />}
 
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={8}>
@@ -378,9 +391,11 @@ function SetEditor({ id, onClose, onChanged }) {
                 </List.Item>
               )}
             />
-            <Button block type="dashed" icon={<PlusOutlined />} style={{ marginTop: 8 }} onClick={addCommand} disabled={busy}>
-              {t('cmdAddCommand')}
-            </Button>
+            {manage && (
+              <Button block type="dashed" icon={<PlusOutlined />} style={{ marginTop: 8 }} onClick={addCommand} disabled={busy}>
+                {t('cmdAddCommand')}
+              </Button>
+            )}
           </Col>
 
           <Col xs={24} lg={16}>
@@ -393,7 +408,8 @@ function SetEditor({ id, onClose, onChanged }) {
                       value={draft.name}
                       maxLength={80}
                       onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-                      onBlur={saveDraft}
+                      onBlur={manage ? saveDraft : undefined}
+                      readOnly={!manage}
                     />
                   </Col>
                   <Col xs={24} md={15}>
@@ -402,7 +418,8 @@ function SetEditor({ id, onClose, onChanged }) {
                       autoSize={{ minRows: 2, maxRows: 6 }}
                       value={draft.phrases}
                       onChange={(event) => setDraft({ ...draft, phrases: event.target.value })}
-                      onBlur={saveDraft}
+                      onBlur={manage ? saveDraft : undefined}
+                      readOnly={!manage}
                       placeholder={t('cmdPhrasesPlaceholder')}
                     />
                   </Col>
@@ -436,20 +453,25 @@ function SetEditor({ id, onClose, onChanged }) {
                           onClick={() => play(clip)}
                           aria-label={t('cmdPlay')}
                         />,
-                        <Button key="delete" size="small" danger icon={<DeleteOutlined />} onClick={() => removeClip(clip)} aria-label={t('delete')} />,
-                      ]}
+                        clip.canDelete && (
+                          <Button key="delete" size="small" danger icon={<DeleteOutlined />} onClick={() => removeClip(clip)} aria-label={t('delete')} />
+                        ),
+                      ].filter(Boolean)}
                     >
-                      <Space>
+                      <Space wrap>
                         <Text>{clip.text}</Text>
                         <Text type="secondary">{`${(clip.seconds || 0).toFixed(1)} s`}</Text>
+                        {clip.byName && <Text type="secondary">{t('datasetBy', { name: clip.byName })}</Text>}
                       </Space>
                     </List.Item>
                   )}
                 />
 
-                <Popconfirm title={t('cmdRemoveCommandConfirm', { count: clips.length })} onConfirm={removeCommand} okButtonProps={{ danger: true }}>
-                  <Button type="link" danger size="small" style={{ padding: 0 }} disabled={busy}>{t('cmdRemoveCommand')}</Button>
-                </Popconfirm>
+                {manage && (
+                  <Popconfirm title={t('cmdRemoveCommandConfirm', { count: clips.length })} onConfirm={removeCommand} okButtonProps={{ danger: true }}>
+                    <Button type="link" danger size="small" style={{ padding: 0 }} disabled={busy}>{t('cmdRemoveCommand')}</Button>
+                  </Popconfirm>
+                )}
               </Space>
             ) : (
               <Empty description={t('cmdNoCommands')} />

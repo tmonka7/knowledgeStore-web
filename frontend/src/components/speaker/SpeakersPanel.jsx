@@ -6,6 +6,7 @@ import {
   DeleteOutlined, EditOutlined, PauseCircleOutlined, PlayCircleOutlined, PlusOutlined, UserAddOutlined,
 } from '@ant-design/icons';
 import ClipRecorder from './ClipRecorder';
+import OwnerTag from '../ml/OwnerTag';
 import { speakerColor } from './useSpeakers';
 import { useLanguage } from '../../i18n';
 
@@ -15,7 +16,11 @@ const { Text } = Typography;
 // seconds, and gets steadier with more — and with more than one recording.
 const GOOD_SECONDS = 20;
 
-/** Enrolled speakers: add, rename, delete, and give each a few voice samples. */
+/**
+ * Enrolled speakers: add, rename, delete, and give each a few voice samples.
+ * Speakers are shared: anyone adds samples; renaming and deleting a speaker
+ * is for whoever created it (or an administrator).
+ */
 export default function SpeakersPanel({ area }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState(null); // speaker, or {} for a new one
@@ -30,6 +35,7 @@ export default function SpeakersPanel({ area }) {
           <Space>
             <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 5, background: speakerColor(speaker.id) }} />
             <Text strong>{speaker.name}</Text>
+            <OwnerTag item={speaker} />
           </Space>
           {speaker.note && <Text type="secondary" style={{ fontSize: 12 }}>{speaker.note}</Text>}
         </Space>
@@ -68,12 +74,16 @@ export default function SpeakersPanel({ area }) {
           <Button size="small" type="primary" icon={<PlusOutlined />} disabled={!area.ready} onClick={() => setEnrolling(speaker)}>
             {t('speakerAddSample')}
           </Button>
-          <Tooltip title={t('speakerEdit')}>
-            <Button size="small" icon={<EditOutlined />} onClick={() => setEditing(speaker)} />
-          </Tooltip>
-          <Popconfirm title={t('speakerDeleteConfirm', { name: speaker.name })} onConfirm={() => area.remove(speaker)} okButtonProps={{ danger: true }}>
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {speaker.canManage && (
+            <>
+              <Tooltip title={t('speakerEdit')}>
+                <Button size="small" icon={<EditOutlined />} onClick={() => setEditing(speaker)} />
+              </Tooltip>
+              <Popconfirm title={t('speakerDeleteConfirm', { name: speaker.name })} onConfirm={() => area.remove(speaker)} okButtonProps={{ danger: true }}>
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            </>
+          )}
         </Space>
       ),
     },
@@ -231,10 +241,12 @@ function SampleList({ speaker, area }) {
             playing?.id === sample.id
               ? <Button key="stop" size="small" icon={<PauseCircleOutlined />} onClick={stop} />
               : <Button key="play" size="small" icon={<PlayCircleOutlined />} onClick={() => play(sample)} />,
-            <Popconfirm key="delete" title={t('speakerDeleteSample')} onConfirm={() => area.removeSample(speaker, sample)} okButtonProps={{ danger: true }}>
-              <Button size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>,
-          ]}
+            sample.canDelete && (
+              <Popconfirm key="delete" title={t('speakerDeleteSample')} onConfirm={() => area.removeSample(speaker, sample)} okButtonProps={{ danger: true }}>
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            ),
+          ].filter(Boolean)}
         >
           <Space wrap size={6}>
             <Text>{new Date(sample.createdAt).toLocaleString()}</Text>

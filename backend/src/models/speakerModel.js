@@ -9,9 +9,10 @@ import { randomUUID } from 'crypto';
  * different models cannot be compared. The audio itself is kept on disk
  * (helpers/speakerRecognition.js) so a sample can be listened to again.
  *
- * Voiceprints are biometric data. Speakers are personal, like contacts: every
- * query is scoped by ownerId, and the page needs a permission that is not
- * granted by default.
+ * Voiceprints are biometric data, so the page needs a permission that is not
+ * granted by default. Everyone who has it shares the speakers
+ * (helpers/datasetAccess.js): a sample someone other than the speaker's
+ * creator adds carries their id in addedBy.
  */
 const sampleSchema = new mongoose.Schema({
   id: { type: String, required: true },
@@ -20,6 +21,7 @@ const sampleSchema = new mongoose.Schema({
   seconds: { type: Number, default: 0 },
   speechSeconds: { type: Number, default: 0 },
   source: { type: String, default: '' },
+  addedBy: { type: String },
   createdAt: { type: Date, default: Date.now },
 }, { _id: false });
 

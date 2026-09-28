@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import api from '../../api';
 import ClipRecorder from '../speaker/ClipRecorder';
+import OwnerTag from '../ml/OwnerTag';
 import { useLanguage } from '../../i18n';
 import {
   DEFAULT_SCRIPTS, TTS_LANGUAGES, languageLabel, newLineId, rebuildScript, splitScript,
@@ -88,7 +89,11 @@ export default function VoiceDatasetPanel({ onChanged }) {
   };
 
   const columns = [
-    { title: t('trainDataset'), dataIndex: 'name', render: (name, item) => <a onClick={() => setOpenId(item.id)}>{name}</a> },
+    {
+      title: t('trainDataset'),
+      dataIndex: 'name',
+      render: (name, item) => <Space size={6} wrap><a onClick={() => setOpenId(item.id)}>{name}</a><OwnerTag item={item} /></Space>,
+    },
     { title: t('voiceDsSpeaker'), dataIndex: 'speaker', render: (speaker) => speaker || '—' },
     { title: t('mlSpokenLanguage'), dataIndex: 'language', render: (language) => <Tag>{language}</Tag> },
     {
@@ -113,9 +118,11 @@ export default function VoiceDatasetPanel({ onChanged }) {
       render: (_, item) => (
         <Space>
           <Button size="small" icon={<FolderOpenOutlined />} onClick={() => setOpenId(item.id)}>{t('voiceDsOpen')}</Button>
-          <Popconfirm title={t('voiceDsDeleteConfirm', { name: item.name })} onConfirm={() => remove(item)}>
-            <Button size="small" danger icon={<DeleteOutlined />} aria-label={t('delete')} />
-          </Popconfirm>
+          {item.canManage && (
+            <Popconfirm title={t('voiceDsDeleteConfirm', { name: item.name })} onConfirm={() => remove(item)}>
+              <Button size="small" danger icon={<DeleteOutlined />} aria-label={t('delete')} />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -397,6 +404,10 @@ function Studio({ id, onClose, onChanged }) {
 
   const recorded = script.filter((item) => item.seconds).length;
   const warning = clipWarning(line, t);
+  // Shared datasets: the script is the creator's (or an administrator's) to
+  // change; anyone records lines nobody has recorded, and redoes their own.
+  const manage = Boolean(dataset.canManage);
+  const lineMine = Boolean(line?.canChange);
 
   return (
     <Card
@@ -406,11 +417,12 @@ function Studio({ id, onClose, onChanged }) {
           <span>{dataset.name}</span>
           {dataset.speaker && <Tag>{dataset.speaker}</Tag>}
           <Tag color="blue">{languageLabel(dataset.language)}</Tag>
+          <OwnerTag item={dataset} />
         </Space>
       )}
       extra={(
         <Space>
-          <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>{t('voiceDsEditScript')}</Button>
+          {manage && <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>{t('voiceDsEditScript')}</Button>}
           <Button onClick={onClose}>{t('close')}</Button>
         </Space>
       )}
@@ -431,6 +443,7 @@ function Studio({ id, onClose, onChanged }) {
         </Row>
 
         <Paragraph type="secondary" style={{ margin: 0 }}>{t('voiceDsTips')}</Paragraph>
+        {!manage && <Alert type="info" showIcon message={t('voiceDsSharedNote', { name: dataset.ownerName || t('unknownPerson') })} />}
 
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={9}>
@@ -457,9 +470,11 @@ function Studio({ id, onClose, onChanged }) {
                 </List.Item>
               )}
             />
-            <Button block type="dashed" icon={<PlusOutlined />} style={{ marginTop: 8 }} onClick={addLine} disabled={busy}>
-              {t('voiceDsAddLine')}
-            </Button>
+            {manage && (
+              <Button block type="dashed" icon={<PlusOutlined />} style={{ marginTop: 8 }} onClick={addLine} disabled={busy}>
+                {t('voiceDsAddLine')}
+              </Button>
+            )}
           </Col>
 
           <Col xs={24} lg={15}>
@@ -478,13 +493,15 @@ function Studio({ id, onClose, onChanged }) {
                   value={lineText}
                   maxLength={500}
                   onChange={(event) => setLineText(event.target.value)}
-                  onBlur={saveLineText}
+                  onBlur={manage ? saveLineText : undefined}
+                  readOnly={!manage}
                   placeholder={t('voiceDsLinePlaceholder')}
                 />
+                {!lineMine && <Text type="secondary">{t('voiceDsRecordedByOther')}</Text>}
                 <ClipRecorder
                   onClip={(clip) => record(clip)}
                   busy={busy}
-                  disabled={!lineText.trim()}
+                  disabled={!lineText.trim() || !lineMine}
                   maxSeconds={MAX_CLIP_SECONDS}
                   allowFile
                   recordLabel={line.seconds ? t('voiceDsRerecord') : t('speakerRecord')}
@@ -494,15 +511,19 @@ function Studio({ id, onClose, onChanged }) {
                   <Space wrap>
                     {audioUrl && <audio controls src={audioUrl} style={{ height: 34 }} />}
                     <Text type="secondary">{`${line.seconds.toFixed(1)} s`}</Text>
-                    <Button danger size="small" icon={<DeleteOutlined />} onClick={removeClip} disabled={busy}>
-                      {t('voiceDsDeleteRecording')}
-                    </Button>
+                    {lineMine && (
+                      <Button danger size="small" icon={<DeleteOutlined />} onClick={removeClip} disabled={busy}>
+                        {t('voiceDsDeleteRecording')}
+                      </Button>
+                    )}
                   </Space>
                 )}
                 {warning && <Alert type="warning" showIcon icon={<WarningOutlined />} message={warning} />}
-                <Popconfirm title={t('voiceDsRemoveLineConfirm')} onConfirm={removeLine}>
-                  <Button type="link" danger size="small" style={{ padding: 0 }} disabled={busy}>{t('voiceDsRemoveLine')}</Button>
-                </Popconfirm>
+                {manage && (
+                  <Popconfirm title={t('voiceDsRemoveLineConfirm')} onConfirm={removeLine}>
+                    <Button type="link" danger size="small" style={{ padding: 0 }} disabled={busy}>{t('voiceDsRemoveLine')}</Button>
+                  </Popconfirm>
+                )}
               </Space>
             ) : (
               <Empty description={t('voiceDsNoLines')} />

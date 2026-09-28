@@ -5,6 +5,12 @@
 // voiceprints are kept in MongoDB (models/speakerModel.js), the samples' audio
 // on disk, and a clip is compared with each speaker by cosine similarity to
 // the average of that speaker's voiceprints.
+//
+// Speakers are shared by everyone who can open the page, like datasets
+// (helpers/datasetAccess.js): all of them are listed and identified against,
+// and anyone may add a sample to any speaker. Renaming or deleting a speaker
+// is for whoever created it and administrators; a sample can also be deleted
+// by whoever added it. A speaker's audio stays in its creator's folder.
 
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
@@ -14,6 +20,9 @@ import { DATASETS_DIR } from './mlDatasets.js';
 import { startExportJob, startTfliteExport } from './mlJobs.js';
 import { createPythonWorker } from './pythonWorker.js';
 import { JobError, findModel, listModels } from './translationJobs.js';
+import {
+  asCaller, canChangeItem, describeOwner, describeOwners, requireManage,
+} from './datasetAccess.js';
 
 export const TASK = 'speaker';
 export const DEFAULT_THRESHOLD = 0.35;
@@ -100,12 +109,12 @@ export const voiceSimilarity = (clip, embeddings) => dot(unit(clip), centroid(em
 /** The speaker models this account may use, each with the size of its ONNX export (0 if none). */
 export const speakerModels = (ownerId) => listModels(ownerId, TASK);
 
-/** The caller's voice sample with the most speech, to test an ONNX export on; null if none. */
-const exportSample = async (ownerId) => {
-  const samples = (await Speaker.find({ ownerId })).flatMap((speaker) => speaker.samples)
-    .sort((a, b) => (b.speechSeconds || 0) - (a.speechSeconds || 0));
-  for (const sample of samples) {
-    const file = audioPath(ownerId, sample.id);
+/** The voice sample with the most speech, to test an ONNX export on; null if none. */
+const exportSample = async () => {
+  const samples = (await Speaker.find()).flatMap((speaker) => speaker.samples.map((sample) => ({ sample, speaker })))
+    .sort((a, b) => (b.sample.speechSeconds || 0) - (a.sample.speechSeconds || 0));
+  for (const { sample, speaker } of samples) {
+    const file = audioPath(speaker.ownerId, sample.id);
     if (await fs.stat(file).then(() => true, () => false)) return file;
   }
   return null;
@@ -113,12 +122,12 @@ const exportSample = async (ownerId) => {
 
 /** Export a speaker model to TFLite (tflite_export.py), tested on the same sample as ONNX. */
 export const startSpeakerTfliteExport = async ({ ownerId, modelId }) => startTfliteExport({
-  ownerId, task: TASK, modelId, kind: 'speaker', sample: await exportSample(ownerId),
+  ownerId, task: TASK, modelId, kind: 'speaker', sample: await exportSample(),
 });
 
 /** Export a speaker model to ONNX (speaker_export.py): a job, like the other exports. */
 export const startSpeakerExport = async ({ ownerId, modelId }) => startExportJob({
-  ownerId, task: TASK, modelId, script: 'speaker_export.py', sample: await exportSample(ownerId),
+  ownerId, task: TASK, modelId, script: 'speaker_export.py', sample: await exportSample(),
 });
 
 /** A clip's voiceprint: { embedding, seconds, speechSeconds, model }. */
@@ -149,8 +158,9 @@ const moveFile = async (from, to) => {
   }
 };
 
-const publicSpeaker = (speaker, modelId) => ({
+const publicSpeaker = (caller, speaker, modelId) => describeOwner(caller, {
   id: speaker.id,
+  ownerId: speaker.ownerId,
   name: speaker.name,
   note: speaker.note,
   createdAt: speaker.createdAt,
@@ -164,14 +174,17 @@ const publicSpeaker = (speaker, modelId) => ({
     createdAt: sample.createdAt,
     // A sample made by another model cannot be compared until it is re-recorded.
     current: sample.model === modelId,
+    canDelete: canChangeItem(caller, speaker.ownerId, sample.addedBy),
   })),
 });
 
-const ownSpeaker = async (ownerId, id) => {
-  const speaker = await Speaker.findOne({ ownerId, id: String(id || '') });
+const findSpeaker = async (id) => {
+  const speaker = await Speaker.findOne({ id: String(id || '') });
   if (!speaker) throw new JobError('Speaker not found.', 404);
   return speaker;
 };
+
+const modelIdFor = async (caller) => (await currentModel(asCaller(caller).id))?.id;
 
 const cleanName = (value) => {
   const name = String(value || '').trim().slice(0, 120);
@@ -179,38 +192,44 @@ const cleanName = (value) => {
   return name;
 };
 
-export const listSpeakers = async (ownerId) => {
-  const model = await currentModel(ownerId);
-  const speakers = await Speaker.find({ ownerId }).sort({ name: 1 });
-  return speakers.map((speaker) => publicSpeaker(speaker, model?.id));
+export const listSpeakers = async (caller) => {
+  const modelId = await modelIdFor(caller);
+  const speakers = await Speaker.find().sort({ name: 1 });
+  await describeOwners(caller, []); // reads the owner names once for the whole list
+  return Promise.all(speakers.map((speaker) => publicSpeaker(caller, speaker, modelId)));
 };
 
-export const createSpeaker = async (ownerId, { name, note }) => {
+export const createSpeaker = async (caller, { name, note }) => {
+  const ownerId = asCaller(caller).id;
   if (await Speaker.countDocuments({ ownerId }) >= MAX_SPEAKERS) {
     throw new JobError(`You can enroll at most ${MAX_SPEAKERS} speakers.`);
   }
   const speaker = await Speaker.create({ id: randomUUID(), ownerId, name: cleanName(name), note: String(note || '').slice(0, 500) });
-  return publicSpeaker(speaker, (await currentModel(ownerId))?.id);
+  return publicSpeaker(caller, speaker, await modelIdFor(caller));
 };
 
-export const updateSpeaker = async (ownerId, id, { name, note }) => {
-  const speaker = await ownSpeaker(ownerId, id);
+export const updateSpeaker = async (caller, id, { name, note }) => {
+  const speaker = await findSpeaker(id);
+  requireManage(caller, speaker.ownerId, 'speaker');
   if (name !== undefined) speaker.name = cleanName(name);
   if (note !== undefined) speaker.note = String(note || '').slice(0, 500);
   speaker.updatedAt = new Date();
   await speaker.save();
-  return publicSpeaker(speaker, (await currentModel(ownerId))?.id);
+  return publicSpeaker(caller, speaker, await modelIdFor(caller));
 };
 
-export const deleteSpeaker = async (ownerId, id) => {
-  const speaker = await ownSpeaker(ownerId, id);
-  await Promise.all(speaker.samples.map((sample) => fs.unlink(audioPath(ownerId, sample.id)).catch(() => {})));
-  await Speaker.deleteOne({ ownerId, id: speaker.id });
+export const deleteSpeaker = async (caller, id) => {
+  const speaker = await findSpeaker(id);
+  requireManage(caller, speaker.ownerId, 'speaker');
+  await Promise.all(speaker.samples.map((sample) => fs.unlink(audioPath(speaker.ownerId, sample.id)).catch(() => {})));
+  await Speaker.deleteOne({ id: speaker.id });
 };
 
-/** Enroll one voice sample (a 16 kHz mono WAV from the page). */
-export const addSample = async (ownerId, speakerId, upload, source) => {
-  const speaker = await ownSpeaker(ownerId, speakerId);
+/** Enroll one voice sample (a 16 kHz mono WAV from the page). Anyone may add one to any speaker. */
+export const addSample = async (caller, speakerId, upload, source) => {
+  const who = asCaller(caller);
+  const ownerId = who.id;
+  const speaker = await findSpeaker(speakerId);
   if (speaker.samples.length >= MAX_SAMPLES) {
     throw new JobError(`A speaker can have at most ${MAX_SAMPLES} samples; delete one first.`);
   }
@@ -225,32 +244,38 @@ export const addSample = async (ownerId, speakerId, upload, source) => {
     seconds: print.seconds,
     speechSeconds: print.speechSeconds,
     source: String(source || '').slice(0, 200),
+    ...(who.id !== speaker.ownerId ? { addedBy: who.id } : {}),
     createdAt: new Date(),
   };
-  await fs.mkdir(audioFolder(ownerId), { recursive: true });
-  await moveFile(upload.path, audioPath(ownerId, sample.id));
+  // Kept with the speaker's other samples, in its creator's folder.
+  await fs.mkdir(audioFolder(speaker.ownerId), { recursive: true });
+  await moveFile(upload.path, audioPath(speaker.ownerId, sample.id));
   speaker.samples.push(sample);
   speaker.updatedAt = new Date();
   await speaker.save();
-  return publicSpeaker(speaker, print.model);
+  return publicSpeaker(caller, speaker, print.model);
 };
 
-export const deleteSample = async (ownerId, speakerId, sampleId) => {
-  const speaker = await ownSpeaker(ownerId, speakerId);
-  const before = speaker.samples.length;
-  speaker.samples = speaker.samples.filter((sample) => sample.id !== sampleId);
-  if (speaker.samples.length === before) throw new JobError('Sample not found.', 404);
+/** Delete a sample: whoever added it, the speaker's creator or an administrator. */
+export const deleteSample = async (caller, speakerId, sampleId) => {
+  const speaker = await findSpeaker(speakerId);
+  const sample = speaker.samples.find((item) => item.id === sampleId);
+  if (!sample) throw new JobError('Sample not found.', 404);
+  if (!canChangeItem(caller, speaker.ownerId, sample.addedBy)) {
+    throw new JobError('Someone else added this sample; only they, the speaker\'s creator or an administrator can delete it.', 403);
+  }
+  speaker.samples = speaker.samples.filter((item) => item.id !== sampleId);
   speaker.updatedAt = new Date();
   await speaker.save();
-  await fs.unlink(audioPath(ownerId, sampleId)).catch(() => {});
-  return publicSpeaker(speaker, (await currentModel(ownerId))?.id);
+  await fs.unlink(audioPath(speaker.ownerId, sampleId)).catch(() => {});
+  return publicSpeaker(caller, speaker, await modelIdFor(caller));
 };
 
-/** The WAV of one of the caller's samples, for the page's player. */
-export const sampleAudio = async (ownerId, sampleId) => {
-  const speaker = await Speaker.findOne({ ownerId, 'samples.id': String(sampleId || '') });
+/** The WAV of one sample, for the page's player. */
+export const sampleAudio = async (caller, sampleId) => {
+  const speaker = await Speaker.findOne({ 'samples.id': String(sampleId || '') });
   if (!speaker) throw new JobError('Sample not found.', 404);
-  return audioPath(ownerId, String(sampleId));
+  return audioPath(speaker.ownerId, String(sampleId));
 };
 
 /**
@@ -267,6 +292,7 @@ const otherPrints = new Map();
 const MAX_OTHER_PRINTS = 4000;
 
 const sampleVectors = async (ownerId, speaker, model) => {
+  // Audio is in the speaker's creator's folder; `ownerId` picks the model.
   const vectors = [];
   for (const sample of speaker.samples) {
     if (sample.model === model.id) {
@@ -276,7 +302,7 @@ const sampleVectors = async (ownerId, speaker, model) => {
     const key = `${model.id}:${sample.id}`;
     if (!otherPrints.has(key)) {
       try {
-        otherPrints.set(key, (await embed(ownerId, audioPath(ownerId, sample.id), model)).embedding);
+        otherPrints.set(key, (await embed(ownerId, audioPath(speaker.ownerId, sample.id), model)).embedding);
       } catch {
         continue; // Audio gone or unusable with this model: the other samples still count.
       }
@@ -287,11 +313,12 @@ const sampleVectors = async (ownerId, speaker, model) => {
   return vectors;
 };
 
-export const identify = async (ownerId, upload, { threshold, speakerId, modelId } = {}) => {
+export const identify = async (caller, upload, { threshold, speakerId, modelId } = {}) => {
+  const ownerId = asCaller(caller).id;
   const limit = Number.isFinite(Number(threshold)) && threshold !== '' && threshold != null
     ? Math.min(1, Math.max(0, Number(threshold)))
     : DEFAULT_THRESHOLD;
-  const filter = speakerId ? { ownerId, id: String(speakerId) } : { ownerId };
+  const filter = speakerId ? { id: String(speakerId) } : {};
   const speakers = await Speaker.find(filter);
   if (speakerId && !speakers.length) throw new JobError('Speaker not found.', 404);
 

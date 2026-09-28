@@ -1,6 +1,7 @@
 import {
-  addFiles, createDataset, deleteDataset, getDataset, listDatasets, saveTranscripts, saveYoloLabels,
+  addFiles, createDataset, deleteDataset, getDataset, listDatasets, saveTranscripts, saveYoloLabels, withDatasetLock,
 } from '../helpers/mlDatasets.js';
+import { callerOf } from '../helpers/datasetAccess.js';
 import {
   createGgmlTicket, deleteSpeechGgml, deleteSpeechModel, ggmlCopies, redeemGgmlTicket, startSpeechExport,
   startSpeechGgml, startSpeechTraining, startTfliteExport, startYoloExport, startYoloTraining, transcribe, yoloPredict,
@@ -39,11 +40,12 @@ export const mlHandlers = (area) => {
   } = AREAS[area];
 
   return {
-    listDatasets: async (req, res) => res.json({ datasets: await listDatasets(req.user.sub, area) }),
-    createDataset: async (req, res) => res.status(201).json({ dataset: await createDataset(req.user.sub, area, req.body || {}) }),
-    getDataset: async (req, res) => res.json({ dataset: await getDataset(req.user.sub, area, req.params.id) }),
+    // Datasets are shared with everyone who can open the tool (helpers/datasetAccess.js).
+    listDatasets: async (req, res) => res.json({ datasets: await listDatasets(callerOf(req), area) }),
+    createDataset: async (req, res) => res.status(201).json({ dataset: await createDataset(callerOf(req), area, req.body || {}) }),
+    getDataset: async (req, res) => res.json({ dataset: await getDataset(callerOf(req), area, req.params.id) }),
     deleteDataset: async (req, res) => {
-      await deleteDataset(req.user.sub, area, req.params.id);
+      await withDatasetLock(req.params.id, () => deleteDataset(callerOf(req), area, req.params.id));
       res.json({ ok: true });
     },
 
@@ -51,14 +53,14 @@ export const mlHandlers = (area) => {
     addFiles: async (req, res) => {
       const paths = parsePaths(req.body?.paths);
       if (!paths) throw new JobError('"paths" must be a JSON array of file paths.');
-      res.json(await addFiles(req.user.sub, area, req.params.id, req.files || [], paths));
+      res.json(await withDatasetLock(req.params.id, () => addFiles(callerOf(req), area, req.params.id, req.files || [], paths)));
     },
 
     /** PUT …/datasets/:id/labels (YOLO) or …/transcripts (speech) — the last step of an upload. */
     finishDataset: async (req, res) => {
-      const dataset = area === 'yolo'
-        ? await saveYoloLabels(req.user.sub, req.params.id, req.body || {})
-        : await saveTranscripts(req.user.sub, req.params.id, req.body || {});
+      const dataset = await withDatasetLock(req.params.id, () => (area === 'yolo'
+        ? saveYoloLabels(callerOf(req), req.params.id, req.body || {})
+        : saveTranscripts(callerOf(req), req.params.id, req.body || {})));
       res.json({ dataset });
     },
 

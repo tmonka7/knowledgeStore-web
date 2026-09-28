@@ -7,6 +7,9 @@ import {
 import { MAX_CODE_LENGTH, probePython, runPythonScript } from '../helpers/pythonRunner.js';
 import { startTfliteExport } from '../helpers/mlJobs.js';
 import {
+  asCaller, callerOf, canChangeItem, canManage, describeOwner, describeOwners, requireManage,
+} from '../helpers/datasetAccess.js';
+import {
   cancelJob,
   createDownloadTicket,
   deleteModel,
@@ -74,15 +77,28 @@ const datasetFields = (body = {}) => {
   return { fields: { name, languages, rows } };
 };
 
+/*
+ * Datasets are shared with everyone who can open the page. The editor gets
+ * each row's canChange: the creator (or an administrator) may change any row,
+ * anyone else only the rows they added.
+ */
+const forCaller = async (caller, document) => {
+  const plain = asPlain(document);
+  const rows = (plain.rows || []).map(({ addedBy, ...row }) => ({
+    ...row, canChange: canChangeItem(caller, plain.ownerId, addedBy),
+  }));
+  return describeOwner(caller, { ...plain, rows });
+};
+
 export const listTranslationDatasets = async (req, res) => {
-  const datasets = await getTranslationDatasetSummaries(req.user.sub);
+  const datasets = await describeOwners(callerOf(req), await getTranslationDatasetSummaries());
   return res.json({ datasets });
 };
 
 export const getTranslationDataset = async (req, res) => {
-  const dataset = await getTranslationDatasetById(req.user.sub, req.params.id);
+  const dataset = await getTranslationDatasetById(req.params.id);
   if (!dataset) return res.status(404).json({ message: 'Dataset not found.' });
-  return res.json({ dataset: asPlain(dataset) });
+  return res.json({ dataset: await forCaller(callerOf(req), dataset) });
 };
 
 export const createTranslationDatasetRecord = async (req, res) => {
@@ -90,25 +106,56 @@ export const createTranslationDatasetRecord = async (req, res) => {
   if (error) return res.status(400).json({ message: error });
 
   const created = await createTranslationDataset({ ...fields, ownerId: req.user.sub });
-  return res.status(201).json({ dataset: asPlain(created) });
+  return res.status(201).json({ dataset: await forCaller(callerOf(req), created) });
 };
 
-/** PUT replaces the whole dataset: the editor always holds all of it. */
+/**
+ * PUT replaces the whole dataset: the editor always holds all of it. For the
+ * creator or an administrator it is taken as sent. For anyone else it is an
+ * addition: rows they did not add are kept as they are, their own rows are
+ * taken as sent (or removed if missing), and new rows are appended as theirs.
+ */
 export const updateTranslationDataset = async (req, res) => {
-  const existing = await getTranslationDatasetById(req.user.sub, req.params.id);
+  const existing = await getTranslationDatasetById(req.params.id);
   if (!existing) return res.status(404).json({ message: 'Dataset not found.' });
 
   const { fields, error } = datasetFields(req.body);
   if (error) return res.status(400).json({ message: error });
 
-  Object.assign(existing, fields, { updatedAt: new Date() });
+  const caller = callerOf(req);
+  const who = asCaller(caller);
+  const before = new Map(existing.rows.map((row) => [row.id, row]));
+  const mark = (row) => ({ ...row, ...(who.id !== existing.ownerId ? { addedBy: who.id } : {}) });
+  let rows;
+  if (canManage(caller, existing.ownerId)) {
+    // Rows keep who added them; new ones are the caller's.
+    rows = fields.rows.map((row) => (before.has(row.id)
+      ? { ...row, ...(before.get(row.id).addedBy ? { addedBy: before.get(row.id).addedBy } : {}) }
+      : mark(row)));
+  } else {
+    if (fields.name !== existing.name || fields.languages.join('\n') !== existing.languages.join('\n')) {
+      requireManage(caller, existing.ownerId, 'dataset\'s name or languages');
+    }
+    const sent = new Map(fields.rows.map((row) => [row.id, row]));
+    rows = [];
+    for (const row of existing.rows) {
+      const plain = { id: row.id, texts: Object.fromEntries(row.texts), ...(row.addedBy ? { addedBy: row.addedBy } : {}) };
+      if (row.addedBy !== who.id) rows.push(plain);
+      else if (sent.has(row.id)) rows.push({ ...sent.get(row.id), addedBy: who.id });
+    }
+    for (const row of fields.rows) if (!before.has(row.id)) rows.push(mark(row));
+    if (rows.length > MAX_ROWS) return res.status(400).json({ message: `A dataset can have at most ${MAX_ROWS} rows.` });
+  }
+
+  Object.assign(existing, { ...fields, rows }, { updatedAt: new Date() });
   await existing.save();
-  return res.json({ dataset: asPlain(existing) });
+  return res.json({ dataset: await forCaller(caller, existing) });
 };
 
 export const deleteTranslationDataset = async (req, res) => {
-  const existing = await getTranslationDatasetById(req.user.sub, req.params.id);
+  const existing = await getTranslationDatasetById(req.params.id);
   if (!existing) return res.status(404).json({ message: 'Dataset not found.' });
+  requireManage(callerOf(req), existing.ownerId);
 
   await existing.deleteOne();
   return res.json({ ok: true });
@@ -120,8 +167,8 @@ export const pythonCapabilities = async (req, res) => res.json({ python: await p
 /**
  * POST /tools/transformers/run
  *
- * Runs the posted script, optionally against one of the caller's own datasets
- * — the id is looked up under their ownerId, so it cannot reach anyone else's.
+ * Runs the posted script, optionally against a dataset (datasets are shared
+ * with everyone who can open the page).
  */
 export const runTranslationScript = async (req, res) => {
   const code = String(req.body?.code || '');
@@ -131,7 +178,7 @@ export const runTranslationScript = async (req, res) => {
   let dataset = null;
   const datasetId = String(req.body?.datasetId || '').trim();
   if (datasetId) {
-    const found = await getTranslationDatasetById(req.user.sub, datasetId);
+    const found = await getTranslationDatasetById(datasetId);
     if (!found) return res.status(404).json({ message: 'Dataset not found.' });
     dataset = asPlain(found);
   }
@@ -166,7 +213,7 @@ export const deleteTranslationModel = async (req, res) => {
 
 /** POST /tools/transformers/train — starts a job; the page polls it. */
 export const trainTranslationModel = async (req, res) => {
-  const dataset = await getTranslationDatasetById(req.user.sub, String(req.body?.datasetId || ''));
+  const dataset = await getTranslationDatasetById(String(req.body?.datasetId || ''));
   if (!dataset) return res.status(404).json({ message: 'Dataset not found.' });
 
   const job = await startTraining({

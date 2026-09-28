@@ -13,6 +13,7 @@ import {
   parseImport, safeFileName,
 } from '../../lib/translationDataset';
 import AlignedTextPanes from './AlignedTextPanes';
+import OwnerTag from '../ml/OwnerTag';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -134,9 +135,14 @@ export default function TranslationDatasetEditor({
     setLoadedAt((value) => value + 1);
   }, []);
 
+  // Datasets are shared: `owner` says whose it is and whether this user may
+  // change its name, languages and every row (else only rows they added).
   const showDataset = useCallback((dataset) => {
     const rows = dataset.rows.length ? dataset.rows : [emptyRow(dataset.languages)];
-    replaceDraft({ id: dataset.id, name: dataset.name, languages: dataset.languages, rows }, false);
+    const owner = { ownerName: dataset.ownerName, mine: dataset.mine, canManage: dataset.canManage };
+    replaceDraft({
+      id: dataset.id, name: dataset.name, languages: dataset.languages, rows, owner,
+    }, false);
   }, [replaceDraft]);
 
   const openDataset = useCallback(async (id) => {
@@ -326,6 +332,9 @@ export default function TranslationDatasetEditor({
     return { pairs, halves, complete: countComplete(draft.rows, draft.languages) };
   }, [draft.rows, draft.languages, left, right]);
 
+  // A new dataset is the user's own; an opened one says (see showDataset).
+  const manage = !draft.id || draft.owner?.canManage !== false;
+
   return (
     <Card
       bordered={false}
@@ -339,7 +348,8 @@ export default function TranslationDatasetEditor({
             onChange={(id) => guarded(() => openDataset(id))}
             options={datasets.map((dataset) => ({
               value: dataset.id,
-              label: `${dataset.name} (${dataset.languages.join(' → ')}, ${dataset.rowCount})`,
+              label: `${dataset.name} (${dataset.languages.join(' → ')}, ${dataset.rowCount})`
+                + (dataset.mine ? '' : ` — ${t('datasetBy', { name: dataset.ownerName || t('unknownPerson') })}`),
             }))}
             notFoundContent={t('translationNoDatasets')}
           />
@@ -361,6 +371,7 @@ export default function TranslationDatasetEditor({
             value={draft.name}
             maxLength={120}
             onChange={(event) => update({ name: event.target.value })}
+            readOnly={!manage}
           />
           <Select
             mode="tags"
@@ -368,6 +379,7 @@ export default function TranslationDatasetEditor({
             placeholder={t('translationLanguages')}
             value={draft.languages}
             onChange={setLanguages}
+            disabled={!manage}
             options={languageOptions}
             tokenSeparators={[',', ' ']}
           />
@@ -398,8 +410,12 @@ export default function TranslationDatasetEditor({
               </Button>
             </Tooltip>
           )}
-          {draft.id && <Button danger icon={<DeleteOutlined />} onClick={remove}>{t('delete')}</Button>}
+          {draft.id && manage && <Button danger icon={<DeleteOutlined />} onClick={remove}>{t('delete')}</Button>}
+          <OwnerTag item={draft.owner} />
         </Space>
+        {!manage && (
+          <Alert type="info" showIcon message={t('translationSharedNote', { name: draft.owner?.ownerName || t('unknownPerson') })} />
+        )}
 
         <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space wrap>

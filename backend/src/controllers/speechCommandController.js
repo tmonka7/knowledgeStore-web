@@ -14,6 +14,7 @@ import {
   JobError, cancelJob, createDownloadTicket, getJob, listJobs, probeDevices,
 } from '../helpers/translationJobs.js';
 import { startOrtExport, startTfliteExport } from '../helpers/mlJobs.js';
+import { callerOf } from '../helpers/datasetAccess.js';
 
 /** GET /tools/command/status — starts the recogniser if needed: { ready, device } or { ready: false, message }. */
 export const status = async (req, res) => res.json(await commandEngine());
@@ -44,40 +45,40 @@ export const recognize = async (req, res) => {
 /* ---------------------------------------------------------- command sets */
 
 export const listSets = async (req, res) => res.json({
-  datasets: (await listDatasets(req.user.sub, 'command')).map(commandSetSummary),
+  datasets: (await listDatasets(callerOf(req), 'command')).map(commandSetSummary),
 });
 
 /** POST /tools/command/datasets — { name, language, commands: [{ id, name, phrases }] }. */
-export const createSet = async (req, res) => res.status(201).json({ dataset: await createCommandSet(req.user.sub, req.body || {}) });
+export const createSet = async (req, res) => res.status(201).json({ dataset: await createCommandSet(callerOf(req), req.body || {}) });
 
-export const getSet = async (req, res) => res.json({ dataset: await getCommandSet(req.user.sub, req.params.id) });
+export const getSet = async (req, res) => res.json({ dataset: await getCommandSet(callerOf(req), req.params.id) });
 
 /** PUT /tools/command/datasets/:id — any of { name, language, commands }. Recordings of removed commands go. */
 export const updateSet = async (req, res) => {
   const { name, language, commands } = req.body || {};
-  await withCommandSetLock(req.params.id, () => saveCommandSet(req.user.sub, req.params.id, { name, language, commands }));
-  res.json({ dataset: await getCommandSet(req.user.sub, req.params.id) });
+  await withCommandSetLock(req.params.id, () => saveCommandSet(callerOf(req), req.params.id, { name, language, commands }));
+  res.json({ dataset: await getCommandSet(callerOf(req), req.params.id) });
 };
 
 export const deleteSet = async (req, res) => {
-  await withCommandSetLock(req.params.id, () => deleteDataset(req.user.sub, 'command', req.params.id));
+  await withCommandSetLock(req.params.id, () => deleteDataset(callerOf(req), 'command', req.params.id));
   res.json({ ok: true });
 };
 
 /** POST /tools/command/datasets/:id/clips — multipart "audio" (a WAV), command, text (the phrase said). */
 export const addClip = async (req, res) => res.status(201).json({
   dataset: await withCommandSetLock(req.params.id, () => addCommandClip(
-    req.user.sub, req.params.id, { command: String(req.body?.command || ''), text: req.body?.text }, req.file,
+    callerOf(req), req.params.id, { command: String(req.body?.command || ''), text: req.body?.text }, req.file,
   )),
 });
 
 export const removeClip = async (req, res) => res.json({
-  dataset: await withCommandSetLock(req.params.id, () => deleteCommandClip(req.user.sub, req.params.id, req.params.clip)),
+  dataset: await withCommandSetLock(req.params.id, () => deleteCommandClip(callerOf(req), req.params.id, req.params.clip)),
 });
 
 export const getClip = async (req, res) => {
   res.type('audio/wav');
-  res.sendFile(await commandClipPath(req.user.sub, req.params.id, req.params.clip));
+  res.sendFile(await commandClipPath(callerOf(req), req.params.id, req.params.clip));
 };
 
 /* ---------------------------------------------------------------- training */

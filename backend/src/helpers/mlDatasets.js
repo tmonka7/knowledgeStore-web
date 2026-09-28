@@ -29,11 +29,22 @@
 // (by path and size) and sends only the rest, in batches, then sends the
 // labels or transcripts last. Files the page no longer has are removed at that
 // point, so the server copy mirrors the folder that was opened.
+//
+// Datasets are shared (helpers/datasetAccess.js): everyone who can open the
+// tool sees them all, trains on them and adds to them. What someone other
+// than the creator adds is recorded as theirs — meta.addedBy for uploaded
+// files, recordedBy for voice lines, clip.by for command recordings — so they
+// can change or remove it, and it is all they can change or remove. The
+// creator and administrators manage the rest. Functions take a caller
+// ({ id, admin }, or a bare user id for read-only use by jobs).
 
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { JobError, PYTHON_DIR, exists } from './translationJobs.js';
+import {
+  asCaller, canChangeItem, canManage, describeOwner, describeOwners, requireManage,
+} from './datasetAccess.js';
 
 export const DATASETS_DIR = path.resolve(process.env.ML_DATASETS_DIR || path.join(PYTHON_DIR, 'datasets'));
 const META_FILE = 'ks-dataset.json';
@@ -87,18 +98,25 @@ const walk = async (folder, prefix = '') => {
   return nested.flat();
 };
 
-/** The dataset folder, after checking it exists and belongs to ownerId. */
-const locate = async (ownerId, kind, id) => {
+/**
+ * The dataset folder and its details. `access` is "read" (see it, train on
+ * it, add to it — anyone who can open the tool) or "manage" (change what it
+ * is, or delete it: its creator or an administrator).
+ */
+const locate = async (caller, kind, id, access = 'read') => {
   if (!DATASET_KINDS[kind] || !SAFE_ID.test(String(id || ''))) throw new JobError('Dataset not found.', 404);
   const folder = path.join(rootOf(kind), id);
   const meta = await readMeta(folder);
-  if (!meta || meta.ownerId !== ownerId) throw new JobError('Dataset not found.', 404);
+  if (!meta) throw new JobError('Dataset not found.', 404);
+  if (access === 'manage') requireManage(caller, meta.ownerId);
   return { folder, meta };
 };
 
-const publicMeta = ({ ownerId: _owner, ...meta }) => meta;
+/** What the page sees: everything but the record of who added which file. */
+const publicMeta = ({ addedBy: _addedBy, recordedBy: _recordedBy, ...meta }) => meta;
 
-export const listDatasets = async (ownerId, kind) => {
+/** Every dataset of `kind`, newest first, each saying who made it and whether the caller may manage it. */
+export const listDatasets = async (caller, kind) => {
   let names = [];
   try {
     names = await fs.readdir(rootOf(kind));
@@ -107,13 +125,14 @@ export const listDatasets = async (ownerId, kind) => {
   }
   const metas = await Promise.all(names.filter((name) => SAFE_ID.test(name))
     .map((name) => readMeta(path.join(rootOf(kind), name))));
-  return metas
-    .filter((meta) => meta && meta.ownerId === ownerId)
+  return describeOwners(caller, metas
+    .filter(Boolean)
     .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
-    .map(publicMeta);
+    .map(publicMeta));
 };
 
-export const createDataset = async (ownerId, kind, fields) => {
+export const createDataset = async (caller, kind, fields) => {
+  const ownerId = asCaller(caller).id;
   if (!DATASET_KINDS[kind]) throw new JobError('Unknown dataset type.');
   const name = String(fields.name || '').trim().slice(0, 120);
   if (!name) throw new JobError('A dataset name is required.');
@@ -127,21 +146,27 @@ export const createDataset = async (ownerId, kind, fields) => {
 };
 
 /** The dataset, with every file the server holds (path and size). */
-export const getDataset = async (ownerId, kind, id) => {
-  const { folder, meta } = await locate(ownerId, kind, id);
+export const getDataset = async (caller, kind, id) => {
+  const { folder, meta } = await locate(caller, kind, id);
   const files = await walk(path.join(folder, DATASET_KINDS[kind].folder));
-  return { ...publicMeta(meta), files };
+  return { ...(await describeOwner(caller, publicMeta(meta))), files };
 };
 
-export const datasetFolder = async (ownerId, kind, id) => (await locate(ownerId, kind, id)).folder;
+export const datasetFolder = async (caller, kind, id) => (await locate(caller, kind, id)).folder;
+
+/** Who added each file, for files someone other than the creator uploaded. */
+const addedByOf = (meta) => (meta.addedBy && typeof meta.addedBy === 'object' ? meta.addedBy : {});
 
 /**
  * Move uploaded temp files into the dataset. `uploads` are multer files;
- * `paths` gives each one's relative path, in the same order.
+ * `paths` gives each one's relative path, in the same order. Someone other
+ * than the creator adds files, and may replace only files they added.
  */
-export const addFiles = async (ownerId, kind, id, uploads, paths) => {
-  const { folder } = await locate(ownerId, kind, id);
+export const addFiles = async (caller, kind, id, uploads, paths) => {
+  const { folder, meta } = await locate(caller, kind, id);
   const { folder: filesFolder, pattern, label } = DATASET_KINDS[kind];
+  const who = asCaller(caller);
+  const manager = canManage(who, meta.ownerId);
   try {
     if (!Array.isArray(paths) || paths.length !== uploads.length) {
       throw new JobError('Every uploaded file needs its path.');
@@ -151,6 +176,14 @@ export const addFiles = async (ownerId, kind, id, uploads, paths) => {
       if (!pattern.test(relative)) throw new JobError(`${relative} is not a ${label}.`);
       return relative;
     });
+    const addedBy = addedByOf(meta);
+    if (!manager) {
+      for (const relative of targets) {
+        if (addedBy[relative] !== who.id && await exists(path.join(folder, filesFolder, ...relative.split('/')))) {
+          throw new JobError(`${relative} is already in this dataset, added by someone else. Rename your file and try again.`, 409);
+        }
+      }
+    }
     for (const [index, upload] of uploads.entries()) {
       const target = path.join(folder, filesFolder, ...targets[index].split('/'));
       await fs.mkdir(path.dirname(target), { recursive: true });
@@ -159,20 +192,45 @@ export const addFiles = async (ownerId, kind, id, uploads, paths) => {
         await fs.copyFile(upload.path, target);
       });
     }
+    // The creator's own files carry no mark; anyone else's are recorded as theirs.
+    if (!manager) {
+      await writeMeta(folder, { ...meta, addedBy: { ...addedBy, ...Object.fromEntries(targets.map((file) => [file, who.id])) } });
+    }
     return { saved: targets.length };
   } finally {
     await Promise.all(uploads.map((upload) => fs.rm(upload.path, { force: true })));
   }
 };
 
-/** Remove files the page no longer has, so the server copy mirrors its folder. */
-const prune = async (folder, kind, keep) => {
+/**
+ * Remove files the page no longer has, so the server copy mirrors its folder.
+ * With `only`, just the files it allows are candidates: someone other than
+ * the creator mirrors only the files they added.
+ */
+const prune = async (folder, kind, keep, only = null) => {
   const filesFolder = path.join(folder, DATASET_KINDS[kind].folder);
   const wanted = new Set(keep);
   const present = await walk(filesFolder);
-  await Promise.all(present
-    .filter((file) => !wanted.has(file.path))
-    .map((file) => fs.rm(path.join(filesFolder, ...file.path.split('/')), { force: true })));
+  const gone = present.filter((file) => !wanted.has(file.path) && (!only || only(file.path)));
+  await Promise.all(gone.map((file) => fs.rm(path.join(filesFolder, ...file.path.split('/')), { force: true })));
+  return gone.map((file) => file.path);
+};
+
+/**
+ * The part of an upload's finishing step that depends on who sends it. The
+ * creator's (or an administrator's) upload mirrors the page's folder. Anyone
+ * else's removes only their own files the page no longer has, and may write
+ * labels or transcripts only for files they added: `mayWrite(path)`.
+ */
+const contribution = async (caller, folder, kind, meta, keep) => {
+  const who = asCaller(caller);
+  const manager = canManage(who, meta.ownerId);
+  const addedBy = { ...addedByOf(meta) };
+  const only = manager ? null : (file) => addedBy[file] === who.id;
+  if (Array.isArray(keep)) {
+    for (const file of await prune(folder, kind, keep.map(safeRelativePath), only)) delete addedBy[file];
+  }
+  return { manager, addedBy, mayWrite: only || (() => true) };
 };
 
 const summarise = async (folder, kind) => {
@@ -186,20 +244,36 @@ const summarise = async (folder, kind) => {
  * background sample; an image with no entry at all is unlabelled and is left
  * out of training.
  */
-export const saveYoloLabels = async (ownerId, id, { classes, task, labels, keep }) => {
-  const { folder, meta } = await locate(ownerId, 'yolo', id);
+export const saveYoloLabels = async (caller, id, { classes, task, labels, keep }) => {
+  const { folder, meta } = await locate(caller, 'yolo', id);
   const names = (Array.isArray(classes) ? classes : []).map((name) => String(name).trim()).filter(Boolean);
   if (!names.length) throw new JobError('The dataset needs at least one class.');
   if (!['detect', 'segment'].includes(task)) throw new JobError('The task must be detect or segment.');
   if (!labels || typeof labels !== 'object') throw new JobError('Labels are missing.');
+  // Class ids in the label lines are positions in the class list, so an
+  // addition to someone else's dataset has to use the same list.
+  if (!canManage(caller, meta.ownerId) && meta.complete && Array.isArray(meta.classes)) {
+    if (meta.task && meta.task !== task) throw new JobError(`This is a ${meta.task} dataset; your labels are for ${task}.`);
+    if (meta.classes.join('\n') !== names.join('\n')) {
+      throw new JobError(`This dataset's classes are ${meta.classes.join(', ')}, in that order; label your images with the same classes to add them.`);
+    }
+  }
 
-  if (Array.isArray(keep)) await prune(folder, 'yolo', keep.map(safeRelativePath));
+  const { manager, addedBy, mayWrite } = await contribution(caller, folder, 'yolo', meta, keep);
+  const labelFile = (image) => path.join(folder, 'labels', ...`${image.replace(/\.[^./]+$/, '')}.txt`.split('/'));
 
   const labelsFolder = path.join(folder, 'labels');
-  await fs.rm(labelsFolder, { recursive: true, force: true });
-  let labelled = 0;
+  if (manager) {
+    await fs.rm(labelsFolder, { recursive: true, force: true });
+  } else {
+    // Only the caller's own images are relabelled; their old labels go first,
+    // and so do labels left by images the caller removed.
+    const mine = Object.keys(addedByOf(meta)).filter((file) => addedByOf(meta)[file] === asCaller(caller).id);
+    await Promise.all(mine.map((file) => fs.rm(labelFile(file), { force: true })));
+  }
   for (const [image, text] of Object.entries(labels)) {
     const relative = safeRelativePath(image);
+    if (!mayWrite(relative)) continue;
     if (!(await exists(path.join(folder, 'images', ...relative.split('/'))))) continue;
     const lines = String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
     // Each line: a class id in range, then only numbers between 0 and 1.
@@ -209,32 +283,49 @@ export const saveYoloLabels = async (ownerId, id, { classes, task, labels, keep 
         && values.every((value) => Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1);
     });
     if (!valid) throw new JobError(`The labels for ${relative} are not valid YOLO lines.`);
-    const target = path.join(labelsFolder, ...`${relative.replace(/\.[^./]+$/, '')}.txt`.split('/'));
+    const target = labelFile(relative);
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, lines.length ? `${lines.join('\n')}\n` : '', 'utf8');
-    labelled += 1;
   }
+  const labelled = (await walk(labelsFolder)).length;
 
   const updated = {
-    ...meta, classes: names, task, labelled, ...(await summarise(folder, 'yolo')), complete: true,
-    updatedAt: new Date().toISOString(),
+    ...meta, addedBy, classes: manager ? names : meta.classes || names, task: manager ? task : meta.task || task,
+    labelled, ...(await summarise(folder, 'yolo')), complete: true, updatedAt: new Date().toISOString(),
   };
   await writeMeta(folder, updated);
   return publicMeta(updated);
 };
 
 /** Finish a speech upload: the language and one transcript per clip. */
-export const saveTranscripts = async (ownerId, id, { language, transcripts, keep }) => {
-  const { folder, meta } = await locate(ownerId, 'speech', id);
+export const saveTranscripts = async (caller, id, { language, transcripts, keep }) => {
+  const { folder, meta } = await locate(caller, 'speech', id);
   const code = String(language || '').trim();
   if (!/^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$/.test(code)) throw new JobError('Pick the language spoken in the clips.');
   if (!transcripts || typeof transcripts !== 'object') throw new JobError('Transcripts are missing.');
+  if (!canManage(caller, meta.ownerId) && meta.complete && meta.language && meta.language !== code) {
+    throw new JobError(`This dataset is in "${meta.language}"; your clips are marked "${code}".`);
+  }
 
-  if (Array.isArray(keep)) await prune(folder, 'speech', keep.map(safeRelativePath));
+  const { manager, addedBy, mayWrite } = await contribution(caller, folder, 'speech', meta, keep);
 
+  // Someone else's addition keeps every transcript but those of their own clips.
   const lines = [];
+  if (!manager) {
+    let previous = [];
+    try {
+      previous = (await fs.readFile(path.join(folder, 'metadata.jsonl'), 'utf8')).split('\n').filter(Boolean);
+    } catch { /* none yet */ }
+    for (const line of previous) {
+      try {
+        const file = String(JSON.parse(line).audio || '').replace(/^audio\//, '');
+        if (!mayWrite(file) && await exists(path.join(folder, 'audio', ...file.split('/')))) lines.push(line);
+      } catch { /* a broken line is dropped */ }
+    }
+  }
   for (const [clip, text] of Object.entries(transcripts)) {
     const relative = safeRelativePath(clip);
+    if (!mayWrite(relative)) continue;
     const cleaned = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 2000);
     if (!cleaned || !(await exists(path.join(folder, 'audio', ...relative.split('/'))))) continue;
     lines.push(JSON.stringify({ audio: `audio/${relative}`, text: cleaned }));
@@ -242,7 +333,7 @@ export const saveTranscripts = async (ownerId, id, { language, transcripts, keep
   await fs.writeFile(path.join(folder, 'metadata.jsonl'), lines.length ? `${lines.join('\n')}\n` : '', 'utf8');
 
   const updated = {
-    ...meta, language: code, transcribed: lines.length, ...(await summarise(folder, 'speech')), complete: true,
+    ...meta, addedBy, language: manager ? code : meta.language || code, transcribed: lines.length, ...(await summarise(folder, 'speech')), complete: true,
     updatedAt: new Date().toISOString(),
   };
   await writeMeta(folder, updated);
@@ -291,10 +382,16 @@ const cleanScript = (script) => {
  * Save a voice dataset's details and script, and bring the rest in line with
  * it: recordings of lines no longer in the script are deleted, and
  * metadata.jsonl lists every recorded line that has text. `fields` may hold
- * any of name, language, speaker and script; the rest are kept.
+ * any of name, language, speaker and script; the rest are kept. Changing any
+ * of them is for the dataset's creator or an administrator.
  */
-export const saveVoiceScript = async (ownerId, id, fields = {}) => {
-  const { folder, meta } = await locate(ownerId, 'voice', id);
+export const saveVoiceScript = async (caller, id, fields = {}) => {
+  const changes = ['name', 'language', 'speaker', 'script'].some((key) => fields[key] !== undefined);
+  const { folder, meta } = await locate(caller, 'voice', id, changes ? 'manage' : 'read');
+  return rewriteVoice(folder, meta, fields);
+};
+
+const rewriteVoice = async (folder, meta, fields = {}) => {
   const next = { ...meta };
   if (fields.name !== undefined) {
     next.name = String(fields.name || '').trim().slice(0, 120);
@@ -312,11 +409,13 @@ export const saveVoiceScript = async (ownerId, id, fields = {}) => {
   const audioFolder = path.join(folder, 'audio');
   await prune(folder, 'voice', next.script.map((line) => `${line.id}.wav`));
   const lines = [];
+  const recordedBy = {};
   let seconds = 0;
   let recorded = 0;
   for (const line of next.script) {
     const file = path.join(audioFolder, `${line.id}.wav`);
     if (!(await exists(file))) continue;
+    if (next.recordedBy?.[line.id]) recordedBy[line.id] = next.recordedBy[line.id];
     recorded += 1;
     seconds += await wavSeconds(file);
     if (line.text) lines.push(JSON.stringify({ audio: `audio/${line.id}.wav`, text: line.text }));
@@ -325,6 +424,7 @@ export const saveVoiceScript = async (ownerId, id, fields = {}) => {
 
   const updated = {
     ...next,
+    recordedBy,
     lines: next.script.length,
     recorded,
     transcribed: lines.length,
@@ -340,26 +440,31 @@ export const saveVoiceScript = async (ownerId, id, fields = {}) => {
 /** A voice dataset for the list: everything but the script itself. */
 export const voiceSummary = ({ script: _script, ...meta }) => meta;
 
-export const createVoiceDataset = async (ownerId, fields = {}) => {
-  const dataset = await createDataset(ownerId, 'voice', fields);
+export const createVoiceDataset = async (caller, fields = {}) => {
+  const dataset = await createDataset(caller, 'voice', fields);
   try {
-    return await saveVoiceScript(ownerId, dataset.id, {
+    return await saveVoiceScript(caller, dataset.id, {
       language: fields.language, speaker: fields.speaker, script: fields.script || [],
     });
   } catch (error) {
-    await deleteDataset(ownerId, 'voice', dataset.id);
+    await deleteDataset(caller, 'voice', dataset.id);
     throw error;
   }
 };
 
-/** A voice dataset with the length of each line's recording (0: not recorded). */
-export const getVoiceDataset = async (ownerId, id) => {
-  const { folder, meta } = await locate(ownerId, 'voice', id);
+/**
+ * A voice dataset with the length of each line's recording (0: not
+ * recorded), and whether the caller may record it again or delete it: a
+ * line recorded by someone else is theirs.
+ */
+export const getVoiceDataset = async (caller, id) => {
+  const { folder, meta } = await locate(caller, 'voice', id);
   const script = await Promise.all((meta.script || []).map(async (line) => {
     const file = path.join(folder, 'audio', `${line.id}.wav`);
-    return { ...line, seconds: (await exists(file)) ? await wavSeconds(file) : 0 };
+    const seconds = (await exists(file)) ? await wavSeconds(file) : 0;
+    return { ...line, seconds, canChange: !seconds || canChangeItem(caller, meta.ownerId, meta.recordedBy?.[line.id]) };
   }));
-  return { ...publicMeta(meta), script };
+  return { ...(await describeOwner(caller, publicMeta(meta))), script };
 };
 
 const clipFile = (folder, lineId) => {
@@ -367,11 +472,19 @@ const clipFile = (folder, lineId) => {
   return path.join(folder, 'audio', `${lineId}.wav`);
 };
 
-/** Store (or replace) the recording of one line: `upload` is a multer file holding a WAV. */
-export const saveVoiceClip = async (ownerId, id, lineId, upload) => {
+/**
+ * Store (or replace) the recording of one line: `upload` is a multer file
+ * holding a WAV. Anyone may record a line nobody has recorded; a recording
+ * can be replaced by whoever made it, the creator or an administrator.
+ */
+export const saveVoiceClip = async (caller, id, lineId, upload) => {
   try {
-    const { folder, meta } = await locate(ownerId, 'voice', id);
+    const { folder, meta } = await locate(caller, 'voice', id);
     if (!(meta.script || []).some((line) => line.id === lineId)) throw new JobError('That line does not exist.', 404);
+    const taken = await exists(clipFile(folder, lineId));
+    if (taken && !canChangeItem(caller, meta.ownerId, meta.recordedBy?.[lineId])) {
+      throw new JobError('Someone else recorded this line; only they, the dataset\'s creator or an administrator can record it again.', 403);
+    }
     if (!upload) throw new JobError('No recording was sent.');
     if (upload.size > MAX_CLIP_BYTES) throw new JobError('That recording is too long.');
     const handle = await fs.open(upload.path, 'r');
@@ -384,23 +497,31 @@ export const saveVoiceClip = async (ownerId, id, lineId, upload) => {
     const target = clipFile(folder, lineId);
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.copyFile(upload.path, target);
-    await saveVoiceScript(ownerId, id);
-    return getVoiceDataset(ownerId, id);
+    // The creator's recordings carry no mark; anyone else's are recorded as theirs.
+    const who = asCaller(caller);
+    const recordedBy = { ...(meta.recordedBy || {}) };
+    if (who.id === meta.ownerId) delete recordedBy[lineId];
+    else if (!taken || recordedBy[lineId]) recordedBy[lineId] = recordedBy[lineId] || who.id;
+    await rewriteVoice(folder, { ...meta, recordedBy });
+    return getVoiceDataset(caller, id);
   } finally {
     if (upload) await fs.rm(upload.path, { force: true });
   }
 };
 
-export const deleteVoiceClip = async (ownerId, id, lineId) => {
-  const { folder } = await locate(ownerId, 'voice', id);
+export const deleteVoiceClip = async (caller, id, lineId) => {
+  const { folder, meta } = await locate(caller, 'voice', id);
+  if (!canChangeItem(caller, meta.ownerId, meta.recordedBy?.[lineId])) {
+    throw new JobError('Someone else recorded this line; only they, the dataset\'s creator or an administrator can delete it.', 403);
+  }
   await fs.rm(clipFile(folder, lineId), { force: true });
-  await saveVoiceScript(ownerId, id);
-  return getVoiceDataset(ownerId, id);
+  await rewriteVoice(folder, meta);
+  return getVoiceDataset(caller, id);
 };
 
 /** The path of one line's recording, for streaming it back to the page. */
-export const voiceClipPath = async (ownerId, id, lineId) => {
-  const { folder } = await locate(ownerId, 'voice', id);
+export const voiceClipPath = async (caller, id, lineId) => {
+  const { folder } = await locate(caller, 'voice', id);
   const file = clipFile(folder, lineId);
   if (!(await exists(file))) throw new JobError('That line has not been recorded.', 404);
   return file;
@@ -437,10 +558,16 @@ const cleanCommands = (commands) => {
 /**
  * Save a command set's details and commands, and bring the rest in line:
  * recordings of commands no longer in the set are deleted, and metadata.jsonl
- * (what training reads) lists every recording that is left.
+ * (what training reads) lists every recording that is left. Changing the
+ * name, language or commands is for the set's creator or an administrator.
  */
-export const saveCommandSet = async (ownerId, id, fields = {}) => {
-  const { folder, meta } = await locate(ownerId, 'command', id);
+export const saveCommandSet = async (caller, id, fields = {}) => {
+  const changes = ['name', 'language', 'commands'].some((key) => fields[key] !== undefined);
+  const { folder, meta } = await locate(caller, 'command', id, changes ? 'manage' : 'read');
+  return rewriteCommands(folder, meta, fields);
+};
+
+const rewriteCommands = async (folder, meta, fields = {}) => {
   const next = { ...meta };
   if (fields.name !== undefined) {
     next.name = String(fields.name || '').trim().slice(0, 120);
@@ -488,29 +615,38 @@ export const saveCommandSet = async (ownerId, id, fields = {}) => {
 /** A command set for a list: everything but its commands and recordings. */
 export const commandSetSummary = ({ commands: _commands, clips: _clips, ...meta }) => meta;
 
-export const createCommandSet = async (ownerId, fields = {}) => {
-  const dataset = await createDataset(ownerId, 'command', fields);
+export const createCommandSet = async (caller, fields = {}) => {
+  const dataset = await createDataset(caller, 'command', fields);
   try {
-    return await saveCommandSet(ownerId, dataset.id, { language: fields.language, commands: fields.commands || [] });
+    return await saveCommandSet(caller, dataset.id, { language: fields.language, commands: fields.commands || [] });
   } catch (error) {
-    await deleteDataset(ownerId, 'command', dataset.id);
+    await deleteDataset(caller, 'command', dataset.id);
     throw error;
   }
 };
 
-/** A command set with its commands, and its recordings with their lengths. */
-export const getCommandSet = async (ownerId, id) => {
-  const { folder, meta } = await locate(ownerId, 'command', id);
+/**
+ * A command set with its commands, and its recordings with their lengths,
+ * who made each (byName) and whether the caller may delete it.
+ */
+export const getCommandSet = async (caller, id) => {
+  const { folder, meta } = await locate(caller, 'command', id);
+  const described = await describeOwner(caller, publicMeta(meta));
+  const names = new Map((await describeOwners(caller, [...new Set((meta.clips || []).map((clip) => clip.by || meta.ownerId))]
+    .map((ownerId) => ({ ownerId })))).map((item) => [item.ownerId, item.ownerName]));
   const clips = await Promise.all((meta.clips || []).map(async (clip) => ({
-    ...clip, seconds: await wavSeconds(path.join(folder, 'audio', `${clip.id}.wav`)),
+    ...clip,
+    seconds: await wavSeconds(path.join(folder, 'audio', `${clip.id}.wav`)),
+    byName: names.get(clip.by || meta.ownerId) || '',
+    canDelete: canChangeItem(caller, meta.ownerId, clip.by),
   })));
-  return { ...publicMeta(meta), commands: meta.commands || [], clips };
+  return { ...described, commands: meta.commands || [], clips };
 };
 
-/** Add a recording of `command` saying `text`; `upload` is a multer file holding a WAV. */
-export const addCommandClip = async (ownerId, id, { command, text }, upload) => {
+/** Add a recording of `command` saying `text`; `upload` is a multer file holding a WAV. Anyone may add one. */
+export const addCommandClip = async (caller, id, { command, text }, upload) => {
   try {
-    const { folder, meta } = await locate(ownerId, 'command', id);
+    const { folder, meta } = await locate(caller, 'command', id);
     const target = (meta.commands || []).find((item) => item.id === command);
     if (!target) throw new JobError('That command is not in this set.', 404);
     if ((meta.clips || []).length >= MAX_CLIPS) throw new JobError(`A command set may hold at most ${MAX_CLIPS} recordings.`);
@@ -528,23 +664,30 @@ export const addCommandClip = async (ownerId, id, { command, text }, upload) => 
     const file = path.join(folder, 'audio', `${clipId}.wav`);
     await fs.mkdir(path.dirname(file), { recursive: true });
     await fs.copyFile(upload.path, file);
-    await saveCommandSet(ownerId, id, { clips: [...(meta.clips || []), { id: clipId, command, text: spoken }] });
-    return getCommandSet(ownerId, id);
+    const who = asCaller(caller);
+    const clip = { id: clipId, command, text: spoken, ...(who.id !== meta.ownerId ? { by: who.id } : {}) };
+    await rewriteCommands(folder, meta, { clips: [...(meta.clips || []), clip] });
+    return getCommandSet(caller, id);
   } finally {
     if (upload) await fs.rm(upload.path, { force: true });
   }
 };
 
-export const deleteCommandClip = async (ownerId, id, clipId) => {
-  const { meta } = await locate(ownerId, 'command', id);
-  if (!CLIP_ID.test(String(clipId || ''))) throw new JobError('That recording does not exist.', 404);
-  await saveCommandSet(ownerId, id, { clips: (meta.clips || []).filter((clip) => clip.id !== clipId) });
-  return getCommandSet(ownerId, id);
+/** Delete a recording: whoever made it, the set's creator or an administrator. */
+export const deleteCommandClip = async (caller, id, clipId) => {
+  const { folder, meta } = await locate(caller, 'command', id);
+  const clip = (meta.clips || []).find((item) => item.id === clipId);
+  if (!CLIP_ID.test(String(clipId || '')) || !clip) throw new JobError('That recording does not exist.', 404);
+  if (!canChangeItem(caller, meta.ownerId, clip.by)) {
+    throw new JobError('Someone else made this recording; only they, the set\'s creator or an administrator can delete it.', 403);
+  }
+  await rewriteCommands(folder, meta, { clips: (meta.clips || []).filter((item) => item.id !== clipId) });
+  return getCommandSet(caller, id);
 };
 
 /** The path of one recording, for playing it back. */
-export const commandClipPath = async (ownerId, id, clipId) => {
-  const { folder, meta } = await locate(ownerId, 'command', id);
+export const commandClipPath = async (caller, id, clipId) => {
+  const { folder, meta } = await locate(caller, 'command', id);
   if (!CLIP_ID.test(String(clipId || '')) || !(meta.clips || []).some((clip) => clip.id === clipId)) {
     throw new JobError('That recording does not exist.', 404);
   }
@@ -552,12 +695,13 @@ export const commandClipPath = async (ownerId, id, clipId) => {
 };
 
 /*
- * Changes to one command set, one at a time: each rewrites its list of
- * recordings, so two recordings saved at once must not both start from the
- * same list.
+ * Changes to one dataset, one at a time: each rewrites its details (a command
+ * set's list of recordings, who added which file), so two saved at once must
+ * not both start from the same details. Now that datasets are shared, two
+ * people can well add to one at the same moment.
  */
 const commandLocks = new Map();
-export const withCommandSetLock = (id, work) => {
+export const withDatasetLock = (id, work) => {
   const previous = commandLocks.get(id) || Promise.resolve();
   const next = previous.then(work, work);
   const settled = next.catch(() => {});
@@ -565,9 +709,10 @@ export const withCommandSetLock = (id, work) => {
   settled.then(() => { if (commandLocks.get(id) === settled) commandLocks.delete(id); });
   return next;
 };
+export const withCommandSetLock = withDatasetLock;
 
-export const deleteDataset = async (ownerId, kind, id) => {
-  const { folder } = await locate(ownerId, kind, id);
+export const deleteDataset = async (caller, kind, id) => {
+  const { folder } = await locate(caller, kind, id, 'manage');
   await fs.rm(folder, { recursive: true, force: true });
 };
 

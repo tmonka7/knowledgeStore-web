@@ -9,6 +9,7 @@ import {
 import DeviceSelect from '../ml/DeviceSelect';
 import JobView, { MONO } from '../ml/JobView';
 import ModelActions from '../ml/ModelActions';
+import OwnerTag from '../ml/OwnerTag';
 import TestCard, { Side } from '../ml/TestCard';
 import useMlArea from '../ml/useMlArea';
 import { formatBytes } from '../../lib/mlUpload';
@@ -107,7 +108,11 @@ export default function SpeechTrainingPanel() {
   ];
 
   const datasetColumns = [
-    { title: t('trainDataset'), dataIndex: 'name' },
+    {
+      title: t('trainDataset'),
+      key: 'name',
+      render: (_, item) => <Space size={6} wrap>{item.name}<OwnerTag item={item} /></Space>,
+    },
     {
       title: t('mlSpokenLanguage'),
       key: 'language',
@@ -118,7 +123,8 @@ export default function SpeechTrainingPanel() {
     {
       key: 'actions',
       width: 60,
-      render: (_, item) => (
+      // Datasets are shared; only their creator (or an administrator) deletes one.
+      render: (_, item) => item.canManage && (
         <Popconfirm title={t('mlDeleteDataset')} onConfirm={() => area.removeDataset(item)} okButtonProps={{ danger: true }}>
           <Button size="small" danger icon={<DeleteOutlined />} />
         </Popconfirm>

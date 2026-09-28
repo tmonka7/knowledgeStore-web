@@ -13,43 +13,46 @@ import {
 import {
   JobError, cancelJob, getJob, listJobs, probeDevices,
 } from '../helpers/translationJobs.js';
+import { callerOf } from '../helpers/datasetAccess.js';
+import { withDatasetLock } from '../helpers/mlDatasets.js';
 
 export const listVoices = async (req, res) => res.json({ models: await trainedVoices(req.user.sub) });
 /** GET /tools/voice/training-datasets — voice datasets and Speech to Text datasets, for Train voice. */
-export const listTrainingDatasets = async (req, res) => res.json({ datasets: await trainingDatasets(req.user.sub) });
+export const listTrainingDatasets = async (req, res) => res.json({ datasets: await trainingDatasets(callerOf(req)) });
 
 /*
  * Voice datasets — the Datasets tab: a script of lines and a recording of
- * each, made on the page. Personal, like Speech to Text datasets, and managed
- * with the page ('text-to-speech:view'); training on one needs ':train'.
+ * each, made on the page. Shared, like every dataset: everyone with the page
+ * ('text-to-speech:view') sees them and records lines; the creator (or an
+ * administrator) changes the script. Training on one needs ':train'.
  */
 export const listVoiceDatasets = async (req, res) => res.json({
-  datasets: (await listDatasets(req.user.sub, 'voice')).map(voiceSummary),
+  datasets: (await listDatasets(callerOf(req), 'voice')).map(voiceSummary),
 });
 /** POST /tools/voice/datasets — { name, language, speaker, script: [{ id, text }] }. */
 export const createVoiceDatasetRecord = async (req, res) => res.status(201).json({
-  dataset: await createVoiceDataset(req.user.sub, req.body || {}),
+  dataset: await createVoiceDataset(callerOf(req), req.body || {}),
 });
-export const getVoiceDatasetRecord = async (req, res) => res.json({ dataset: await getVoiceDataset(req.user.sub, req.params.id) });
+export const getVoiceDatasetRecord = async (req, res) => res.json({ dataset: await getVoiceDataset(callerOf(req), req.params.id) });
 /** PUT /tools/voice/datasets/:id — any of { name, language, speaker, script }. Recordings of removed lines go. */
 export const updateVoiceDataset = async (req, res) => {
-  await saveVoiceScript(req.user.sub, req.params.id, req.body || {});
-  res.json({ dataset: await getVoiceDataset(req.user.sub, req.params.id) });
+  await withDatasetLock(req.params.id, () => saveVoiceScript(callerOf(req), req.params.id, req.body || {}));
+  res.json({ dataset: await getVoiceDataset(callerOf(req), req.params.id) });
 };
 export const deleteVoiceDataset = async (req, res) => {
-  await deleteDataset(req.user.sub, 'voice', req.params.id);
+  await withDatasetLock(req.params.id, () => deleteDataset(callerOf(req), 'voice', req.params.id));
   res.json({ ok: true });
 };
 /** PUT /tools/voice/datasets/:id/clips/:line — multipart "audio", a WAV: the recording of that line. */
 export const putVoiceClip = async (req, res) => res.json({
-  dataset: await saveVoiceClip(req.user.sub, req.params.id, req.params.line, req.file),
+  dataset: await withDatasetLock(req.params.id, () => saveVoiceClip(callerOf(req), req.params.id, req.params.line, req.file)),
 });
 export const removeVoiceClip = async (req, res) => res.json({
-  dataset: await deleteVoiceClip(req.user.sub, req.params.id, req.params.line),
+  dataset: await withDatasetLock(req.params.id, () => deleteVoiceClip(callerOf(req), req.params.id, req.params.line)),
 });
 export const getVoiceClip = async (req, res) => {
   res.type('audio/wav');
-  res.sendFile(await voiceClipPath(req.user.sub, req.params.id, req.params.line));
+  res.sendFile(await voiceClipPath(callerOf(req), req.params.id, req.params.line));
 };
 
 export const removeVoice = async (req, res) => {
