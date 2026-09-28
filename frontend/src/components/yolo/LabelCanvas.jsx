@@ -14,6 +14,11 @@ import { boundsOf, hitTest } from '../../lib/yoloDataset';
  * Shapes arrive and leave normalised to the image (0..1). Nothing here stores
  * a pixel coordinate, so the same labels come back identically on a different
  * monitor or at a different window size.
+ *
+ * With `samMode` on, the pointer asks SAM2 instead of drawing: a click is a
+ * point on the object and a drag a box around it, handed to `onSamPrompt`.
+ * Shapes SAM2 found on its own and nobody has looked at yet (`auto`) are
+ * drawn dashed.
  */
 
 /** Below this, a drag is a click that slipped rather than a box. */
@@ -62,6 +67,8 @@ export default function LabelCanvas({
   onSelect,
   onChange,
   onImageLoaded,
+  samMode = false,
+  onSamPrompt,
 }) {
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
@@ -122,6 +129,7 @@ export default function LabelCanvas({
       context.strokeStyle = colour;
       context.fillStyle = isSelected ? `${colour.slice(0, -1)} / 28%)` : `${colour.slice(0, -1)} / 14%)`;
 
+      context.setLineDash(shape.auto ? [6, 4] : []);
       context.beginPath();
       if (shape.type === 'box') {
         context.rect(toStageX(shape.x), toStageY(shape.y), shape.w * view.width, shape.h * view.height);
@@ -134,6 +142,7 @@ export default function LabelCanvas({
       }
       context.fill();
       context.stroke();
+      context.setLineDash([]);
 
       // The class name sits above the shape, or inside it when the shape is
       // against the top edge and there is no room above.
@@ -174,7 +183,7 @@ export default function LabelCanvas({
     context.lineWidth = 2;
     context.strokeStyle = colorForClass(viewRef.current.classId);
 
-    if (draft.kind === 'box') {
+    if (draft.kind === 'box' || draft.kind === 'sam') {
       const box = boxFromPoints(draft.startX, draft.startY, draft.x, draft.y);
       context.strokeRect(toStageX(box.x), toStageY(box.y), box.w * view.width, box.h * view.height);
     }
@@ -286,6 +295,14 @@ export default function LabelCanvas({
     if (!position) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
 
+    // SAM2: every press is a prompt — a click, or the start of a box.
+    if (samMode) {
+      draftRef.current = {
+        kind: 'sam', startX: position.x, startY: position.y, x: position.x, y: position.y,
+      };
+      return;
+    }
+
     if (shapeKind === 'polygon') {
       const draft = draftRef.current;
 
@@ -355,7 +372,7 @@ export default function LabelCanvas({
     }
     if (!draft) return;
 
-    if (draft.kind === 'box') {
+    if (draft.kind === 'box' || draft.kind === 'sam') {
       draft.x = position.x;
       draft.y = position.y;
       draw();
@@ -401,6 +418,17 @@ export default function LabelCanvas({
     // A polygon is finished by closing it, not by lifting the button, so the
     // gesture survives pointerup untouched.
     if (!draft || draft.kind === 'polygon') return;
+
+    if (draft.kind === 'sam') {
+      draftRef.current = null;
+      draw();
+      const box = boxFromPoints(draft.startX, draft.startY, draft.x, draft.y);
+      // A drag too small to be a box was a click that slipped: a point.
+      onSamPrompt?.(box.w < MIN_SIZE * 3 || box.h < MIN_SIZE * 3
+        ? { points: [[draft.startX, draft.startY, 1]] }
+        : { box: [box.x, box.y, box.x + box.w, box.y + box.h] });
+      return;
+    }
 
     if (draft.kind === 'box') {
       const box = boxFromPoints(draft.startX, draft.startY, draft.x, draft.y);
@@ -478,6 +506,7 @@ export default function LabelCanvas({
     <canvas
       ref={canvasRef}
       className="yolo-canvas"
+      style={samMode ? { cursor: 'crosshair' } : undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

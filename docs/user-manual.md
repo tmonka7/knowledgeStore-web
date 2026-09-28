@@ -911,6 +911,42 @@ on a folder of images, and Speech to Text types a transcript for each clip in
 a folder of 16 kHz mono WAV files. To train a model, the data has to be on the
 server.
 
+### Labelling YOLO images with SAM2
+
+On the YOLO **Labelling** tab, SAM2 (Meta's Segment Anything 2, run on the
+server) draws outlines for you. Two buttons sit above the image:
+
+- **SAM2: click an object** — while it is on, click an object and SAM2
+  outlines it; or drag a box roughly around an object and SAM2 fits the shape
+  to it. The shape gets the class selected in **Classes** — a polygon for
+  segmentation, a box for detection. Turn it off to select, move or draw
+  shapes by hand.
+- **Detect regions** — SAM2 finds every region in the image (people, cars,
+  signs, trees, the road…) and adds them dashed, marked *SAM2 · unreviewed*,
+  with the selected class. Objects you have already labelled are not added
+  again. Keep the right ones and throw the rest away: select a shape and pick
+  its class (click it in **Classes**, or press its number) to keep it, or
+  press **Keep all**; **Discard … unreviewed** removes the ones left.
+
+Picking a class while a shape is selected now changes that shape's class, for
+any shape, not just SAM2's.
+
+Only the image on screen is sent to the server, scaled down to 1024 pixels,
+and nothing is kept there. The first click on an image takes a second or two
+(SAM2 reads the whole image once); later clicks on it take a fraction of a
+second. **Detect regions** takes a few seconds to about half a minute on a
+server without a GPU, depending on how busy the picture is.
+
+The buttons are greyed out until SAM2 is installed on the server (an
+administrator, once):
+
+```
+python backend/python/download_models.py sam2.1_t
+```
+
+`sam2.1_s`, `sam2.1_b` and `sam2.1_l` are larger and draw closer outlines, and
+slower; the first one on disk is used. SAM2 is Apache-2.0 licensed.
+
 ### Saving a dataset to the server
 
 In the labelling or transcription view, press **Save to server**. Choose

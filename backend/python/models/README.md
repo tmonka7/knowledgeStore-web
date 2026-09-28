@@ -148,6 +148,11 @@ the YOLO page. `whisper-tiny` is OpenAI's Whisper speech-recognition model
 slower), for the Speech to Text page. Each model's `ks-model.json` records
 which page it belongs to (`task`: translation, detection or speech).
 
+`sam2.1_t` (about 80 MB; `sam2.1_s`, `sam2.1_b`, `sam2.1_l` are larger) is
+Meta's SAM 2.1 from the same Ultralytics releases (Apache-2.0), `task` "sam":
+on the YOLO Labelling tab it outlines the object clicked on or finds every
+region in an image (`sam_worker.py`, run through Ultralytics).
+
 Opus-MT models (`en-es`, `en-zh`, …) are small (about 300 MB) and made for one
 direction each. `m2m100` is facebook/m2m100_418M (MIT licence, about 1.9 GB):
 one model for any direction between 100 languages. It is what covers en→ko,

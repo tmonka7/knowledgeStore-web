@@ -35,6 +35,7 @@ import * as voiceTraining from '../controllers/voiceTrainingController.js';
 import * as speechCommand from '../controllers/speechCommandController.js';
 import * as speaker from '../controllers/speakerController.js';
 import * as ocr from '../controllers/ocrController.js';
+import * as sam from '../controllers/samController.js';
 import { requireAuth, requirePermission } from '../helpers/auth.js';
 import { asyncRoute } from '../helpers/asyncRoute.js';
 
@@ -284,5 +285,15 @@ for (const [area, permission] of [['yolo', 'yolo'], ['speech', 'tts']]) {
     router.get(`${base}/ggml-download/:ticket`, asyncRoute(ggmlHandlers.download));
   }
 }
+
+/*
+ * SAM2 on the YOLO Labelling tab: outline the object clicked on, or find every
+ * region in the image being labelled. Labelling comes with the page, so this
+ * needs only 'yolo:view'. The page sends the image scaled to 1024 pixels.
+ */
+const samView = [requireAuth, requirePermission('yolo:view')];
+const samUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 20 * 1024 * 1024, files: 1 } });
+router.get('/tools/yolo/sam/status', ...samView, asyncRoute(sam.status));
+router.post('/tools/yolo/sam', ...samView, samUpload.single('image'), asyncRoute(sam.segment));
 
 export default router;

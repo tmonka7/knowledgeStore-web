@@ -3,14 +3,16 @@ import {
   Alert, Button, Card, Col, Empty, Input, List, Modal, Progress, Row, Select, Space, Tag, Tooltip, Typography, message,
 } from 'antd';
 import {
-  CloudUploadOutlined, DeleteOutlined, DownloadOutlined, FolderOpenOutlined, LeftOutlined, RightOutlined, UndoOutlined,
+  AimOutlined, CheckOutlined, CloudUploadOutlined, DeleteOutlined, DownloadOutlined, FolderOpenOutlined, LeftOutlined,
+  LoadingOutlined, RightOutlined, ScanOutlined, UndoOutlined,
 } from '@ant-design/icons';
 import LabelCanvas from './LabelCanvas';
 import SaveToServerModal from '../ml/SaveToServerModal';
 import { colorForClass } from '../../lib/objectDetector';
 import {
-  TASKS, buildCsv, buildLabelFile, buildYoloZip, datasetSummary, shapeForTask,
+  TASKS, boundsOf, buildCsv, buildLabelFile, buildYoloZip, datasetSummary, shapeForTask,
 } from '../../lib/yoloDataset';
+import { regionToShape, samSegment, samStatus } from '../../lib/samClient';
 import { useLanguage } from '../../i18n';
 
 const { Text } = Typography;
@@ -27,6 +29,12 @@ const { Text } = Typography;
  * The cost of that choice is that the work lives in one tab, so the labels —
  * not the images, which stay on disk — are mirrored into localStorage and
  * matched back up by file name when the same folder is opened again.
+ *
+ * SAM2 on the server (lib/samClient.js) helps draw: with "SAM2: click an
+ * object" on, a click or a box outlines the object as a shape of the selected
+ * class; "Detect regions" finds every region in the image and adds them
+ * dashed, to be kept (pick a class for one, or Keep all) or discarded. Only
+ * the image on screen is sent, scaled down, and only while SAM2 is used.
  */
 
 const IMAGE_PATTERN = /\.(jpe?g|png|bmp|webp|gif|tiff?)$/i;
@@ -56,6 +64,14 @@ const relativeNameOf = (file) => {
   return parts.length ? parts.join('/') : file.name;
 };
 
+/** Overlap of two boxes ({ x, y, w, h }) as a share of their union. */
+const overlapOf = (a, b) => {
+  const w = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const h = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  const shared = w * h;
+  return shared / (a.w * a.h + b.w * b.h - shared || 1);
+};
+
 const readDraft = () => {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
@@ -76,6 +92,14 @@ export default function LabelingTool() {
   const [selectedId, setSelectedId] = useState(null);
   const [newClass, setNewClass] = useState('');
   const [folderName, setFolderName] = useState('');
+  // SAM2: whether the server has it, whether clicks go to it, and what it is doing.
+  const [sam, setSam] = useState({ available: false, message: '' });
+  const [samMode, setSamMode] = useState(false);
+  const [samBusy, setSamBusy] = useState('');
+
+  useEffect(() => {
+    samStatus().then(setSam).catch(() => setSam({ available: false, message: t('samUnavailable') }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const folderInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -206,6 +230,64 @@ export default function LabelingTool() {
     )));
   }, [index]);
 
+  /*
+   * Picking a class also gives it to the selected shape: that is how a shape
+   * drawn with the wrong class, or found by SAM2, gets the right one. A shape
+   * given a class has been looked at, so it is no longer an unreviewed one.
+   */
+  const pickClass = useCallback((position) => {
+    setClassId(position);
+    if (!selectedId) return;
+    setImages((list) => list.map((image, at) => (at !== index ? image : {
+      ...image,
+      visited: true,
+      shapes: image.shapes.map((shape) => (shape.id === selectedId
+        ? { ...shape, classId: position, auto: undefined }
+        : shape)),
+    })));
+  }, [selectedId, index]);
+
+  /**
+   * Put SAM2's shapes on the image they were asked for, which may no longer
+   * be on screen. Found regions (`replaceAuto`) replace the last unreviewed
+   * ones, and leave out any that mostly cover a shape already there: an
+   * object labelled already is not offered again.
+   */
+  const addShapes = useCallback((name, shapes, replaceAuto) => {
+    setImages((list) => list.map((image) => {
+      if (image.name !== name) return image;
+      const kept = replaceAuto ? image.shapes.filter((shape) => !shape.auto) : image.shapes;
+      const fresh = replaceAuto
+        ? shapes.filter((shape) => !kept.some((other) => overlapOf(boundsOf(shape), boundsOf(other)) > 0.7))
+        : shapes;
+      return { ...image, visited: true, shapes: [...kept, ...fresh] };
+    }));
+  }, []);
+
+  const shapeKindRef = useRef('box');
+
+  const askSam = useCallback(async (prompt) => {
+    if (!current || samBusy) return;
+    const { name, file } = current;
+    const auto = prompt.mode === 'auto';
+    setSamBusy(auto ? 'auto' : 'prompt');
+    try {
+      const result = await samSegment(file, prompt);
+      const shapes = result.regions.map((region) => regionToShape(region, shapeKindRef.current, classId, auto));
+      if (!shapes.length) {
+        message.info(t('samNothingFound'));
+        return;
+      }
+      addShapes(name, shapes, auto);
+      if (auto) message.success(t('samFound', { count: shapes.length, seconds: result.took }));
+      else setSelectedId(shapes[0].id);
+    } catch (error) {
+      message.error(error.response?.data?.message || t('samFailed'));
+    } finally {
+      setSamBusy('');
+    }
+  }, [current, samBusy, classId, addShapes, t]);
+
   const go = useCallback((delta) => {
     setIndex((position) => Math.min(images.length - 1, Math.max(0, position + delta)));
     setSelectedId(null);
@@ -222,11 +304,11 @@ export default function LabelingTool() {
       // 1-9 pick a class, which is the shortcut that actually saves time when
       // there are several and every shape needs one.
       const digit = Number(event.key);
-      if (digit >= 1 && digit <= 9 && digit <= classes.length) setClassId(digit - 1);
+      if (digit >= 1 && digit <= 9 && digit <= classes.length) pickClass(digit - 1);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [go, classes.length]);
+  }, [go, classes.length, pickClass]);
 
   const addClass = () => {
     const name = newClass.trim();
@@ -325,7 +407,9 @@ export default function LabelingTool() {
   };
 
   const shapeKind = shapeForTask(task);
+  shapeKindRef.current = shapeKind;
   const activeTask = TASKS.find((option) => option.value === task);
+  const unreviewed = current ? current.shapes.filter((shape) => shape.auto).length : 0;
 
   return (
     <Row gutter={[16, 16]}>
@@ -396,7 +480,7 @@ export default function LabelingTool() {
               renderItem={(name, position) => (
                 <List.Item
                   className={position === classId ? 'yolo-class is-active' : 'yolo-class'}
-                  onClick={() => setClassId(position)}
+                  onClick={() => pickClass(position)}
                   actions={[
                     <Button
                       key="remove"
@@ -431,6 +515,43 @@ export default function LabelingTool() {
         >
           {current ? (
             <>
+              <Space wrap style={{ marginBottom: 12 }}>
+                <Tooltip title={sam.available ? t('samClickTip') : sam.message}>
+                  <Button
+                    type={samMode ? 'primary' : 'default'}
+                    icon={samBusy === 'prompt' ? <LoadingOutlined /> : <AimOutlined />}
+                    disabled={!sam.available}
+                    onClick={() => { setSamMode((value) => !value); setSelectedId(null); }}
+                  >
+                    {t('samClick')}
+                  </Button>
+                </Tooltip>
+                <Tooltip title={sam.available ? t('samDetectTip') : sam.message}>
+                  <Button
+                    icon={samBusy === 'auto' ? <LoadingOutlined /> : <ScanOutlined />}
+                    disabled={!sam.available || Boolean(samBusy)}
+                    onClick={() => askSam({ mode: 'auto' })}
+                  >
+                    {samBusy === 'auto' ? t('samWorking') : t('samDetect')}
+                  </Button>
+                </Tooltip>
+                {unreviewed > 0 && (
+                  <>
+                    <Button
+                      icon={<CheckOutlined />}
+                      onClick={() => setShapes(current.shapes.map((shape) => (shape.auto ? { ...shape, auto: undefined } : shape)))}
+                    >
+                      {t('samKeepAll', { count: unreviewed })}
+                    </Button>
+                    <Button
+                      danger
+                      onClick={() => { setShapes(current.shapes.filter((shape) => !shape.auto)); setSelectedId(null); }}
+                    >
+                      {t('samDiscard', { count: unreviewed })}
+                    </Button>
+                  </>
+                )}
+              </Space>
               <div className="yolo-stage">
                 <LabelCanvas
                   imageUrl={imageUrl}
@@ -442,6 +563,8 @@ export default function LabelingTool() {
                   onSelect={setSelectedId}
                   onChange={setShapes}
                   onImageLoaded={onImageLoaded}
+                  samMode={samMode && sam.available}
+                  onSamPrompt={askSam}
                 />
               </div>
 
@@ -483,7 +606,7 @@ export default function LabelingTool() {
                 style={{ marginTop: 12 }}
                 type="info"
                 showIcon
-                message={shapeKind === 'box' ? t('boxHelp') : t('polygonHelp')}
+                message={samMode ? t('samClickHelp') : `${shapeKind === 'box' ? t('boxHelp') : t('polygonHelp')} ${t('changeClassHelp')}`}
               />
             </>
           ) : (
@@ -521,7 +644,9 @@ export default function LabelingTool() {
                   <Space>
                     <span className="yolo-swatch" style={{ background: colorForClass(shape.classId) }} />
                     <span>{classes[shape.classId] || `class ${shape.classId}`}</span>
-                    <Tag>{shape.type === 'box' ? t('box') : t('polygonPoints', { count: shape.points.length })}</Tag>
+                    {shape.auto
+                      ? <Tag color="gold">{t('samUnreviewed')}</Tag>
+                      : <Tag>{shape.type === 'box' ? t('box') : t('polygonPoints', { count: shape.points.length })}</Tag>}
                   </Space>
                 </List.Item>
               )}

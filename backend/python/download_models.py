@@ -9,6 +9,7 @@ to an offline machine.
     python download_models.py en-ja=Helsinki-NLP/opus-mt-en-jap
     python download_models.py m2m100
     python download_models.py yolo26n yolo26n-seg whisper-tiny
+    python download_models.py sam2.1_t
     python download_models.py paddleocr
     python download_models.py supertonic-3
     python download_models.py --list
@@ -27,6 +28,10 @@ For the YOLO and Speech to Text tools: "yolo26n" / "yolo26n-seg" (or any other
 Ultralytics weights name, e.g. "yolo11s") fetch detection / segmentation
 weights from Ultralytics' GitHub releases (AGPL-3.0), and "whisper-tiny" (or
 whisper-base, whisper-small) fetches OpenAI's Whisper speech-recognition model.
+"sam2.1_t" (about 80 MB; also sam2.1_s, sam2.1_b, sam2.1_l, larger and more
+exact) fetches Meta's SAM 2.1 (Segment Anything, Apache-2.0) from the same
+releases: on the YOLO Labelling tab it outlines the object clicked on, or
+finds every region in an image. The first one on disk is used.
 
 For Speaker recognition: "ecapa" fetches SpeechBrain's ECAPA-TDNN speaker
 embedding model (speechbrain/spkrec-ecapa-voxceleb, Apache-2.0, about 90 MB).
@@ -143,6 +148,8 @@ OCR_ONNX = {
     "SLANet_plus": ("RapidTable/resolve/v2.0.0/slanet-plus.onnx", 7758305),
 }
 YOLO_NAME = re.compile(r"yolo[0-9a-z]*[nsmlx](-seg)?")
+SAM_NAME = re.compile(r"sam2(\.1)?_[tsbl]")
+SAM_SIZES = {"t": "tiny", "s": "small", "b": "base", "l": "large"}
 GGML_REPO = "ggerganov/whisper.cpp"
 GGML_NAME = re.compile(r"ggml-(tiny|base|small|medium)(\.en)?")
 YOLO_RELEASES = "https://api.github.com/repos/ultralytics/assets/releases"
@@ -238,7 +245,7 @@ def multilingual_languages(folder):
 
 def download(spec):
     name, _, repo = spec.partition("=")
-    if YOLO_NAME.fullmatch(name):
+    if YOLO_NAME.fullmatch(name) or SAM_NAME.fullmatch(name):
         return fetch_yolo(name)
     if GGML_NAME.fullmatch(name):
         return fetch_ggml(name)
@@ -272,11 +279,11 @@ def yolo_asset(name):
         for asset in release.get("assets", []):
             if asset.get("name") == f"{name}.pt":
                 return asset["browser_download_url"], asset.get("size")
-    raise SystemExit(f"{name}.pt is not in Ultralytics' recent releases. Check the name, e.g. yolo26n or yolo11s-seg.")
+    raise SystemExit(f"{name}.pt is not in Ultralytics' recent releases. Check the name, e.g. yolo26n, yolo11s-seg or sam2.1_t.")
 
 
 def fetch_yolo(name):
-    """Ultralytics weights: one .pt file, for detection or (-seg) segmentation."""
+    """Ultralytics weights: one .pt file, for detection or (-seg) segmentation, or SAM 2 (task "sam")."""
     folder = os.path.join(BASE_DIR, name)
     meta = read_meta(folder)
     if meta.get("complete") and meta.get("files") and not model_problems(folder):
@@ -288,15 +295,16 @@ def fetch_yolo(name):
     destination = os.path.join(folder, f"{name}.pt")
     if not (os.path.exists(destination) and os.path.getsize(destination) == size and not weights_problem(destination)):
         fetch_url(url, f"{name}.pt", destination, size)
+    sam = SAM_NAME.fullmatch(name)
     write_meta(folder, {
         **meta,
         "id": name,
         "kind": "base",
-        "task": "detection",
-        "yoloTask": "segment" if name.endswith("-seg") else "detect",
-        "name": f"Ultralytics {name}",
+        **({"task": "sam", "name": f"SAM {'2.1' if sam.group(1) else '2'} {SAM_SIZES[name[-1]]}", "licence": "Apache-2.0"}
+           if sam else
+           {"task": "detection", "yoloTask": "segment" if name.endswith("-seg") else "detect",
+            "name": f"Ultralytics {name}", "licence": "AGPL-3.0"}),
         "repo": f"ultralytics:{name}",
-        "licence": "AGPL-3.0",
         "complete": True,
         "files": {f"{name}.pt": size},
         "downloadedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -511,7 +519,7 @@ def main():
     parser.add_argument("pairs", nargs="*",
                         help="en-es, en-ja=Helsinki-NLP/opus-mt-en-jap, m2m100, yolo26n, yolo26n-seg, whisper-tiny, "
                              "ggml-tiny, ggml-base, ecapa, paddleocr, paddleocr-server, supertonic-3, moonshine-tiny, "
-                             "moonshine-base, moonshine-tiny-ko")
+                             "moonshine-base, moonshine-tiny-ko, sam2.1_t")
     parser.add_argument("--list", action="store_true", help="show the models already on disk")
     parser.add_argument("--verify", action="store_true", help="check the models on disk for damaged files")
     parser.add_argument("--repair", action="store_true", help="with --verify: re-download damaged files")
