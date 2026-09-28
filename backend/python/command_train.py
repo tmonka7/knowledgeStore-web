@@ -23,7 +23,7 @@ import random
 import time
 
 from command_common import (
-    DEFAULT_THRESHOLD, MAX_SECONDS, SAMPLE_RATE, inputs_for, label_ids, load_command_clips, load_moonshine, match,
+    DEFAULT_THRESHOLD, MAX_SECONDS, SAMPLE_RATE, command_loss, inputs_for, label_ids, load_command_clips, load_moonshine, match,
     read_commands, transcribe,
 )
 from ks_common import check_model, describe_device, emit, fail, go_offline, pick_device, read_meta
@@ -165,8 +165,8 @@ def main():
         running, seen = 0.0, 0
         for chunk in batches(training, args.batch_size):
             samples = [audio[path] if args.no_augment else augment(audio[path], rng) for path, _, _ in chunk]
-            loss = model(**inputs_for(processor, samples, device),
-                         labels=label_ids(processor, model, [text for _, text, _ in chunk], device)).loss
+            loss = command_loss(model, inputs_for(processor, samples, device),
+                                label_ids(processor, model, [text for _, text, _ in chunk], device))
             if not torch.isfinite(loss):
                 fail(f"Training diverged at epoch {epoch}, step {step + 1} (the loss is {loss.item()}). "
                      "Nothing was saved. Try a lower learning rate.")
@@ -191,8 +191,8 @@ def main():
             total, count = 0.0, 0
             with torch.no_grad():
                 for chunk in batches(validation, args.batch_size):
-                    total += model(**inputs_for(processor, [audio[path] for path, _, _ in chunk], device),
-                                   labels=label_ids(processor, model, [text for _, text, _ in chunk], device)).loss.item()
+                    total += command_loss(model, inputs_for(processor, [audio[path] for path, _, _ in chunk], device),
+                                          label_ids(processor, model, [text for _, text, _ in chunk], device)).item()
                     count += 1
             entry["validationLoss"] = round(total / count, 4)
         history.append(entry)

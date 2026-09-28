@@ -209,3 +209,24 @@ def label_ids(processor, model, texts, device):
         rows.append(ids + [end])
     width = max(len(row) for row in rows)
     return torch.tensor([row + [-100] * (width - len(row)) for row in rows], device=device)
+
+
+def command_loss(model, inputs, labels):
+    """The training loss: cross-entropy of each next token, with -100 ignored.
+
+    Computed here rather than by passing labels to the model: transformers
+    4.5x's Moonshine takes them for a causal language model and shifts them a
+    second time, so its loss scores every token against the one after it —
+    about 10 for a model that is right every time — and training on it
+    unlearns the model. The decoder is fed the labels shifted right once,
+    after the start token, as generate() feeds it.
+    """
+    import torch
+    import torch.nn.functional as F
+
+    decoder_input_ids = torch.cat([
+        torch.full_like(labels[:, :1], model.config.decoder_start_token_id),
+        labels[:, :-1].masked_fill(labels[:, :-1] == -100, model.config.pad_token_id or model.config.eos_token_id),
+    ], dim=1)
+    logits = model(**inputs, decoder_input_ids=decoder_input_ids).logits
+    return F.cross_entropy(logits.reshape(-1, logits.shape[-1]).float(), labels.reshape(-1), ignore_index=-100)
