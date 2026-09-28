@@ -135,6 +135,31 @@ def load_command_clips(data):
     return clips
 
 
+def processor_from_files(folder):
+    """Moonshine's processor built from tokenizer.json and preprocessor_config.json.
+
+    For a folder AutoProcessor cannot read: transformers 5 saves the tokenizer
+    class as "TokenizersBackend", which transformers 4 does not know, and it
+    then falls back to a tokenizer that needs a vocab file Moonshine has not
+    got. tokenizer.json holds the whole tokenizer in either version.
+    """
+    from transformers import PreTrainedTokenizerFast, Wav2Vec2FeatureExtractor, Wav2Vec2Processor
+
+    tokenizer_file = os.path.join(folder, "tokenizer.json")
+    if not os.path.exists(tokenizer_file):
+        fail(f"The model in {folder} has no tokenizer.json, and transformers cannot read its tokenizer.")
+    try:
+        with open(os.path.join(folder, "tokenizer_config.json"), encoding="utf-8") as handle:
+            config = json.load(handle)
+    except (OSError, ValueError):
+        config = {}
+    special = {key: config[key] for key in ("bos_token", "eos_token", "unk_token", "pad_token")
+               if isinstance(config.get(key), str)}
+    tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_file, clean_up_tokenization_spaces=False, **special)
+    feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(folder, local_files_only=True)
+    return Wav2Vec2Processor(feature_extractor=feature_extractor, tokenizer=tokenizer)
+
+
 def load_moonshine(folder, device):
     """(processor, model) for a Moonshine folder, in float32 and eval mode."""
     try:
@@ -142,8 +167,11 @@ def load_moonshine(folder, device):
     except ImportError as error:
         fail(f"{getattr(error, 'name', None) or error} is not installed, or transformers is too old for "
              "Moonshine (4.48 or later). Run: pip install -r backend/python/requirements.txt")
-    processor = AutoProcessor.from_pretrained(folder, local_files_only=True)
-    model = MoonshineForConditionalGeneration.from_pretrained(folder, local_files_only=True).float().to(device).eval()
+    try:
+        processor = AutoProcessor.from_pretrained(folder, local_files_only=True)
+    except (ValueError, TypeError, OSError):
+        processor = processor_from_files(folder)
+    model =MoonshineForConditionalGeneration.from_pretrained(folder, local_files_only=True).float().to(device).eval()
     return processor, model
 
 
