@@ -32,6 +32,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 
 from ks_common import check_model, emit, fail, read_meta
 
@@ -42,6 +43,13 @@ MAX_TOKENS_PER_SECOND = 6.5
 # with the layer count, key/value heads and head size it expects.
 ARCHES = {"TINY": (6, 8, 36), "BASE": (8, 8, 52)}
 FILES = ("encoder_model.ort", "decoder_model_merged.ort", "tokenizer.bin")
+STEP = {"now": "starting"}
+
+
+def step(message):
+    """Tell the page what is happening, and remember it for an error message."""
+    STEP["now"] = message[0].lower() + message[1:]
+    emit("status", message=message)
 
 
 # ------------------------------------------------------------------ tokenizer
@@ -123,6 +131,19 @@ def tokens_to_text(table, tokens):
 
 # ------------------------------------------------------------------- convert
 
+def where(error):
+    """Where an error came from: this script's last line on the way, and the
+    library frame that raised it — the page shows only the message otherwise."""
+    frames = traceback.extract_tb(error.__traceback__)
+    ours = [frame for frame in frames if os.path.basename(frame.filename) == os.path.basename(__file__)]
+    parts = [f"{frame.name}, line {frame.lineno}" for frame in ours[-1:]]
+    if frames and frames[-1] not in ours[-1:]:
+        last = frames[-1]
+        library = last.filename.replace("\\", "/").split("site-packages/")[-1]
+        parts.append(f"{library}:{last.lineno} in {last.name}")
+    return " <- ".join(reversed(parts))
+
+
 def run_quietly(command):
     """Run a converter command; on failure, its last lines are the error."""
     done = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
@@ -146,7 +167,7 @@ def export_onnx(model_dir, work, precision):
     raw = os.path.join(work, "onnx")
     final = os.path.join(work, "final")
     os.makedirs(final)
-    emit("status", message="Exporting to ONNX with Optimum")
+    step("Exporting to ONNX with Optimum")
     quietly(lambda: main_export(model_name_or_path=model_dir, output=raw, task="automatic-speech-recognition-with-past",
                                 device="cpu", do_validation=False, local_files_only=True))
     if precision == "float32":
@@ -159,7 +180,7 @@ def export_onnx(model_dir, work, precision):
     from onnxruntime.quantization import QuantType, quantize_dynamic
     from optimum.onnx import merge_decoders
 
-    emit("status", message="Quantising to int8")
+    step("Quantising to int8")
     quantised = os.path.join(work, "int8")
     os.makedirs(quantised)
     quietly(lambda: quantize_dynamic(os.path.join(raw, "encoder_model.onnx"), os.path.join(final, "encoder_model.onnx"),
@@ -175,7 +196,7 @@ def export_onnx(model_dir, work, precision):
 
 def to_ort(final, out):
     """The .ort files, optimised once for any CPU (the runtime loads them without re-optimising)."""
-    emit("status", message="Converting to ORT format")
+    step("Converting to ORT format")
     run_quietly([sys.executable, "-m", "onnxruntime.tools.convert_onnx_models_to_ort", final,
                  "--optimization_style", "Fixed"])
     for name in FILES[:2]:
@@ -351,16 +372,18 @@ def main():
     try:
         raw, final = export_onnx(args.model, work, args.precision)
         to_ort(final, args.output)
+        step("Writing tokenizer.bin")
         vocab = write_tokenizer_bin(find_tokenizer_json(args.model, raw, work), os.path.join(args.output, "tokenizer.bin"))
         commands = os.path.join(args.model, "commands.json")
         if os.path.exists(commands):
             shutil.copyfile(commands, os.path.join(args.output, "commands.json"))
-        emit("status", message="Checking the exported model")
+        step("Checking the exported model")
         result = check(args, args.output, arch, layers, heads, head_size)
     except SystemExit:
         raise
     except Exception as error:  # noqa: BLE001 — reported to the page
-        fail(f"ORT export failed: {str(error)[:600]}")
+        traceback.print_exc()  # into the job's log
+        fail(f"ORT export failed while {STEP['now']}: {str(error)[:500]} ({where(error)})")
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -375,7 +398,7 @@ def main():
             if os.path.exists(commands) else "",
             command_help=COMMAND_HELP if os.path.exists(commands) else ""))
 
-    emit("status", message="Creating the zip")
+    step("Creating the zip")
     archive = shutil.make_archive(args.output, "zip", args.output)
     emit("done", method="optimum+ort", precision=args.precision, arch=arch, files=sorted(os.listdir(args.output)),
          archive=os.path.basename(archive), bytes=os.path.getsize(archive), check=result,
