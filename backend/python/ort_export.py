@@ -73,6 +73,27 @@ def write_tokenizer_bin(tokenizer_json, path):
     return len(pieces)
 
 
+def find_tokenizer_json(model_dir, raw, work):
+    """The model's tokenizer.json: its own, else the one Optimum saved (it
+    skips it quietly when it cannot load the tokenizer), else one written by
+    transformers' fast tokenizer from whatever tokenizer files the folder has."""
+    for folder in (model_dir, raw):
+        path = os.path.join(folder, "tokenizer.json")
+        if os.path.exists(path):
+            return path
+    from transformers import AutoTokenizer
+
+    folder = os.path.join(work, "tokenizer")
+    try:
+        AutoTokenizer.from_pretrained(model_dir, local_files_only=True, use_fast=True).save_pretrained(folder)
+    except Exception as error:  # noqa: BLE001 — explained below
+        raise RuntimeError(f"the model folder has no tokenizer.json and its tokenizer could not be loaded ({error})") from error
+    path = os.path.join(folder, "tokenizer.json")
+    if not os.path.exists(path):
+        raise RuntimeError("the model folder has no tokenizer.json, and its tokenizer has no fast (JSON) form")
+    return path
+
+
 def read_tokenizer_bin(path):
     """The token byte strings in tokenizer.bin, as BinTokenizer reads them."""
     with open(path, "rb") as handle:
@@ -330,7 +351,7 @@ def main():
     try:
         raw, final = export_onnx(args.model, work, args.precision)
         to_ort(final, args.output)
-        vocab = write_tokenizer_bin(os.path.join(raw, "tokenizer.json"), os.path.join(args.output, "tokenizer.bin"))
+        vocab = write_tokenizer_bin(find_tokenizer_json(args.model, raw, work), os.path.join(args.output, "tokenizer.bin"))
         commands = os.path.join(args.model, "commands.json")
         if os.path.exists(commands):
             shutil.copyfile(commands, os.path.join(args.output, "commands.json"))
