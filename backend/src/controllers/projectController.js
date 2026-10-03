@@ -55,15 +55,21 @@ const summarise = (project, counts = {}) => {
   const total = TASK_STATUSES.reduce((sum, status) => sum + (counts[status] || 0), 0);
   const done = DONE_STATUSES.reduce((sum, status) => sum + (counts[status] || 0), 0);
   const computed = total ? Math.round((done / total) * 100) : 0;
+  // Every task sitting in Closed is the project finished, including when a
+  // manual figure was saved earlier and would otherwise keep the old percent.
+  const allClosed = total > 0 && (counts.closed || 0) === total;
+  const manual = !allClosed
+    && project.progressOverride !== null
+    && project.progressOverride !== undefined;
 
   return {
     ...asPlain(project),
     taskCounts: TASK_STATUSES.reduce((all, status) => ({ ...all, [status]: counts[status] || 0 }), {}),
     taskTotal: total,
-    taskDone: done,
-    computedProgress: computed,
-    progress: project.progressOverride ?? computed,
-    isProgressManual: project.progressOverride !== null && project.progressOverride !== undefined,
+    taskDone: allClosed ? total : done,
+    computedProgress: allClosed ? 100 : computed,
+    progress: manual ? project.progressOverride : (allClosed ? 100 : computed),
+    isProgressManual: manual,
   };
 };
 

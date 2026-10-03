@@ -99,8 +99,14 @@ export default function ProjectDetailPage({ user, projectId, members = [], onRef
   }), {}), [tasks]);
 
   const doneCount = (counts.verified || 0) + (counts.closed || 0);
-  const computedProgress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
-  const progress = project?.isProgressManual ? project.progressOverride : computedProgress;
+  const allClosed = tasks.length > 0 && tasks.every((task) => task.status === 'closed');
+  const computedProgress = allClosed
+    ? 100
+    : (tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0);
+  // A manual percent must not stay on screen once every task has been closed.
+  const progress = allClosed
+    ? 100
+    : (project?.isProgressManual ? project.progressOverride : computedProgress);
 
   const openTask = tasks.find((task) => task.id === openTaskId) || null;
 
@@ -255,7 +261,7 @@ export default function ProjectDetailPage({ user, projectId, members = [], onRef
           icon={<CheckCircleOutlined />}
           label="Progress"
           value={`${progress}%`}
-          meta={project.isProgressManual ? 'Tracked manually' : 'Counted from the board'}
+          meta={allClosed ? 'Every task is closed' : (project.isProgressManual ? 'Tracked manually' : 'Counted from the board')}
         />
       </div>
 
@@ -263,7 +269,7 @@ export default function ProjectDetailPage({ user, projectId, members = [], onRef
         <div className="vision-panel-head">
           <h3 className="vision-section-title">Progress</h3>
           <span className="vision-cell-muted">
-            {doneCount} of {tasks.length} done{project.isProgressManual ? ' · progress is set manually' : ''}
+            {allClosed ? tasks.length : doneCount} of {tasks.length} done{allClosed ? '' : (project.isProgressManual ? ' · progress is set manually' : '')}
           </span>
         </div>
         <Progress percent={progress} strokeColor={project.color} />
