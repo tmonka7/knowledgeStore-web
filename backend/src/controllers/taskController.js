@@ -8,9 +8,9 @@ import {
   recordActivity,
 } from '../models/taskModel.js';
 import {
+  BOARD_STATUSES,
   RESOLUTIONS,
   TASK_PRIORITIES,
-  TASK_STATUSES,
   TASK_TYPES,
   canTransition,
   nextStatuses,
@@ -152,9 +152,8 @@ export const deleteTask = async (req, res) => {
  * POST /projects/:projectId/tasks/:taskId/transition
  *
  * The workflow gate. An illegal move is refused with the moves that *are*
- * legal, so a stale board can correct itself instead of guessing — and
- * resolving without a resolution, or reopening without a reason, is refused
- * for the same reason the verify step exists at all.
+ * legal, so a stale board can correct itself instead of guessing. Any board
+ * column is legal; reopen is not a destination.
  */
 export const transitionTask = async (req, res) => {
   const project = await loadProject(req, res);
@@ -166,8 +165,8 @@ export const transitionTask = async (req, res) => {
   const note = String(req.body?.note || '').trim();
   const resolution = String(req.body?.resolution || '').trim();
 
-  if (!TASK_STATUSES.includes(to)) {
-    return res.status(400).json({ message: `Status must be one of ${TASK_STATUSES.join(', ')}.` });
+  if (!BOARD_STATUSES.includes(to)) {
+    return res.status(400).json({ message: `Status must be one of ${BOARD_STATUSES.join(', ')}.` });
   }
   if (to === task.status) {
     return res.status(400).json({ message: `This task is already ${to.replace('_', ' ')}.` });
@@ -178,11 +177,8 @@ export const transitionTask = async (req, res) => {
       allowed: nextStatuses(task.status),
     });
   }
-  if (to === 'resolved' && !RESOLUTIONS.includes(resolution)) {
+  if (to === 'resolved' && resolution && !RESOLUTIONS.includes(resolution)) {
     return res.status(400).json({ message: `Choose a resolution: ${RESOLUTIONS.join(', ')}.` });
-  }
-  if (to === 'reopened' && !note) {
-    return res.status(400).json({ message: 'Say why verification failed before reopening.' });
   }
 
   const actor = actorOf(req);
@@ -190,23 +186,13 @@ export const transitionTask = async (req, res) => {
   task.status = to;
 
   if (to === 'resolved') {
-    task.resolution = resolution;
+    if (RESOLUTIONS.includes(resolution)) task.resolution = resolution;
     task.resolvedById = actor.id;
     task.resolvedAt = new Date();
   }
   if (to === 'verified') {
     task.verifiedById = actor.id;
     task.verifiedAt = new Date();
-  }
-  if (to === 'reopened') {
-    // The previous resolution did not hold, so it is cleared rather than left
-    // to describe a fix that was rejected.
-    task.resolution = '';
-    task.resolvedById = '';
-    task.resolvedAt = null;
-    task.verifiedById = '';
-    task.verifiedAt = null;
-    task.reopenCount += 1;
   }
 
   recordActivity(task, {

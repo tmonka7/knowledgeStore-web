@@ -271,7 +271,7 @@ export default function ProjectDetailPage({ user, projectId, members = [], onRef
           {STATUS_COLUMNS.map((column) => (
             <span key={column.key}>
               <StatusBadge tone={column.tone}>{column.label}</StatusBadge>
-              <strong>{counts[column.key] || 0}</strong>
+              <strong>{(counts[column.key] || 0) + (column.key === 'open' ? (counts.reopened || 0) : 0)}</strong>
             </span>
           ))}
         </div>

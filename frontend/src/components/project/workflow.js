@@ -1,49 +1,43 @@
 /*
  * Mirrors backend/src/helpers/taskWorkflow.js.
  *
- * The copy exists so the board can grey out a column a card cannot be dropped
- * on, and so the drawer only offers the moves that will be accepted. The API
- * re-checks every one of them: this file shapes the UI, it does not decide.
+ * A card may move to any other column. Reopen is not a column and not a
+ * destination: a task already in that status can still be moved onto the
+ * board. The API re-checks the destination.
  */
 export const STATUS_COLUMNS = [
   { key: 'open', label: 'Open', tone: 'grey', hint: 'Reported, not picked up yet' },
   { key: 'in_progress', label: 'In Progress', tone: 'blue', hint: 'Someone is working on it' },
   { key: 'resolved', label: 'Resolved', tone: 'violet', hint: 'Waiting for verification' },
   { key: 'verified', label: 'Verified', tone: 'green', hint: 'Checked by someone else' },
-  { key: 'reopened', label: 'Reopened', tone: 'red', hint: 'Verification failed' },
   { key: 'closed', label: 'Closed', tone: 'cyan', hint: 'Done and filed away' },
 ];
 
-export const STATUS_LABEL = Object.fromEntries(STATUS_COLUMNS.map((column) => [column.key, column.label]));
-export const STATUS_TONE = Object.fromEntries(STATUS_COLUMNS.map((column) => [column.key, column.tone]));
-
-const TRANSITIONS = {
-  open: ['in_progress', 'resolved', 'closed'],
-  in_progress: ['resolved', 'open', 'closed'],
-  resolved: ['verified', 'reopened'],
-  verified: ['closed', 'reopened'],
-  reopened: ['in_progress', 'resolved', 'closed'],
-  closed: ['reopened'],
+export const STATUS_LABEL = {
+  ...Object.fromEntries(STATUS_COLUMNS.map((column) => [column.key, column.label])),
+  reopened: 'Reopened',
+};
+export const STATUS_TONE = {
+  ...Object.fromEntries(STATUS_COLUMNS.map((column) => [column.key, column.tone])),
+  reopened: 'red',
 };
 
-export const nextStatuses = (status) => TRANSITIONS[status] || [];
+const columnKeys = STATUS_COLUMNS.map((column) => column.key);
 
-export const canTransition = (from, to) => nextStatuses(from).includes(to);
+export const nextStatuses = (status) => columnKeys.filter((key) => key !== status);
+
+export const canTransition = (from, to) => from !== to && columnKeys.includes(to);
 
 export const TRANSITION_LABEL = {
   open: 'Move back to open',
   in_progress: 'Start work',
   resolved: 'Resolve',
   verified: 'Verify',
-  reopened: 'Reopen',
   closed: 'Close',
 };
 
-/** A resolution is required to resolve; a reason is required to reopen. */
-export const transitionNeeds = (to) => ({
-  resolved: 'resolution',
-  reopened: 'note',
-}[to] || '');
+/** Moving no longer asks for a resolution or a reason before the status changes. */
+export const transitionNeeds = () => '';
 
 export const RESOLUTIONS = [
   { value: 'fixed', label: 'Fixed' },

@@ -96,9 +96,8 @@ function TaskCard({ task, assignee, onOpen, onDragStart, onDragEnd, draggable })
 /**
  * The board.
  *
- * Dragging is gated by the same transition table the API enforces: while a
- * card is held, columns it cannot legally reach stop accepting the drop and
- * dim, so the workflow is visible rather than discovered through an error.
+ * A card can be dropped on any other column. Tasks left in the old reopened
+ * status sit in Open until someone moves them.
  */
 export default function TaskBoard({ tasks, members = [], canEdit, onOpenTask, onMove }) {
   const [draggingTask, setDraggingTask] = useState(null);
@@ -107,7 +106,7 @@ export default function TaskBoard({ tasks, members = [], canEdit, onOpenTask, on
   const memberById = new Map(members.map((member) => [member.id, member]));
 
   const columnTasks = (status) => tasks
-    .filter((task) => task.status === status)
+    .filter((task) => task.status === status || (status === 'open' && task.status === 'reopened'))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return (

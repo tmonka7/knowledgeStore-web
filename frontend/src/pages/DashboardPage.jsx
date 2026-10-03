@@ -658,6 +658,9 @@ export default function DashboardPage({
               <Col span={12}>
                 <Form.Item name="categoryId" label={t('category')} rules={[{ required: true }]}>
                   <TreeSelect
+                    showSearch
+                    treeNodeFilterProp="title"
+                    filterTreeNode={(input, node) => String(node.title || '').toLowerCase().includes(input.trim().toLowerCase())}
                     treeData={categoryTreeData(categories)}
                     treeDefaultExpandAll
                     placeholder={t('selectCategory')}
