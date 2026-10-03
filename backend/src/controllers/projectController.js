@@ -24,6 +24,7 @@ const projectFields = (body = {}) => ({
   startDate: String(body.startDate || '').trim(),
   dueDate: String(body.dueDate || '').trim(),
   memberIds: Array.isArray(body.memberIds) ? [...new Set(body.memberIds.map(String))] : [],
+  architectIds: Array.isArray(body.architectIds) ? [...new Set(body.architectIds.map(String).filter(Boolean))] : [],
   progressOverride: body.progressOverride === null || body.progressOverride === undefined || body.progressOverride === ''
     ? null
     : Math.min(100, Math.max(0, Number(body.progressOverride) || 0)),
@@ -41,6 +42,9 @@ const validate = (project) => {
   if (project.dueDate && !isDateKey(project.dueDate)) return 'Due date must be YYYY-MM-DD.';
   if (project.startDate && project.dueDate && project.dueDate < project.startDate) {
     return 'Due date cannot be before the start date.';
+  }
+  if (!project.architectIds.length) {
+    return 'A dedicated architecture team is required. Choose at least one person to design the architecture.';
   }
   return '';
 };

@@ -263,6 +263,14 @@ export default function ProjectsPage({ user }) {
               </header>
 
               <p className="project-card-desc">{project.description || 'No description yet.'}</p>
+              <p className="project-card-team">
+                <span>Architecture</span>
+                {(project.architectIds || []).length
+                  ? (project.architectIds || [])
+                    .map((id) => members.find((member) => member.id === id)?.fullName || 'Someone')
+                    .join(', ')
+                  : 'Team required'}
+              </p>
 
               <div className="project-card-progress">
                 <div className="project-card-progress-head">

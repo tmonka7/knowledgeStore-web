@@ -96,7 +96,10 @@ export const describeUserFootprint = async (userId) => {
     Meeting.countDocuments({ hostId: userId }),
     MeetingMessage.countDocuments({ senderId: userId }),
     Project.countDocuments({ ownerId: userId }),
-    Project.countDocuments({ memberIds: userId, ownerId: { $ne: userId } }),
+    Project.countDocuments({
+      ownerId: { $ne: userId },
+      $or: [{ memberIds: userId }, { architectIds: userId }],
+    }),
     Task.countDocuments({ $or: [{ assigneeId: userId }, { reporterId: userId }] }),
     ActivityLog.countDocuments({ actorId: userId }),
     Speaker.countDocuments({ ownerId: userId }),
@@ -236,6 +239,7 @@ const destroyMeetings = async (userId, files) => {
 const releaseProjects = async (userId, newOwnerId) => {
   await Project.updateMany({ ownerId: userId }, { $set: { ownerId: newOwnerId } });
   await Project.updateMany({ memberIds: userId }, { $pull: { memberIds: userId } });
+  await Project.updateMany({ architectIds: userId }, { $pull: { architectIds: userId } });
 
   // An unassigned task is visibly unassigned; a task pointing at an account
   // that no longer exists just renders blank and looks broken.

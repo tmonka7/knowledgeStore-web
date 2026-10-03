@@ -28,6 +28,7 @@ export default function ProjectFormModal({ open, project, members = [], saving, 
         startDate: null,
         dueDate: null,
         memberIds: [],
+        architectIds: [],
         manualProgress: false,
         progressOverride: 0,
       });
@@ -107,6 +108,22 @@ export default function ProjectFormModal({ open, project, members = [], saving, 
             mode="multiple"
             allowClear
             placeholder="Add teammates"
+            optionFilterProp="label"
+            options={members.map((member) => ({ value: member.id, label: `${member.fullName} (${member.username})` }))}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="architectIds"
+          label="Architecture team"
+          tooltip="The people who design this project's architecture. They can open the project."
+          rules={[{ required: true, type: 'array', min: 1, message: 'Choose at least one person for the architecture team.' }]}
+        >
+          <Select
+            showSearch
+            mode="multiple"
+            allowClear
+            placeholder="Who will design the architecture"
             optionFilterProp="label"
             options={members.map((member) => ({ value: member.id, label: `${member.fullName} (${member.username})` }))}
           />

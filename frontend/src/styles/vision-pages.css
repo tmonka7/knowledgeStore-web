@@ -1713,6 +1713,21 @@
   -webkit-line-clamp: 2;
 }
 
+.project-card-team,
+.project-architecture {
+  margin: 0;
+  color: var(--v-text-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.project-card-team span,
+.project-architecture span {
+  margin-right: 6px;
+  color: var(--v-text);
+  font-weight: 600;
+}
+
 .project-card-progress {
   display: flex;
   flex-direction: column;

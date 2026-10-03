@@ -15,6 +15,9 @@ const projectSchema = new mongoose.Schema({
   dueDate: { type: String, default: '' },
   ownerId: { type: String, required: true, index: true },
   memberIds: { type: [String], default: [] },
+  // The people who design this project's architecture. Separate from the
+  // general members: a project is not valid without at least one of them.
+  architectIds: { type: [String], default: [] },
   // Progress is normally counted from the tasks; this overrides it when a
   // project is tracked by something the board cannot see. null means "count".
   progressOverride: { type: Number, default: null, min: 0, max: 100 },
@@ -26,17 +29,19 @@ const projectSchema = new mongoose.Schema({
 
 export const Project = mongoose.models.Project || mongoose.model('Project', projectSchema);
 
-/** Owner, member or administrator — the same rule for a project and its tasks. */
+/** Owner, member, architect or administrator — the same rule for a project and its tasks. */
 export const canAccessProject = (project, user) => {
   if (!project || !user) return false;
   if (user.role === 'admin') return true;
-  return project.ownerId === user.sub || (project.memberIds || []).includes(user.sub);
+  return project.ownerId === user.sub
+    || (project.memberIds || []).includes(user.sub)
+    || (project.architectIds || []).includes(user.sub);
 };
 
 export const getProjects = (user) => {
   const filter = user.role === 'admin'
     ? {}
-    : { $or: [{ ownerId: user.sub }, { memberIds: user.sub }] };
+    : { $or: [{ ownerId: user.sub }, { memberIds: user.sub }, { architectIds: user.sub }] };
   return Project.find(filter).sort({ createdAt: -1 });
 };
 

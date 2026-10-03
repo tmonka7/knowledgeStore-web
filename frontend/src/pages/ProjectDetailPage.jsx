@@ -234,6 +234,15 @@ export default function ProjectDetailPage({ user, projectId, members = [], onRef
         )}
       />
 
+      <p className="project-architecture">
+        <span>Architecture team</span>
+        {(project.architectIds || []).length
+          ? project.architectIds
+            .map((id) => members.find((member) => member.id === id)?.fullName || 'Someone')
+            .join(', ')
+          : 'Required — edit the project and choose who will design the architecture.'}
+      </p>
+
       <div className="vision-stat-grid">
         <StatCard
           tone="blue"

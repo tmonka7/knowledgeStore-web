@@ -450,7 +450,7 @@ export default function UsersPage({
               <p><strong>Kept, with this person removed from it:</strong></p>
               <ul className="vision-plain-list">
                 {ownedProjects > 0 && <li>{ownedProjects} project(s) they own — ownership passes to you</li>}
-                {memberProjects > 0 && <li>{memberProjects} project(s) they are a member of</li>}
+                {memberProjects > 0 && <li>{memberProjects} project(s) they are a member or architect of</li>}
                 {assignedTasks > 0 && <li>{assignedTasks} task(s) — unassigned, history kept but anonymised</li>}
               </ul>
             </>
