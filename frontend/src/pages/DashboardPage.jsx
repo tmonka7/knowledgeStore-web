@@ -21,6 +21,8 @@ import {
   CameraOutlined,
   CloudServerOutlined,
   DashboardOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
   MailOutlined,
   MessageOutlined,
   NotificationOutlined,
@@ -165,6 +167,12 @@ export default function DashboardPage({
   onAiSearch,
 }) {
   const { t } = useLanguage();
+  const [recordDetailFullscreen, setRecordDetailFullscreen] = useState(false);
+
+  const closeRecordView = () => {
+    setRecordDetailFullscreen(false);
+    setSelectedRecord(null);
+  };
 
   // Connection status: heartbeats while signed in, and the chooser in the user menu.
   const presence = usePresence();
@@ -576,15 +584,28 @@ export default function DashboardPage({
     >
         <Modal
           open={Boolean(selectedRecord)}
-          title={selectedRecord?.title || 'Record details'}
-          onCancel={() => setSelectedRecord(null)}
+          rootClassName={`record-view-modal${recordDetailFullscreen ? ' is-fullscreen' : ''}`}
+          title={(
+            <div className="record-view-title">
+              <span className="record-view-title-text">{selectedRecord?.title || 'Record details'}</span>
+              <Button
+                type="text"
+                className="record-view-fullscreen-btn"
+                icon={recordDetailFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+                aria-label={recordDetailFullscreen ? t('exitFullscreen') : t('fullscreen')}
+                aria-pressed={recordDetailFullscreen}
+                onClick={() => setRecordDetailFullscreen((current) => !current)}
+              />
+            </div>
+          )}
+          onCancel={closeRecordView}
           footer={[
             <Button key="copy" icon={<CopyOutlined />} onClick={() => selectedRecord && copyHtmlWithStyles(selectedRecord.content, t)}>{t('copyContent')}</Button>,
             <Button key="pdf" onClick={handleExportPdf}>{t('exportPdf')}</Button>,
             <Button key="word" onClick={handleExportWord}>{t('exportWord')}</Button>,
-            <Button key="close" onClick={() => setSelectedRecord(null)}>{t('close')}</Button>,
+            <Button key="close" onClick={closeRecordView}>{t('close')}</Button>,
           ]}
-          width={900}
+          width={recordDetailFullscreen ? '100%' : 900}
         >
           {selectedRecord && (
             <div id="record-detail-export">
@@ -710,6 +731,9 @@ export default function DashboardPage({
               <Col span={12}>
                 <Form.Item name="categoryId" label={t('category')} rules={[{ required: true }]}>
                   <TreeSelect
+                    showSearch
+                    treeNodeFilterProp="title"
+                    filterTreeNode={(input, node) => String(node.title || '').toLowerCase().includes(input.trim().toLowerCase())}
                     treeData={categoryTreeData(categories)}
                     treeDefaultExpandAll
                     placeholder={t('selectCategory')}

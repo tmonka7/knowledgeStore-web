@@ -50,6 +50,56 @@ body {
   max-width: 100%;
 }
 
+.record-view-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline-end: 28px;
+}
+
+.record-view-title-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.record-view-fullscreen-btn.ant-btn {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.record-view-fullscreen-btn.ant-btn:hover {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.record-view-modal.is-fullscreen .ant-modal {
+  top: 0;
+  width: 100% !important;
+  max-width: 100%;
+  margin: 0;
+  padding-bottom: 0;
+}
+
+.record-view-modal.is-fullscreen .ant-modal-wrap {
+  overflow: hidden;
+}
+
+.record-view-modal.is-fullscreen .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  border-radius: 0;
+}
+
+.record-view-modal.is-fullscreen .ant-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
 .html-content p {
   margin: 0 0 12px;
   color: inherit;

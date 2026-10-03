@@ -357,6 +357,7 @@
   <text id="stopDetection" en="Stop Detection" es="Detener deteccion" zh="停止检测" jp="検出を停止" />
   <text id="detectObjects" en="Detect Objects" es="Detectar objetos" zh="检测对象" jp="物体を検出" />
   <text id="fullscreen" en="Fullscreen" es="Pantalla completa" zh="全屏" jp="全画面" />
+  <text id="exitFullscreen" en="Exit fullscreen" es="Salir de pantalla completa" zh="退出全屏" jp="全画面を終了" />
   <text id="openStream" en="Open Stream" es="Abrir transmision" zh="打开流" jp="ストリームを開く" />
   <text id="browserPreviewNeedsHttp" en="Browser preview needs an HTTP or HTTPS stream URL." es="La vista previa del navegador necesita una URL HTTP o HTTPS." zh="浏览器预览需要 HTTP 或 HTTPS 流 URL。" jp="ブラウザーのプレビューにはHTTPまたはHTTPSストリームURLが必要です。" />
   <text id="streamUnavailableOffline" en="Stream unavailable — this camera is not online." es="Transmision no disponible; esta camara no esta en linea." zh="流不可用，此摄像头不在线。" jp="ストリームを利用できません。このカメラはオフラインです。" />
