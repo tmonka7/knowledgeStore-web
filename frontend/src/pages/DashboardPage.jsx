@@ -23,6 +23,7 @@ import {
   DashboardOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
+  FunctionOutlined,
   MailOutlined,
   MessageOutlined,
   NotificationOutlined,
@@ -72,6 +73,7 @@ import PostsPage from './PostsPage';
 import MeetingsPage from './MeetingsPage';
 import DatabasePage from './DatabasePage';
 import ProjectsPage from './ProjectsPage';
+import MathematicsPage from './MathematicsPage';
 
 const { Title, Text } = Typography;
 
@@ -426,6 +428,7 @@ export default function DashboardPage({
       ],
     },
     { key: 'projects', icon: <ProjectOutlined />, label: t('projectManagement') },
+    { key: 'mathematics', icon: <FunctionOutlined />, label: t('mathematics') },
     { key: 'schedule', icon: <CalendarOutlined />, label: t('schedule') },
     {
       key: 'tools',
@@ -908,6 +911,8 @@ export default function DashboardPage({
           {effectiveKey === 'meetings' && <MeetingsPage user={user} directory={directory} />}
 
           {effectiveKey === 'projects' && <ProjectsPage user={user} />}
+
+          {effectiveKey === 'mathematics' && <MathematicsPage />}
 
           {/* Wallet now lives inside My Page, with the account's other personal data. */}
           {effectiveKey === 'my-page' && (

@@ -3831,3 +3831,95 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.math-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.math-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #3d4d66;
+}
+
+.math-hint {
+  margin: 0 0 12px;
+  color: #7b8ba3;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.math-examples,
+.math-toggles,
+.math-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.math-toggles {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.math-plot-frame {
+  width: 100%;
+}
+
+.math-plot {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e6edf7;
+  border-radius: 12px;
+}
+
+.math-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  color: #3d4d66;
+  font-size: 13px;
+}
+
+.math-legend i {
+  display: inline-block;
+  width: 16px;
+  height: 3px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.math-formulas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.math-formula {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: #23314d;
+}
+
+.math-formula span {
+  color: #5b708b;
+}
+
+@media (max-width: 900px) {
+  .math-layout {
+    grid-template-columns: 1fr;
+  }
+}

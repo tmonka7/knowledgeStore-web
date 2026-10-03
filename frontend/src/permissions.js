@@ -26,6 +26,7 @@ export const PAGE_PERMISSIONS = {
   'text-to-speech': { key: 'text-to-speech', action: 'view' },
   'speech-command': { key: 'speech-command', action: 'view' },
   projects: { key: 'projects', action: 'view' },
+  mathematics: { key: 'mathematics', action: 'view' },
   wallet: { key: 'wallet', action: 'view' },
   contacts: { key: 'contacts', action: 'view' },
   posts: { key: 'posts', action: 'view' },

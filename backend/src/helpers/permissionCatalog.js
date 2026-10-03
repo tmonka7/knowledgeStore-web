@@ -35,6 +35,7 @@ export const PERMISSION_CATALOG = [
   // 'train' fine-tunes a Moonshine model, which ties up the server.
   { key: 'speech-command', label: 'Tools / AI / Speech to Command', actions: ['view', 'train'] },
   { key: 'projects', label: 'Project Management', actions: ['view', 'create', 'edit', 'delete'] },
+  { key: 'mathematics', label: 'Mathematics', actions: ['view'] },
   { key: 'wallet', label: 'My Page / Wallet', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'contacts', label: 'My Page / Contacts', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'posts', label: 'Posts', actions: ['view', 'create', 'edit', 'delete'] },
@@ -69,6 +70,7 @@ export const DEFAULT_USER_PERMISSIONS = [
   'projects:view',
   'projects:create',
   'projects:edit',
+  'mathematics:view',
   'wallet:view',
   'wallet:create',
   'wallet:edit',

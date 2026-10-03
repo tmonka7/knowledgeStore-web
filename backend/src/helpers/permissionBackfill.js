@@ -42,6 +42,11 @@ const BACKFILLS = [
     note: 'Text to Speech was added to Tools / AI after these accounts were created. It keeps nothing: the speech is made and sent within the request.',
   },
   {
+    id: 'grant-mathematics-view-2026-10',
+    permissions: ['mathematics:view'],
+    note: 'Mathematics was added after these accounts were created. It plots a function and its derivatives in the browser and stores nothing.',
+  },
+  {
     id: 'grant-speech-command-view-2026-09',
     permissions: ['speech-command:view'],
     note: 'Speech to Command was added to Tools / AI after these accounts were created. Command sets are private to whoever makes them.',
